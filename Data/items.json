@@ -1,6 +1,23 @@
 {
   "items": {
     "_comment_weapon": "════════════════════════════════════════════════════════════  WEAPONS  ════════════════════════════════════════════════════════════",
+    "basic_utility_knife": {
+      "id": "basic_utility_knife",
+      "name": "Basic Utility Knife",
+      "_version": 1,
+      "type": "weapon",
+      "slot": "mainhand",
+      "itemLevel": 1,
+      "weaponType": "dagger",
+      "minDamage": 2,
+      "maxDamage": 4,
+      "weaponSpeed": 1.8,
+      "statBonuses": {},
+      "value": 5,
+      "quality": "common",
+      "tags": ["weapon", "dagger", "starter"],
+      "description": "A plain folding knife, more tool than weapon."
+    },
     "ember_touched_mace": {
       "id": "ember_touched_mace",
       "name": "Ember-Touched Mace",

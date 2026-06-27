@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import abilitiesData from '../../../Data/abilities.json'
 import classesData   from '../../../Data/classes.json'
+import { skillAbilities } from './skillAbilities.js'
 
 const ABILITY_DEFS = abilitiesData.abilities
 const CLASS_DEFS   = classesData.classes
@@ -9,7 +10,7 @@ const PER_PAGE     = 24
 const RESOURCE_COLORS = {
   rage:   { label: 'Rage',   color: '#ff6644' },
   mana:   { label: 'Mana',   color: '#4a90d9' },
-  energy: { label: 'Energy', color: '#ffee44' },
+  stamina: { label: 'Stamina', color: '#ffee44' },
   runic:  { label: 'Runic',  color: '#88aaff' },
 }
 
@@ -93,7 +94,7 @@ export default function SpellBook({ inst }) {
   if (!classDef) return <div className="panel-empty">No ability data for {inst.classId}.</div>
 
   const charLevel    = inst.level ?? 1
-  const unlocked     = (classDef.abilities || []).filter(e => e.level <= charLevel)
+  const unlocked     = skillAbilities(inst)
   const totalPages   = Math.max(1, Math.ceil(unlocked.length / PER_PAGE))
   const currentPage  = Math.min(page, totalPages - 1)
   const pageEntries  = unlocked.slice(currentPage * PER_PAGE, (currentPage + 1) * PER_PAGE)

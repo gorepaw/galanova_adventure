@@ -128,28 +128,33 @@ const AI_PROFILES = {
 
 const StatSystem = (() => {
   const derive = (raw, level = 1) => ({
-    maxHp:              raw.sta * 10,
+    maxHp:              raw.con * 10,
     maxMana:            raw.int * 15,
-    attackPower:        raw.str * 2 + raw.agi,
-    rangedAttackPower:  Math.max(0, 2 * level + 2 * raw.agi - 10),
+    attackPower:        raw.str * 2 + raw.dex,
+    rangedAttackPower:  Math.max(0, 2 * level + 2 * raw.dex - 10),
     spellPower:         0,
-    armor:              raw.agi * 2,
-    critChanceMelee:    raw.agi / 20 / 100,
+    armor:              raw.dex * 2,
+    critChanceMelee:    raw.dex / 20 / 100,
     critChanceSpell:    raw.int / 60 / 100,
-    dodge:              raw.agi / 20 / 100,
+    // dodge is sourced from spd (1 pt = 0.05%); dex no longer grants dodge
+    dodge:              (raw.spd || 0) / 20 / 100,
     manaRegen:          Math.floor(raw.spi / 5),
-    resistances:        { fire: 0, frost: 0, nature: 0, shadow: 0, holy: 0, arcane: 0 },
+    // wis grants +0.5 resistance per point to every non-physical school
+    resistances:        (() => {
+      const rv = (raw.wis || 0) * 0.5;
+      return { pyro: rv, cryo: rv, nature: rv, chaos: rv, order: rv, bio: rv, energy: rv, psychic: rv };
+    })(),
     critMultiplier:     2.0,
   });
 
   const buildUnitStats = (raceId, classId) => {
-    const race = RACES[raceId];
-    const cls  = CLASSES[classId];
-    if (!race) throw new Error(`Unknown race: ${raceId}`);
-    if (!cls)  throw new Error(`Unknown class: ${classId}`);
+    const cls = CLASSES[classId];
+    if (!cls) throw new Error(`Unknown class: ${classId}`);
+    // Races are decoupled from stats; a generic unit starts from the class's
+    // level-1 startingBaseline (player instances carry their own allocated raw).
     const raw = {};
-    for (const s of ["str","agi","sta","int","spi"])
-      raw[s] = (race.baseStats[s] || 0) + (cls.statContribution[s] || 0);
+    for (const s of ["str","dex","con","int","spi","wis","spd","cha"])
+      raw[s] = (cls.startingBaseline?.[s] || 0);
     return { raw, derived: derive(raw) };
   };
 
@@ -167,14 +172,15 @@ const StatSystem = (() => {
       // split crit keys (canonical going forward)
       if (m.meleeCrit)    r.critChanceMelee = (r.critChanceMelee || 0) + m.meleeCrit;
       if (m.spellCrit)    r.critChanceSpell = (r.critChanceSpell || 0) + m.spellCrit;
-      for (const school of ["fire","frost","nature","shadow","holy","arcane"])
+      for (const school of ["pyro","cryo","nature","chaos","order","bio","energy","psychic"])
         if (m[`resist_${school}`]) r.resistances[school] += m[`resist_${school}`];
     }
     return r;
   };
 
   // Applies equipped gear stat bonuses to a raw stat block.
-  // Raw stat bonuses (str/agi/sta/int/spi) are added before derivation.
+  // Raw stat bonuses (str/dex/con/int/spi/wis/spd/cha) are added before derivation.
+  // cha is carried but has no combat derive (social/economy stat).
   // Flat bonuses (attackPower/spellPower/armor/meleeCrit/spellCrit) are
   // injected as a synthetic buff entry so applyBuffModifiers handles them.
   const applyGearBonuses = (rawStats, gear) => {
@@ -185,10 +191,13 @@ const StatSystem = (() => {
       if (!item?.statBonuses) continue;
       const b = item.statBonuses;
       if (b.str)         raw.str         = (raw.str         || 0) + b.str;
-      if (b.agi)         raw.agi         = (raw.agi         || 0) + b.agi;
-      if (b.sta)         raw.sta         = (raw.sta         || 0) + b.sta;
+      if (b.dex)         raw.dex         = (raw.dex         || 0) + b.dex;
+      if (b.con)         raw.con         = (raw.con         || 0) + b.con;
       if (b.int)         raw.int         = (raw.int         || 0) + b.int;
       if (b.spi)         raw.spi         = (raw.spi         || 0) + b.spi;
+      if (b.wis)         raw.wis         = (raw.wis         || 0) + b.wis;
+      if (b.spd)         raw.spd         = (raw.spd         || 0) + b.spd;
+      if (b.cha)         raw.cha         = (raw.cha         || 0) + b.cha;
       if (b.attackPower) flatMods.attackPower = (flatMods.attackPower || 0) + b.attackPower;
       if (b.spellPower)  flatMods.spellPower  = (flatMods.spellPower  || 0) + b.spellPower;
       if (b.armor)       flatMods.armor       = (flatMods.armor       || 0) + b.armor;
@@ -243,7 +252,7 @@ const createGameState = ({ partyConfigs, enemyConfigs }) => {
     for (const r of (cls?.resources || ["mana"])) {
       if (r === "mana")         resources.mana         = { current: maxMana, max: maxMana };
       if (r === "rage")         resources.rage         = { current: 0, max: 100 };
-      if (r === "energy")       resources.energy       = { current: 100, max: 100 };
+      if (r === "stamina")      resources.stamina      = { current: 100, max: 100 };
       if (r === "combo_points") resources.combo_points = { current: 0, max: 5 };
     }
 
@@ -520,7 +529,7 @@ const ResourceSystem = (() => {
 
   const tickRegen = (unit) => {
     const r = { ...unit.resources };
-    if (r.energy) r.energy = { ...r.energy, current: Math.min(r.energy.max, r.energy.current + 15) };
+    if (r.stamina) r.stamina = { ...r.stamina, current: Math.min(r.stamina.max, r.stamina.current + 15) };
     if (r.mana)   r.mana   = { ...r.mana,   current: Math.min(r.mana.max,   r.mana.current + (unit.stats.derived.manaRegen || 0)) };
     return { ...unit, resources: r };
   };
@@ -714,6 +723,18 @@ const EffectDispatcher = (() => {
 
     switch (effect.type) {
       case "damage": {
+        // Dodge: physical attacks can be avoided by the target's dodge chance
+        // (spd-derived + dodgeChance buff modifiers), capped at 75%. Magic ignores dodge.
+        if (effect.damageType === "physical") {
+          let dodgeChance = t.stats?.derived?.dodge || 0;
+          for (const b of (t.buffs || [])) if (b.modifiers?.dodgeChance) dodgeChance += b.modifiers.dodgeChance;
+          dodgeChance = Math.min(0.75, dodgeChance);
+          if (dodgeChance > 0 && Math.random() < dodgeChance) {
+            logs.push(`${t.name} dodges ${c.name}'s attack`);
+            break;
+          }
+        }
+
         const { damage, isCrit, reflected, spellReflected, hasRetaliation } =
           DamageSystem.rollDamage(effect, c, t);
 

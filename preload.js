@@ -19,6 +19,7 @@ contextBridge.exposeInMainWorld('gameAPI', {
   skinCorpses:    ()           => ipcRenderer.invoke('game:skinCorpses'),
   equipItem:      (id, iid)   => ipcRenderer.invoke('game:equipItem', id, iid),
   rezMember:      (instanceId) => ipcRenderer.invoke('game:rezMember', instanceId),
+  allocateStat:   (instanceId, stat) => ipcRenderer.invoke('game:allocateStat', instanceId, stat),
   useItem:        (itemId)     => ipcRenderer.invoke('game:useItem', itemId),
   back:           ()           => ipcRenderer.invoke('game:back'),
   getItemCatalog:        ()        => ipcRenderer.invoke('game:getItemCatalog'),

@@ -9,6 +9,7 @@ function load(relPath) {
 load("../Engine/datalayer.js");
 load("../Engine/itemsuffixes.js");
 load("../Engine/leveltables.js");
+load("../Engine/skills.js");
 load("../Engine/companions.js");
 load("../Engine/encounters.js");
 load("../Engine/gameplayloop.js"); // auto-runs DataLayer + GameLoop tests
@@ -1131,12 +1132,12 @@ rogAssert("sap_debuff: removedOnDamage",       BUFFS.sap_debuff?.removedOnDamage
 rogAssert("sap_debuff: duration 4",            BUFFS.sap_debuff?.duration === 4);
 rogAssert("slice_and_dice_buff: doubleAction", BUFFS.slice_and_dice_buff?.doubleAction === true);
 
-// ── 4. buildUnit: rogue has energy and combo_points ──────────────────────────
+// ── 4. buildUnit: rogue has stamina and combo_points ─────────────────────────
 
 {
   const rogue = buildRogue();
-  rogAssert("rogue buildUnit: energy resource exists",        !!rogue.resources.energy);
-  rogAssert("rogue buildUnit: energy starts at 100",          rogue.resources.energy?.current === 100);
+  rogAssert("rogue buildUnit: stamina resource exists",       !!rogue.resources.stamina);
+  rogAssert("rogue buildUnit: stamina starts at 100",         rogue.resources.stamina?.current === 100);
   rogAssert("rogue buildUnit: combo_points resource exists",  !!rogue.resources.combo_points);
   rogAssert("rogue buildUnit: combo_points start at 0",       rogue.resources.combo_points?.current === 0);
 }

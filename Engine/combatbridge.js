@@ -36,18 +36,23 @@ const CombatBridge = (() => {
       ? minLevel + Math.floor(Math.random() * ((cfg.levelMax ?? minLevel + 1) - minLevel + 1))
       : minLevel;
     const raw      = cfg.stats?.raw || cfg.baseStats || getStatsAtLevel(cfg.raceId || "orc", classId, level);
-    const abilities = cfg.learnedAbilities || cfg.abilities || ["melee_attack"];
+    const abilities = cfg.learnedAbilities || cfg.abilities || ["basic_attack"];
 
     const baseD = {
-      maxHp:              raw.sta * 10 + (CLASS_BASE_HP[classId] || 0),
+      maxHp:              raw.con * 10 + (CLASS_BASE_HP[classId] || 0),
       maxMana:            raw.int * 15 + (CLASS_BASE_MP[classId] || 0),
-      attackPower:        raw.str * 2 + raw.agi,
-      rangedAttackPower:  Math.max(0, 2 * level + 2 * raw.agi - 10),
+      attackPower:        raw.str * 2 + raw.dex,
+      rangedAttackPower:  Math.max(0, 2 * level + 2 * raw.dex - 10),
       spellPower:         0,
-      armor:              raw.agi * 2,
-      critChanceMelee:    raw.agi / 20 / 100,
+      armor:              raw.dex * 2,
+      critChanceMelee:    raw.dex / 20 / 100,
       critChanceSpell:    raw.int / 60 / 100,
+      dodge:              (raw.spd || 0) / 20 / 100,
       manaRegen:          Math.floor(raw.spi / 5),
+      resistances:        (() => {
+        const rv = (raw.wis || 0) * 0.5;
+        return { pyro: rv, cryo: rv, nature: rv, chaos: rv, order: rv, bio: rv, energy: rv, psychic: rv };
+      })(),
       critMultiplier:     2.0,
     };
 
@@ -57,11 +62,8 @@ const CombatBridge = (() => {
     const maxHp   = cfg.maxHp || derived.maxHp;
     const maxMana = cfg.maxMp || derived.maxMana;
 
-    const resources = {};
-    if      (["warrior"].includes(classId)) { resources.rage         = { current: 0,        max: 100 }; }
-    else if (["rogue"  ].includes(classId)) { resources.energy       = { current: 100,       max: 100 };
-                                              resources.combo_points  = { current: 0,         max: 5   }; }
-    else                                    { resources.mana         = { current: maxMana,   max: maxMana }; }
+    // Resources are read from the class's resource list (mix-and-match).
+    const resources = buildResources(classId, maxMana);
 
     return {
       id:           cfg.instanceId || cfg.id || `u_${Math.random().toString(36).slice(2, 7)}`,
@@ -288,7 +290,7 @@ const CombatBridge = (() => {
     const cd = { ...unit.cooldowns };
     for (const id of Object.keys(cd)) { cd[id] = Math.max(0, cd[id] - 1); if (cd[id] === 0) delete cd[id]; }
     const res = { ...unit.resources };
-    if (res.energy) res.energy = { ...res.energy, current: Math.min(res.energy.max, res.energy.current + 15) };
+    if (res.stamina) res.stamina = { ...res.stamina, current: Math.min(res.stamina.max, res.stamina.current + 15) };
     if (res.mana)   res.mana   = { ...res.mana,   current: Math.min(res.mana.max,   res.mana.current + (unit.stats.derived.manaRegen || 0)) };
     return { ...unit, cooldowns: cd, resources: res };
   };

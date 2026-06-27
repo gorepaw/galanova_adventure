@@ -506,13 +506,13 @@ export default function App() {
                 />
               )}
               {activeTab === 'character' && (
-                <CharacterScreen partyInstances={partyInstances} itemCatalog={itemCatalog} buffCatalog={buffCatalog} inventory={save?.inventory ?? []} onEquip={handleEquip} currency={save?.currency ?? 0} onRez={(instanceId) => handleAction('rezMember', instanceId)} />
+                <CharacterScreen partyInstances={partyInstances} itemCatalog={itemCatalog} buffCatalog={buffCatalog} inventory={save?.inventory ?? []} onEquip={handleEquip} currency={save?.currency ?? 0} onRez={(instanceId) => handleAction('rezMember', instanceId)} onAllocate={(instanceId, stat) => handleAction('allocateStat', instanceId, stat)} />
               )}
               {activeTab === 'reputation' && (
                 <ReputationPanel reputation={save?.reputation ?? {}} />
               )}
               {activeTab === 'skills' && (
-                <SkillsPanel riding={save?.riding ?? 0} highestPartyLevel={highestPartyLevel} />
+                <SkillsPanel partyInstances={partyInstances} />
               )}
               {activeTab === 'professions' && (
                 <ProfessionsPanel companions={rosterData} />

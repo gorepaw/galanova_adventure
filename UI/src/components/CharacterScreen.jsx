@@ -1,6 +1,16 @@
 import React, { useState, useEffect } from 'react'
 import ItemTooltip, { buildTipItem } from './ItemTooltip.jsx'
 import SpellBook from './SpellBook.jsx'
+import classData from '../../../Data/classes.json'
+
+const CLASS_DEFS = classData.classes || {}
+
+// Non-mana resources and how their (placeholder) full pools display on the sheet.
+const RESOURCE_META = {
+  rage:         { label: 'Rage',         display: '0 / 100' },
+  stamina:      { label: 'Stamina',      display: '100 / 100' },
+  combo_points: { label: 'Combo Points', display: '0 / 5' },
+}
 
 const SLOT_LABEL = {
   head: 'Head', neck: 'Neck', shoulders: 'Shoulders', back: 'Back',
@@ -16,11 +26,6 @@ const DISPLAY_SLOTS = [
   'mainhand', 'offhand', 'ranged', 'ammo',
 ]
 
-// Mirror the engine constants (gameplayloop.js CombatBridge)
-const CLASS_BASE_HP = { warrior:60, paladin:45, hunter:45, rogue:40, priest:30, shaman:40, mage:25, warlock:28, druid:35 }
-const CLASS_BASE_MP = { warrior:0,  paladin:60, hunter:40, rogue:0,  priest:80, shaman:60, mage:100, warlock:90, druid:70 }
-const HAS_MANA = new Set(['mage','priest','warlock','shaman','druid','paladin','hunter'])
-const IS_CASTER = new Set(['mage','priest','warlock','shaman','druid','paladin'])
 
 function gearBonuses(gear, itemCatalog) {
   const b = {}
@@ -71,16 +76,21 @@ function fmtModifier(key, val) {
     case 'damageTakenMultiplier': return val < 1 ? `${pp(1 - val)} less Dmg Taken` : `${pp(val - 1)} more Dmg Taken`
     case 'healingMultiplier':     return `${pp(val - 1)} Healing`
     case 'str':                   return `${sign(val)} STR`
-    case 'agi':                   return `${sign(val)} AGI`
-    case 'sta':                   return `${sign(val)} STA`
+    case 'dex':                   return `${sign(val)} DEX`
+    case 'con':                   return `${sign(val)} CON`
     case 'int':                   return `${sign(val)} INT`
     case 'spi':                   return `${sign(val)} SPI`
-    case 'fireResistance':        return `${sign(val)} Fire Res`
-    case 'frostResistance':       return `${sign(val)} Frost Res`
-    case 'arcaneResistance':      return `${sign(val)} Arcane Res`
+    case 'wis':                   return `${sign(val)} WIS`
+    case 'spd':                   return `${sign(val)} SPD`
+    case 'cha':                   return `${sign(val)} CHA`
+    case 'pyroResistance':        return `${sign(val)} Pyro Res`
+    case 'cryoResistance':        return `${sign(val)} Cryo Res`
     case 'natureResistance':      return `${sign(val)} Nature Res`
-    case 'shadowResistance':      return `${sign(val)} Shadow Res`
-    case 'holyResistance':        return `${sign(val)} Holy Res`
+    case 'chaosResistance':       return `${sign(val)} Chaos Res`
+    case 'orderResistance':       return `${sign(val)} Order Res`
+    case 'bioResistance':         return `${sign(val)} Bio Res`
+    case 'energyResistance':      return `${sign(val)} Energy Res`
+    case 'psychicResistance':     return `${sign(val)} Psychic Res`
     case 'guaranteedMeleeCrit':   return val ? 'Next Attack Crits' : null
     case 'retaliation':           return val ? 'Retaliates on Attack' : null
     case 'reflectNextSpell':      return val ? 'Reflect Next Spell' : null
@@ -170,7 +180,7 @@ function CsRow({ label, value, highlight }) {
 
 // ── Main sheet ────────────────────────────────────────────────────────────────
 
-function CharacterSheet({ inst, itemCatalog, buffCatalog, inventory = [], onEquip, currency = 0, onRez }) {
+function CharacterSheet({ inst, itemCatalog, buffCatalog, inventory = [], onEquip, currency = 0, onRez, onAllocate }) {
   const [tip, setTip]         = useState(null)
   const [openSlot, setOpenSlot] = useState(null)
 
@@ -210,33 +220,42 @@ function CharacterSheet({ inst, itemCatalog, buffCatalog, inventory = [], onEqui
 
   const tot = {
     str: (raw.str ?? 0) + (gb.str ?? 0),
-    agi: (raw.agi ?? 0) + (gb.agi ?? 0),
-    sta: (raw.sta ?? 0) + (gb.sta ?? 0),
+    dex: (raw.dex ?? 0) + (gb.dex ?? 0),
+    con: (raw.con ?? 0) + (gb.con ?? 0),
     int: (raw.int ?? 0) + (gb.int ?? 0),
     spi: (raw.spi ?? 0) + (gb.spi ?? 0),
+    wis: (raw.wis ?? 0) + (gb.wis ?? 0),
+    spd: (raw.spd ?? 0) + (gb.spd ?? 0),
+    cha: (raw.cha ?? 0) + (gb.cha ?? 0),
   }
 
   // Derived — mirror engine formulas from gameplayloop.js buildUnit
-  const maxHp      = tot.sta * 10 + (CLASS_BASE_HP[classId] || 0) + (gb.maxHpBonus ?? 0)
-  const maxMp      = tot.int * 15 + (CLASS_BASE_MP[classId] || 0)
-  const attackPower = fmt(tot.str * 2 + tot.agi + (gb.attackPower ?? 0))
-  const rangedAP   = fmt(Math.max(0, 2 * level + 2 * tot.agi - 10) + (gb.rangedAttackPower ?? 0))
+  const maxHp      = tot.con * 10 + (gb.maxHpBonus ?? 0)
+  const maxMp      = tot.int * 15
+  const attackPower = fmt(tot.str * 2 + tot.dex + (gb.attackPower ?? 0))
+  const rangedAP   = fmt(Math.max(0, 2 * level + 2 * tot.dex - 10) + (gb.rangedAttackPower ?? 0))
   const spellPower = fmt(gb.spellPower ?? 0)
-  const armor      = fmt(tot.agi * 2 + (gb.armor ?? 0))
+  const armor      = fmt(tot.dex * 2 + (gb.armor ?? 0))
   const mitPct     = armor / (armor + 1500) * 100
-  const meleeCrit  = tot.agi / 20 + (gb.critChanceMelee ?? 0) * 100
+  const meleeCrit  = tot.dex / 20 + (gb.critChanceMelee ?? 0) * 100
   const spellCrit  = tot.int / 60 + (gb.critChanceSpell ?? 0) * 100
-  const dodge      = (gb.dodgeChance ?? 0) * 100
+  const dodge      = tot.spd / 20 + (gb.dodgeChance ?? 0) * 100
   const manaRegen  = Math.floor(tot.spi / 5)
-  const hasMana    = HAS_MANA.has(classId)
-  const isCaster   = IS_CASTER.has(classId)
+  const classResources = CLASS_DEFS[classId]?.resources || []
+  const hasMana    = classResources.includes('mana')
+  const isCaster   = hasMana
+  const unspent    = inst.unspentStatPoints || 0
 
-  const fireRes   = gb.fireResistance   ?? 0
-  const frostRes  = gb.frostResistance  ?? 0
-  const arcaneRes = gb.arcaneResistance ?? 0
-  const natureRes = gb.natureResistance ?? 0
-  const shadowRes = gb.shadowResistance ?? 0
-  const holyRes   = gb.holyResistance   ?? 0
+  // Non-physical resistance: +0.5 per point of WIS, plus any gear bonuses
+  const resBase   = tot.wis * 0.5
+  const pyroRes   = resBase + (gb.pyroResistance   ?? 0)
+  const cryoRes   = resBase + (gb.cryoResistance   ?? 0)
+  const natureRes = resBase + (gb.natureResistance ?? 0)
+  const chaosRes  = resBase + (gb.chaosResistance  ?? 0)
+  const orderRes  = resBase + (gb.orderResistance  ?? 0)
+  const bioRes    = resBase + (gb.bioResistance    ?? 0)
+  const energyRes = resBase + (gb.energyResistance ?? 0)
+  const psychicRes = resBase + (gb.psychicResistance ?? 0)
 
   // Mainhand weapon info
   const mhItem = gear.mainhand ? itemCatalog[gear.mainhand] : null
@@ -269,12 +288,24 @@ function CharacterSheet({ inst, itemCatalog, buffCatalog, inventory = [], onEqui
 
           {/* ── Attributes ── */}
           <CsSection label="Attributes">
+            {unspent > 0 && (
+              <div className="cs-alloc-banner">
+                {unspent} stat point{unspent === 1 ? '' : 's'} to allocate
+              </div>
+            )}
             <div className="cs-attrs">
-              {[['str','STR'],['agi','AGI'],['sta','STA'],['int','INT'],['spi','SPI']].map(([k, label]) => (
+              {[['str','STR'],['dex','DEX'],['con','CON'],['int','INT'],['spi','SPI'],['wis','WIS'],['spd','SPD'],['cha','CHA']].map(([k, label]) => (
                 <div key={k} className="cs-attr">
                   <span className="cs-attr-key">{label}</span>
                   <span className="cs-attr-val">{tot[k]}</span>
                   {gb[k] > 0 && <span className="cs-attr-bonus">+{gb[k]}</span>}
+                  {unspent > 0 && onAllocate && (
+                    <button
+                      className="cs-alloc-btn"
+                      title={`Spend 1 point on ${label}`}
+                      onClick={() => onAllocate(inst.instanceId, k)}
+                    >+</button>
+                  )}
                 </div>
               ))}
             </div>
@@ -282,13 +313,11 @@ function CharacterSheet({ inst, itemCatalog, buffCatalog, inventory = [], onEqui
 
           {/* ── Resources ── */}
           <CsSection label="Resources">
-            <CsRow label="Health"  value={`${inst.currentHp ?? maxHp} / ${maxHp}`} />
-            {hasMana
-              ? <CsRow label="Mana" value={`${inst.currentMp ?? maxMp} / ${maxMp}`} />
-              : classId === 'warrior' || classId === 'rogue'
-                ? <CsRow label={classId === 'warrior' ? 'Rage' : 'Energy'} value={classId === 'warrior' ? '0 / 100' : '100 / 100'} />
-                : null
-            }
+            <CsRow label="Health" value={`${inst.currentHp ?? maxHp} / ${maxHp}`} />
+            {classResources.map(r => r === 'mana'
+              ? <CsRow key={r} label="Mana" value={`${inst.currentMp ?? maxMp} / ${maxMp}`} />
+              : <CsRow key={r} label={RESOURCE_META[r]?.label || r} value={RESOURCE_META[r]?.display || ''} />
+            )}
           </CsSection>
 
           {/* ── Offense ── */}
@@ -325,7 +354,7 @@ function CharacterSheet({ inst, itemCatalog, buffCatalog, inventory = [], onEqui
           {/* ── Resistances ── */}
           <CsSection label="Resistances">
             <div className="cs-res-grid">
-              {[['Fire', fireRes],['Frost', frostRes],['Arcane', arcaneRes],['Nature', natureRes],['Shadow', shadowRes],['Holy', holyRes]].map(([label, val]) => (
+              {[['Pyro', pyroRes],['Cryo', cryoRes],['Nature', natureRes],['Chaos', chaosRes],['Order', orderRes],['Bio', bioRes],['Energy', energyRes],['Psychic', psychicRes]].map(([label, val]) => (
                 <div key={label} className={`cs-res-cell${val > 0 ? ' cs-res-on' : ''}`}>
                   <span className="cs-res-label">{label}</span>
                   <span className="cs-res-val">{val}</span>
@@ -493,7 +522,7 @@ function PetSelector({ inst }) {
   )
 }
 
-export default function CharacterScreen({ partyInstances, itemCatalog, buffCatalog, inventory = [], onEquip, currency = 0, onRez }) {
+export default function CharacterScreen({ partyInstances, itemCatalog, buffCatalog, inventory = [], onEquip, currency = 0, onRez, onAllocate }) {
   const [index, setIndex] = useState(0)
   const [view,  setView]  = useState('sheet')
 
@@ -522,7 +551,7 @@ export default function CharacterScreen({ partyInstances, itemCatalog, buffCatal
         )}
       </div>
 
-      {view === 'sheet'  && <CharacterSheet inst={inst} itemCatalog={itemCatalog} buffCatalog={buffCatalog} inventory={inventory} onEquip={onEquip} currency={currency} onRez={onRez} />}
+      {view === 'sheet'  && <CharacterSheet inst={inst} itemCatalog={itemCatalog} buffCatalog={buffCatalog} inventory={inventory} onEquip={onEquip} currency={currency} onRez={onRez} onAllocate={onAllocate} />}
       {view === 'spells' && <SpellBook key={clampedIndex} inst={inst} />}
       {view === 'pet'    && <PetSelector key={inst.instanceId} inst={inst} />}
     </div>

@@ -1,5 +1,20 @@
 {
   "mobs": {
+    "tunnel_roach": {
+      "id": "tunnel_roach",
+      "name": "Tunnel Roach",
+      "_version": 1,
+      "type": "beast",
+      "level": 1,
+      "baseStats": { "str": 5, "dex": 6, "con": 8, "int": 1, "spi": 2, "wis": 2, "spd": 5, "cha": 1 },
+      "abilities": ["basic_attack"],
+      "aiProfile": "aggressive",
+      "loot": [],
+      "xpValue": 25,
+      "currencyDrop": null,
+      "tags": ["beast", "vermin", "zone_colonial_sewers"],
+      "description": "A bloated roach grown fat in the sewers beneath Rath."
+    },
     "dust_crawler": {
       "id": "dust_crawler",
       "name": "Dust Crawler",

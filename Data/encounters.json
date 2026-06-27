@@ -34,6 +34,26 @@
       "exclusiveGroups": [],
       "recruitPool": ["taijin","ulaelek","zevrost"]
     },
+    "enc_colonial_sewers": {
+      "id": "enc_colonial_sewers",
+      "_version": 1,
+      "slots": [
+        { "type": "companion",    "chance": 0.25,   "rerollIf": "no_eligible_companions" },
+        { "type": "quest",        "chance": 0.15,   "rerollIf": "no_eligible_quests" },
+        { "type": "gather_node",  "chance": 0.075,  "nodeId": "copper_vein",  "qty": 1, "rerollIf": "no_party_profession:mining" },
+        { "type": "gather_node",  "chance": 0.0225, "nodeId": "peacebloom_patch",  "qty": 1, "rerollIf": "no_party_profession:herbalism" },
+        { "type": "gather_node",  "chance": 0.0225, "nodeId": "silverleaf_bush",  "qty": 1, "rerollIf": "no_party_profession:herbalism" },
+        { "type": "gather_node",  "chance": 0.0125, "nodeId": "earthroot_tuft",   "qty": 1, "rerollIf": "no_party_skill_min:herbalism:15" },
+        { "type": "gather_node",  "chance": 0.005,  "nodeId": "mageroyal_cluster",   "qty": 1, "rerollIf": "no_party_skill_min:herbalism:50" },
+        { "type": "locked_chest", "chance": 0.10,   "rerollIf": "no_party_skill:lockpicking" },
+        { "type": "fishing_spot", "chance": 0.05,   "rerollIf": "no_party_skill:fishing" }
+      ],
+      "combatPool": [
+        { "enemyId": "tunnel_roach", "weight": 100 }
+      ],
+      "exclusiveGroups": [],
+      "recruitPool": []
+    },
     "enc_durotar": {
       "id": "enc_durotar",
       "_version": 1,

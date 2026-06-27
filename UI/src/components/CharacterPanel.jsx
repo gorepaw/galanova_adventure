@@ -107,7 +107,7 @@ function MemberCard({ inst, currency, onRez }) {
 
       {Object.keys(raw).length > 0 && (
         <div className="member-stats">
-          {['str','agi','sta','int','spi'].map(k => (
+          {['str','dex','con','int','spi','wis','spd','cha'].map(k => (
             <span key={k} className="stat-chip">{k.toUpperCase()} {raw[k] ?? 0}</span>
           ))}
         </div>

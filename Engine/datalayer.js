@@ -29,7 +29,7 @@ const SCHEMAS = {
     properties: {
       mana:         { type: "number", minimum: 0 },
       rage:         { type: "number", minimum: 0 },
-      energy:       { type: "number", minimum: 0 },
+      stamina:      { type: "number", minimum: 0 },
       combo_points: { type: "number", minimum: 0 },
     },
     additionalProperties: false,
@@ -37,13 +37,18 @@ const SCHEMAS = {
 
   statBlock: {
     type: "object",
-    required: ["str","agi","sta","int","spi"],
+    // wis/spd are optional for now — per-race/class values are assigned later
+    // when the roster is rebuilt under stat-point allocation.
+    required: ["str","dex","con","int","spi"],
     properties: {
       str: { type: "number", minimum: 0 },
-      agi: { type: "number", minimum: 0 },
-      sta: { type: "number", minimum: 0 },
+      dex: { type: "number", minimum: 0 },
+      con: { type: "number", minimum: 0 },
       int: { type: "number", minimum: 0 },
       spi: { type: "number", minimum: 0 },
+      wis: { type: "number", minimum: 0 },
+      spd: { type: "number", minimum: 0 },
+      cha: { type: "number", minimum: 0 },
     },
     additionalProperties: false,
   },
@@ -54,7 +59,7 @@ const SCHEMAS = {
     properties: {
       type:            { type: "string", enum: ["damage","heal","buff","debuff","resource","cc","stat_mod","proc"] },
       // damage / heal
-      damageType:      { type: "string", enum: ["physical","fire","frost","nature","shadow","holy","arcane"] },
+      damageType:      { type: "string", enum: ["physical","pyro","cryo","nature","chaos","order","bio","energy","psychic"] },
       scaling:         { type: "string", enum: ["ap","sp","combo","flat","weapon"] },
       multiplier:      { type: "number", minimum: 0 },
       flatBonus:       { type: "number" },
@@ -127,19 +132,24 @@ const SCHEMAS = {
   },
 
   // --- class --- OPEN
+  // Galanova class model: armor tier, 1–3 core stats, a guaranteed per-level stat
+  // allocation, a flexible resource list (mix-and-match), a skill list, and a
+  // generated starting baseline (the level-1 stat block, before player allocation).
   class: {
     $id: "class",
     type: "object",
-    required: ["id","name","resources","primaryResource","statContribution"],
+    required: ["id","name","armorTier","coreStats","guaranteedLevelUp","resources","startingBaseline"],
     properties: {
       id:                { type: "string", pattern: "^[a-z0-9_]+$" },
       name:              { type: "string", minLength: 1 },
       _version:          { type: "integer", minimum: 1 },
-      baseHp:            { type: "number", minimum: 0 },
-      baseMana:          { type: "number", minimum: 0 },
-      resources:         { type: "array", items: { type: "string" }, minItems: 1 },
+      armorTier:         { type: "string", enum: ["clothing","light","medium","heavy"] },
+      coreStats:         { type: "array", items: { type: "string", enum: ["str","dex","con","int","spi","wis","spd","cha"] }, minItems: 1, maxItems: 3 },
+      guaranteedLevelUp: { type: "object" }, // stat -> points auto-allocated per level (sums 1–3)
+      resources:         { type: "array", items: { type: "string", enum: ["mana","rage","stamina","combo_points"] }, minItems: 1 },
       primaryResource:   { type: "string" },
-      statContribution:  { type: "object" },
+      skills:            { type: "array", items: { type: "string" } },
+      startingBaseline:  { type: "object" }, // statBlock-shaped level-1 stats
       passiveHooks:      { type: "array", items: { type: "string" } },
       startingAbilities: { type: "array", items: { type: "string" } },
       description:       { type: "string" },
@@ -189,7 +199,7 @@ const SCHEMAS = {
       templateId:       { type: "string" },
       _version:         { type: "integer", minimum: 1 },
       name:             { type: "string" },
-      raceId:           { type: "string" },
+      raceId:           { type: ["string", "null"] }, // races decoupled — may be null
       classId:          { type: "string" },
       profession:       { type: "string" },
       xp:               { type: "number", minimum: 0 },
@@ -209,6 +219,8 @@ const SCHEMAS = {
       skills:           { type: "object" },
       gear:             { type: "object" },
       customName:       { type: "string" },
+      stats:            { type: "object" }, // { raw: statBlock } — current allocated stats
+      unspentStatPoints:{ type: "integer", minimum: 0 }, // free points awaiting allocation
     },
     additionalProperties: true, // OPEN
   },
@@ -256,10 +268,13 @@ const SCHEMAS = {
         type: "object",
         properties: {
           str:         { type: "number" },
-          agi:         { type: "number" },
-          sta:         { type: "number" },
+          dex:         { type: "number" },
+          con:         { type: "number" },
           int:         { type: "number" },
           spi:         { type: "number" },
+          wis:         { type: "number" },
+          spd:         { type: "number" },
+          cha:         { type: "number" },
           attackPower: { type: "number" },
           spellPower:  { type: "number" },
           armor:       { type: "number" },
@@ -582,7 +597,7 @@ const Loader = (() => {
       _version: 1, modifiers: {}, ccFlags: {}, stacks: false, tags: [],
     },
     class: {
-      _version: 1, baseHp: 0, baseMana: 0, passiveHooks: [], startingAbilities: [],
+      _version: 1, skills: [], passiveHooks: [], startingAbilities: [], description: "",
     },
     companion: {
       _version: 1, statOverrides: {}, abilities: [], traits: [], quirks: [],
@@ -590,7 +605,7 @@ const Loader = (() => {
       unlockQuest: null, unlockRepFaction: null, unlockRepRequired: null,
     },
     companionInstance: {
-      _version: 1, xp: 0, level: 1,
+      _version: 1, xp: 0, level: 1, unspentStatPoints: 0,
       deathState: "alive", permadead: false, downedAt: null, rezCost: 0,
       learnedAbilities: [], acquiredQuirks: [], activeBuffs: [],
       relationship: 0, skills: {},
@@ -957,8 +972,8 @@ const SyntheticData = (() => {
       id: "ability_beta", name: "Beta Bolt", _version: 1,
       resourceCost: { mana: 15 }, cooldown: 2, castTime: 1,
       targeting: "single_enemy", threatModifier: 1.0,
-      effects: [{ type: "damage", damageType: "fire", scaling: "sp", multiplier: 1.2, flatBonus: 10 }],
-      tags: ["fire","spell"], description: "A basic fire bolt.",
+      effects: [{ type: "damage", damageType: "pyro", scaling: "sp", multiplier: 1.2, flatBonus: 10 }],
+      tags: ["pyro","spell"], description: "A basic pyro bolt.",
     });
 
     DataStore.write("templates/abilities/ability_gamma", {
@@ -989,9 +1004,9 @@ const SyntheticData = (() => {
     DataStore.write("templates/buffs/buff_dot_alpha", {
       id: "buff_dot_alpha", name: "Burning Alpha", _version: 1,
       duration: 4,
-      tickDamage: { damageType: "fire", flat: 5, scaling: "sp", multiplier: 0.05 },
+      tickDamage: { damageType: "pyro", flat: 5, scaling: "sp", multiplier: 0.05 },
       modifiers: {}, ccFlags: {}, stacks: true, maxStacks: 3,
-      tags: ["fire","dot"], description: "Deals fire damage each turn.",
+      tags: ["pyro","dot"], description: "Deals pyro damage each turn.",
     });
 
     DataStore.write("templates/classes/class_alpha_warrior", {
@@ -1017,7 +1032,7 @@ const SyntheticData = (() => {
     DataStore.write("templates/companions/companion_unit_01", {
       id: "companion_unit_01", name: "Unit-01", _version: 1,
       raceId: "orc", classId: "class_alpha_warrior",
-      statOverrides: { str: 20, agi: 18, sta: 20, int: 10, spi: 12 },
+      statOverrides: { str: 20, dex: 18, con: 20, int: 10, spi: 12 },
       abilities: ["ability_alpha","ability_gamma"],
       traits: ["trait_stubborn"], quirks: [],
       aiProfile: "aggressive",
@@ -1028,7 +1043,7 @@ const SyntheticData = (() => {
     DataStore.write("templates/companions/companion_unit_02", {
       id: "companion_unit_02", name: "Unit-02", _version: 1,
       raceId: "troll", classId: "class_beta_mage",
-      statOverrides: { str: 12, agi: 15, sta: 14, int: 22, spi: 18 },
+      statOverrides: { str: 12, dex: 15, con: 14, int: 22, spi: 18 },
       abilities: ["ability_beta"],
       traits: [], quirks: ["quirk_nervous"],
       aiProfile: "aggressive",

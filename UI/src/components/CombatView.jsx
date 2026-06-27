@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react'
 import abilitiesData from '../../../Data/abilities.json'
 import classesData   from '../../../Data/classes.json'
+import { skillAbilities } from './skillAbilities.js'
 
 const ABILITY_DEFS = abilitiesData.abilities
 const CLASS_DEFS   = classesData.classes
@@ -58,31 +59,24 @@ function CombatMemberCard({ inst, selected, isFriendlyTarget, showFriendlyTarget
           <span className="cmc-bar-val">{hp}/{maxHp}</span>
         </div>
 
-        {inst.classId === 'warrior' ? (
-          <div className="cmc-bar-row">
-            <span className="cmc-bar-label">Rage</span>
-            <div className="bar-track cmc-track">
-              <div className="bar-fill rage-bar" style={{ width: `${pct(inst.currentRage ?? 0, inst.maxRage ?? 100)}%` }} />
+        {(CLASS_DEFS[inst.classId]?.resources || []).map(res => {
+          const meta = {
+            mana:         { label: 'MP',    cls: 'mp-bar',      cur: mp,                       max: maxMp },
+            rage:         { label: 'Rage',  cls: 'rage-bar',    cur: inst.currentRage ?? 0,    max: inst.maxRage ?? 100 },
+            stamina:      { label: 'Stam',  cls: 'stamina-bar', cur: inst.currentStamina ?? 0, max: inst.maxStamina ?? 100 },
+            combo_points: { label: 'Combo', cls: 'combo-bar',   cur: inst.currentCombo ?? 0,   max: inst.maxCombo ?? 5 },
+          }[res]
+          if (!meta || meta.max <= 0) return null
+          return (
+            <div key={res} className="cmc-bar-row">
+              <span className="cmc-bar-label">{meta.label}</span>
+              <div className="bar-track cmc-track">
+                <div className={`bar-fill ${meta.cls}`} style={{ width: `${pct(meta.cur, meta.max)}%` }} />
+              </div>
+              <span className="cmc-bar-val">{meta.cur}/{meta.max}</span>
             </div>
-            <span className="cmc-bar-val">{inst.currentRage ?? 0}/{inst.maxRage ?? 100}</span>
-          </div>
-        ) : inst.classId === 'rogue' ? (
-          <div className="cmc-bar-row">
-            <span className="cmc-bar-label">Energy</span>
-            <div className="bar-track cmc-track">
-              <div className="bar-fill energy-bar" style={{ width: `${pct(inst.currentEnergy ?? 0, inst.maxEnergy ?? 100)}%` }} />
-            </div>
-            <span className="cmc-bar-val">{inst.currentEnergy ?? 0}/{inst.maxEnergy ?? 100}</span>
-          </div>
-        ) : maxMp > 0 ? (
-          <div className="cmc-bar-row">
-            <span className="cmc-bar-label">MP</span>
-            <div className="bar-track cmc-track">
-              <div className="bar-fill mp-bar" style={{ width: `${pct(mp, maxMp)}%` }} />
-            </div>
-            <span className="cmc-bar-val">{mp}/{maxMp}</span>
-          </div>
-        ) : null}
+          )
+        })}
       </div>
     </div>
   )
@@ -149,11 +143,8 @@ export default function CombatView({
 
   const memberAbilities = (() => {
     if (!selectedInst) return []
-    const cls = CLASS_DEFS[selectedInst.classId]
-    if (!cls) return []
-    const level = selectedInst.level ?? 1
-    return (cls.abilities || [])
-      .filter(e => e.level <= level)
+    // Abilities come from the character's skills (Galanova model), not class level.
+    return skillAbilities(selectedInst)
       .map(e => ({ entry: e, def: ABILITY_DEFS[e.id] }))
       .filter(({ def }) => {
         if (!def || def.passive) return false
@@ -288,8 +279,10 @@ export default function CombatView({
               currentMp:     liveUnit.resources?.mana?.current ?? inst.currentMp,
               currentRage:   liveUnit.resources?.rage?.current ?? 0,
               maxRage:       liveUnit.resources?.rage?.max ?? 100,
-              currentEnergy: liveUnit.resources?.energy?.current ?? 0,
-              maxEnergy:     liveUnit.resources?.energy?.max ?? 100,
+              currentStamina: liveUnit.resources?.stamina?.current ?? 0,
+              maxStamina:     liveUnit.resources?.stamina?.max ?? 100,
+              currentCombo:   liveUnit.resources?.combo_points?.current ?? 0,
+              maxCombo:       liveUnit.resources?.combo_points?.max ?? 5,
             } : inst
             const queued = liveUnit ? pendingActions[liveUnit.id] : null
             const castEntry = liveUnit?.castQueue?.[0]

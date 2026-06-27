@@ -100,18 +100,30 @@ const CombatBridge = (() => {
     const classId  = cfg.classId || "warrior";
     const level    = cfg.level || 1;
     const raw      = cfg.stats?.raw || cfg.baseStats || getStatsAtLevel(cfg.raceId || "orc", classId, level);
-    const abilities = cfg.learnedAbilities || cfg.abilities || ["melee_attack"];
+    // Abilities come from the character's skills (abilitiesFromSkills, injected by
+    // skills.js); fall back to a basic attack so any unit can act.
+    const _fromSkills = (typeof abilitiesFromSkills === "function" && cfg.skills) ? abilitiesFromSkills(cfg) : [];
+    // Skills-derived abilities take priority (Galanova model); fall back to explicit
+    // learnedAbilities/abilities (legacy companions, enemies), then a basic attack.
+    const abilities = _fromSkills.length ? _fromSkills
+      : (cfg.learnedAbilities?.length ? cfg.learnedAbilities
+      : (cfg.abilities?.length ? cfg.abilities : ["basic_attack"]));
 
     const baseD = {
-      maxHp:              raw.sta * 10 + (CLASS_BASE_HP[classId] || 0),
+      maxHp:              raw.con * 10 + (CLASS_BASE_HP[classId] || 0),
       maxMana:            raw.int * 15 + (CLASS_BASE_MP[classId] || 0),
-      attackPower:        raw.str * 2 + raw.agi,
-      rangedAttackPower:  Math.max(0, 2 * level + 2 * raw.agi - 10),
+      attackPower:        raw.str * 2 + raw.dex,
+      rangedAttackPower:  Math.max(0, 2 * level + 2 * raw.dex - 10),
       spellPower:         0,
-      armor:              raw.agi * 2,
-      critChanceMelee:    raw.agi / 20 / 100,
+      armor:              raw.dex * 2,
+      critChanceMelee:    raw.dex / 20 / 100,
       critChanceSpell:    raw.int / 60 / 100,
+      dodge:              (raw.spd || 0) / 20 / 100,
       manaRegen:          Math.floor(raw.spi / 5),
+      resistances:        (() => {
+        const rv = (raw.wis || 0) * 0.5;
+        return { pyro: rv, cryo: rv, nature: rv, chaos: rv, order: rv, bio: rv, energy: rv, psychic: rv };
+      })(),
       critMultiplier:     2.0,
     };
 
@@ -120,13 +132,8 @@ const CombatBridge = (() => {
     const maxHp   = cfg.maxHp || derived.maxHp;
     const maxMana = cfg.maxMp || derived.maxMana;
 
-    const resources = {};
-    if      (["warrior"].includes(classId)) { resources.rage         = { current: 0,        max: 100 }; }
-    else if (["rogue"  ].includes(classId)) { resources.energy       = { current: 100,       max: 100 };
-                                              resources.combo_points  = { current: 0,         max: 5   }; }
-    else if (["druid"  ].includes(classId)) { resources.mana         = { current: maxMana,   max: maxMana };
-                                              resources.rage          = { current: 0,         max: 100 }; }
-    else                                    { resources.mana         = { current: maxMana,   max: maxMana }; }
+    // Resources are read from the class's resource list (mix-and-match).
+    const resources = buildResources(classId, maxMana);
 
     return {
       id:           cfg.instanceId || cfg.id || `u_${Math.random().toString(36).slice(2, 7)}`,
@@ -148,7 +155,7 @@ const CombatBridge = (() => {
       buffs:        [],
       debuffs:      [],
       ccState:      { stunned: false, silenced: false, disarmed: false, rooted: false, feared: false },
-      agi:          raw.agi || 0,
+      spd:          raw.spd || 0,
       abilities,
       tags:         cfg.tags || [],
       shieldEquipped:           (() => {
@@ -183,7 +190,7 @@ const CombatBridge = (() => {
   const buildPetUnit = (petTemplate, owner) => {
     const level = owner.level || 1;
     const raw = {};
-    for (const stat of ['str','agi','sta','int','spi']) {
+    for (const stat of ['str','dex','con','int','spi','wis','spd','cha']) {
       raw[stat] = Math.floor((petTemplate.baseStats[stat] || 0) + (petTemplate.statGrowthPerLevel[stat] || 0) * (level - 1));
     }
     const maxHp = petTemplate.baseHp + petTemplate.hpPerLevel * (level - 1);
@@ -195,13 +202,18 @@ const CombatBridge = (() => {
     const baseD = {
       maxHp,
       maxMana:           0,
-      attackPower:       raw.str * 2 + raw.agi,
+      attackPower:       raw.str * 2 + raw.dex,
       rangedAttackPower: 0,
       spellPower:        raw.int * 2,
-      armor:             raw.agi * 2,
-      critChanceMelee:   raw.agi / 20 / 100,
+      armor:             raw.dex * 2,
+      critChanceMelee:   raw.dex / 20 / 100,
       critChanceSpell:   raw.int / 60 / 100,
+      dodge:             (raw.spd || 0) / 20 / 100,
       manaRegen:         0,
+      resistances:       (() => {
+        const rv = (raw.wis || 0) * 0.5;
+        return { pyro: rv, cryo: rv, nature: rv, chaos: rv, order: rv, bio: rv, energy: rv, psychic: rv };
+      })(),
       critMultiplier:    2.0,
     };
     const derived = applyAlwaysPassives(baseD, abilities);
@@ -221,7 +233,7 @@ const CombatBridge = (() => {
       buffs:                 [],
       debuffs:               [],
       ccState:               { stunned: false, silenced: false, disarmed: false, rooted: false, feared: false },
-      agi:                   raw.agi || 0,
+      spd:                   raw.spd || 0,
       abilities,
       tags:                  petTemplate.tags || [],
       shieldEquipped:        false,
@@ -385,9 +397,19 @@ const CombatBridge = (() => {
     return { unit: u, procTarget: pt };
   };
 
+  // Per-run ability-usage tracker (party only) for skill XP. Reset at run() start;
+  // surfaced in the run() result and turned into skill XP by runEncounter.
+  let _abilityUse = {};
+  const _recordAbilityUse = (caster, abilityId) => {
+    if (!caster || caster.isEnemy) return;
+    const bucket = (_abilityUse[caster.id] = _abilityUse[caster.id] || {});
+    bucket[abilityId] = (bucket[abilityId] || 0) + 1;
+  };
+
   const execAbility = (abilityId, caster, targets, logs) => {
     const ab = ABILITY_DATA[abilityId];
     if (!ab || ab.passive || ab.outOfCombatOnly) return { caster, targets };
+    _recordAbilityUse(caster, abilityId);
     logs.push(`  ${caster.name} → ${abilityId.replace(/_/g, " ")}`);
 
     let c = { ...caster, resources: { ...caster.resources } };
@@ -450,10 +472,12 @@ const CombatBridge = (() => {
             damage = Math.max(1, Math.floor(damage * effect.bonusIfHpBelow.extraMultiplier));
           }
 
-          // dodge: physical attacks can be avoided by a unit with dodgeChance buff modifier
+          // dodge: physical attacks can be avoided by the target's dodge chance
+          // (spd-derived + dodgeChance buff modifiers), capped at 75%. Magic ignores dodge.
           if (effect.damageType === "physical") {
-            let totalDodge = 0;
+            let totalDodge = t.stats?.derived?.dodge || 0;
             for (const b of t.buffs) if (b.modifiers?.dodgeChance) totalDodge += b.modifiers.dodgeChance;
+            totalDodge = Math.min(0.75, totalDodge);
             if (totalDodge > 0 && Math.random() < totalDodge) {
               logs.push(`    ↳ ${t.name} dodges!`);
               updated.push(t); continue;
@@ -918,13 +942,14 @@ const CombatBridge = (() => {
     const cd = { ...unit.cooldowns };
     for (const id of Object.keys(cd)) { cd[id] = Math.max(0, cd[id] - 1); if (cd[id] === 0) delete cd[id]; }
     const res = { ...unit.resources };
-    if (res.energy) res.energy = { ...res.energy, current: Math.min(res.energy.max, res.energy.current + 15) };
+    if (res.stamina) res.stamina = { ...res.stamina, current: Math.min(res.stamina.max, res.stamina.current + 15) };
     if (res.mana)   res.mana   = { ...res.mana,   current: Math.min(res.mana.max,   res.mana.current + (unit.stats.derived.manaRegen || 0)) };
     return { ...unit, cooldowns: cd, resources: res };
   };
 
   const run = (encounter, partyInstances, opts = {}) => {
     const logs = [], MAX = 30, ammoUsed = {};
+    _abilityUse = {}; // reset per-run ability-usage tracker
     const _trackAmmo = (ab, actor) => {
       if (!(ab?.tags || []).includes('ranged')) return;
       const rItem = _itemsData.items[actor.gear?.ranged];
@@ -1107,7 +1132,7 @@ const CombatBridge = (() => {
     const totalXp          = kills.reduce((s, u) => s + (u.xpValue || 0), 0);
     const pickpocketGold   = enemies.reduce((s, e) => s + (e.pickpocketGold || 0), 0);
     const soulShardsGained = party.filter(u => !u.isPet).reduce((s, u) => s + (u.soulShardsGained || 0), 0);
-    return { outcome, turns: turn, logs, kills, totalXp, enemies, party, pickpocketGold, soulShardsGained, ammoUsed };
+    return { outcome, turns: turn, logs, kills, totalXp, enemies, party, pickpocketGold, soulShardsGained, ammoUsed, abilityUse: _abilityUse };
   };
 
   const _injectPets = (party, partyInstances) => {
@@ -1128,6 +1153,7 @@ const CombatBridge = (() => {
 
   // Build initial manual combat state from encounter + party instances
   const startCombat = (encounter, partyInstances) => {
+    _abilityUse = {}; // reset per-encounter ability-usage tracker (manual combat)
     const baseParty = partyInstances.map(inst => buildUnit(inst, false));
     const party     = _injectPets(baseParty, partyInstances);
     const enemies   = encounter.enemies.map(e => buildUnit(e, true));
@@ -1135,7 +1161,7 @@ const CombatBridge = (() => {
     return { party, enemies, turn: 0, allLogs: [header] };
   };
 
-  // Run one turn of manual combat with AGI-based initiative order.
+  // Run one turn of manual combat with SPD-based initiative order.
   // opts.mode: 'streamlined' � playerActions provides one actor's choice, rest use AI
   //            'full_manual' � playerActions provides all actors' choices, unspecified actors skip
   // playerActions = [{ actorId, abilityId, targetId }]
@@ -1147,7 +1173,7 @@ const CombatBridge = (() => {
     const stepLogs = [`\n── T${turn}`];
     let outcome    = null;
 
-    // Build initiative order: all alive units sorted by AGI descending.
+    // Build initiative order: all alive units sorted by SPD descending.
     // Ties broken by enemies going after party members (stable sort preserves insertion order).
     const initiative = [
       ...party.map(u   => ({ id: u.id, isEnemy: false })),
@@ -1155,7 +1181,7 @@ const CombatBridge = (() => {
     ].sort((a, b) => {
       const aUnit = a.isEnemy ? enemies.find(u => u.id === a.id) : party.find(u => u.id === a.id);
       const bUnit = b.isEnemy ? enemies.find(u => u.id === b.id) : party.find(u => u.id === b.id);
-      return (bUnit?.agi || 0) - (aUnit?.agi || 0);
+      return (bUnit?.spd || 0) - (aUnit?.spd || 0);
     });
 
     for (const ref of initiative) {
@@ -1324,7 +1350,7 @@ const CombatBridge = (() => {
     if (party.filter(u => !u.isPet).every(u => !u.alive)) { outcome = "defeat";  stepLogs.push("\n💀 DEFEAT");  }
     else if (enemies.every(u => !u.alive))               { outcome = "victory"; stepLogs.push("\n🏆 VICTORY"); }
 
-    return { party, enemies, turn, stepLogs, outcome };
+    return { party, enemies, turn, stepLogs, outcome, abilityUse: _abilityUse };
   };
 
   return { run, buildUnit, startCombat, stepTurn };
@@ -1452,7 +1478,24 @@ const RewardEngine = (() => {
     s = { ...s, party: s.party.map(m => {
       const ir = Loader.load(`instances/companions/${m.instanceId}`, "companionInstance");
       if (!ir.ok) return m;
-      const { inst: updated, levelUpLines } = addXpToInst(ir.data, xp);
+      let { inst: updated, levelUpLines } = addXpToInst(ir.data, xp);
+      // Skill XP: every ability the member used this combat trains its skill.
+      // basic_attack trains the equipped weapon's skill (resolved from gear).
+      // 10 XP/use is a placeholder rate — tune later.
+      const used = combatResult.abilityUse?.[m.instanceId] || {};
+      if (typeof skillForAbilityUse === "function" && Object.keys(used).length) {
+        const mhId   = updated.gear?.mainhand;
+        const mhLoad = mhId ? Loader.load(`templates/items/${mhId}`, "item") : null;
+        const mhWeaponType = (mhLoad && mhLoad.ok) ? mhLoad.data.weaponType : null;
+        for (const [abilityId, count] of Object.entries(used)) {
+          const skillId = skillForAbilityUse(abilityId, mhWeaponType);
+          if (skillId && count > 0) {
+            const sx = addSkillXp(updated, skillId, count * 10);
+            updated = sx.inst;
+            for (const lu of sx.levelUps) sum.levelUps.push(`    ✧ ${m.instanceId}'s ${skillId} skill reached ${lu.level}`);
+          }
+        }
+      }
       DataStore.write(`instances/companions/${m.instanceId}`, updated);
       if (levelUpLines.length) sum.levelUps.push(...levelUpLines);
       return m;
@@ -1825,6 +1868,9 @@ const SyntheticGameData = (() => {
     const _shopLvl      = (id) => { const s = _shopData.shops[id] || {}; return { min: s.minLevel || 1, max: s.maxLevel || 60 }; };
     const _shopKeepers  = (id) => (_shopData.shops[id] || {}).shopkeepers || {};
 
+    // ── Rath (planet / region) ────────────────────────────────────────────────
+    DataStore.write("templates/zones/colonial_sewers", { id: "colonial_sewers", regionId: "rath", name: "Colonial Sewers", zoneType: "combat", _version: 1, encounterTableId: "enc_colonial_sewers", minPartyLevel: 1, maxPartyLevel: 5, ambientBuffs: [], connectedZones: [], shopInventory: [], sellMultiplier: 0.25, tags: ["sewer","starter","underground"], lore: "The dripping under-tunnels beneath the colonial sprawl of Rath, infested with vermin.", forcedOnly: false, forcedEncounterQueue: [] });
+
     // ── Durotar Region ────────────────────────────────────────────────────────
     DataStore.write("templates/zones/valley_of_trials", { id: "valley_of_trials", regionId: "durotar", name: "Valley of Trials",   zoneType: "combat",  _version: 1, encounterTableId: "enc_valley_of_trials", minPartyLevel: 1,  maxPartyLevel: 5,  ambientBuffs: [], connectedZones: ["senjin_village","razor_hill"],                                              shopInventory: [], sellMultiplier: 0.25, tags: ["outdoor","arid"],    lore: "A sheltered canyon where new orcs and trolls prove their worth.", forcedOnly: false, forcedEncounterQueue: [] });
     DataStore.write("templates/zones/senjin_village",   { id: "senjin_village",   regionId: "durotar", name: "Sen'Jin Village",    zoneType: "shop",    _version: 1, encounterTableId: "enc_durotar", minPartyLevel: _shopLvl("senjin_village").min,  maxPartyLevel: _shopLvl("senjin_village").max,  ambientBuffs: [], connectedZones: ["valley_of_trials","echo_isles"],                                          shopkeepers: _shopKeepers('senjin_village'), sellMultiplier: 0.25, tags: ["outdoor","settlement"], lore: "A troll village on the southern shore.", forcedOnly: false, forcedEncounterQueue: [] });
@@ -2001,10 +2047,10 @@ const SyntheticGameData = (() => {
 
     if (typeof seedCompanions !== "undefined") seedCompanions(DataStore);
 
-    const playerStats = getStatsAtLevel("orc", "warrior", 1);
-    const playerMaxHp = playerStats.sta * 10 + 60;
-    DataStore.write("instances/companions/player_main", { instanceId: "player_main", templateId: "thazzril", _version: 1, name: "Thazz'ril", raceId: "orc", classId: "warrior", profession: "mining", level: 1, xp: 0, currentHp: playerMaxHp, currentMp: 0, maxHp: playerMaxHp, maxMp: 0, deathState: "alive", permadead: false, downedAt: null, rezCost: 0, learnedAbilities: getAbilitiesForClass("warrior", 1), acquiredQuirks: [], activeBuffs: [], relationship: 100, skills: { mining: 1 }, stats: { raw: playerStats }, gear: { head: null, neck: null, shoulders: null, back: null, chest: null, waist: null, tabard: null, wrist: null, hands: null, feet: null, legs: null, ring: null, trinket: null, mainhand: "worn_blade", offhand: null, ranged: null, ammo: null, relic: null }, isPlayer: true });
-    DataStore.write("saves/save_slot_start", { saveId: "slot_start", _version: 1, timestamp: new Date().toISOString(), mode: "normal", currentZone: "valley_of_trials", party: [{ instanceId: "player_main", templateId: "thazzril" }], quests: { q_first_blood: { objectives: { obj_kill_3: 0 }, completed: false } }, inventory: [{ itemId: "minor_health_potion", qty: 2 }, { itemId: "rough_bandage", qty: 3 }, { itemId: "crawler_chitin", qty: 5 }], currency: 1500, reputation: {}, talentSchools: { weaponskill_sword: 0 }, flags: {}, playtime: 0, shopStocks: {}, riding: 1, mounts: [] });
+    // Starting character: Lati Ashera, level 1 Illusionist. Abilities derive from skills
+    // (all illusionist skills + universal riding/trading at level 1).
+    DataStore.write("instances/companions/player_main", { instanceId: "player_main", templateId: "lati_ashera", _version: 1, name: "Lati Ashera", raceId: "sephir", classId: "illusionist", level: 1, xp: 0, unspentStatPoints: 0, currentHp: 80, currentMp: 270, maxHp: 80, maxMp: 270, deathState: "alive", permadead: false, downedAt: null, rezCost: 0, learnedAbilities: [], acquiredQuirks: [], activeBuffs: [], relationship: 100, skills: { staves: { level: 1, xp: 0 }, wands: { level: 1, xp: 0 }, daggers: { level: 1, xp: 0 }, manipulation: { level: 1, xp: 0 }, madness: { level: 1, xp: 0 }, morale: { level: 1, xp: 0 }, enchanting: { level: 1, xp: 0 }, alchemy: { level: 1, xp: 0 }, riding: { level: 1, xp: 0 }, trading: { level: 1, xp: 0 } }, unlockedSkills: [], stats: { raw: { str: 7, dex: 10, con: 8, int: 18, spi: 12, wis: 10, spd: 11, cha: 15 } }, gear: { head: null, neck: null, shoulders: null, back: null, chest: null, waist: null, tabard: null, wrist: null, hands: null, feet: null, legs: null, ring: null, trinket: null, mainhand: "basic_utility_knife", offhand: null, ranged: null, ammo: null, relic: null }, isPlayer: true });
+    DataStore.write("saves/save_slot_start", { saveId: "slot_start", _version: 1, timestamp: new Date().toISOString(), mode: "normal", currentZone: "colonial_sewers", party: [{ instanceId: "player_main", templateId: "lati_ashera" }], quests: {}, inventory: [], currency: 0, reputation: {}, talentSchools: {}, flags: {}, playtime: 0, shopStocks: {}, riding: 1, mounts: [] });
   };
 
   return { seed };
@@ -2212,7 +2258,9 @@ const HomeScreen = (() => {
               if (!ir.ok) continue;
               const inst = ir.data;
               if (inst.profession === n.requiredProfession) {
-                DataStore.write(`instances/companions/${member.instanceId}`, { ...inst, skills: { ...inst.skills, [n.requiredProfession]: (inst.skills?.[n.requiredProfession] || 0) + n.skillGain } });
+                // professions are XP-based now: route the node's skillGain through addSkillXp
+                // (×50 placeholder XP-per-point; tune later).
+                DataStore.write(`instances/companions/${member.instanceId}`, addSkillXp(inst, n.requiredProfession, n.skillGain * 50).inst);
                 break;
               }
             }
@@ -2350,6 +2398,7 @@ const HomeScreen = (() => {
           party:   result.party,
           pickpocketGold:   result.enemies.reduce((s, e) => s + (e.pickpocketGold || 0), 0),
           soulShardsGained: result.party.reduce((s, u) => s + (u.soulShardsGained || 0), 0),
+          abilityUse:       result.abilityUse || {},
         };
         _manualCombatState = null;
         _applyPostCombat(cr, enc);
@@ -2576,7 +2625,7 @@ const HomeScreen = (() => {
         const deathTag = inst.deathState !== "alive" ? ` [${inst.deathState.toUpperCase()}]` : "";
         emit(`   ${inst.name}${deathTag} � ${inst.raceId} ${inst.classId} | Lv${inst.level || 1} | XP ${xpStr}`);
         emit(`     HP: ${inst.currentHp}/${inst.maxHp}  MP: ${inst.currentMp}/${inst.maxMp}`);
-        emit(`     STR:${raw.str} AGI:${raw.agi} STA:${raw.sta} INT:${raw.int} SPI:${raw.spi}`);
+        emit(`     STR:${raw.str} DEX:${raw.dex} CON:${raw.con} INT:${raw.int} SPI:${raw.spi} WIS:${raw.wis ?? 0} SPD:${raw.spd ?? 0} CHA:${raw.cha ?? 0}`);
         emit(`     Profession: ${inst.profession || "none"}`);
         const sk = inst.skills || {}; if (Object.keys(sk).length) emit(`     Skills: ${Object.entries(sk).map(([k, v]) => `${k}:${v}`).join(", ")}`);
       }
@@ -2615,7 +2664,7 @@ const HomeScreen = (() => {
         const ir = Loader.load(`instances/companions/${member.instanceId}`, "companionInstance");
         if (!ir.ok) continue;
         const inst = ir.data;
-        if (inst.profession === professionId) best = Math.max(best, inst.skills?.[professionId] || 0);
+        if (inst.profession === professionId) best = Math.max(best, getSkillLevel(inst, professionId));
       }
       return best;
     };
@@ -2670,7 +2719,7 @@ const HomeScreen = (() => {
           if (!ir.ok) continue;
           const inst = ir.data;
           if (inst.profession !== rec.requiredProfession) continue;
-          const currentSkill = inst.skills?.[rec.requiredProfession] || 0;
+          const currentSkill = getSkillLevel(inst, rec.requiredProfession);
           let gain = 0;
           if (rec.skillGainTiers?.length) {
             const tier = rec.skillGainTiers.find(t => currentSkill < t.upToSkill);
@@ -2679,7 +2728,8 @@ const HomeScreen = (() => {
             gain = rec.skillGain;
           }
           if (gain > 0) {
-            DataStore.write(`instances/companions/${member.instanceId}`, { ...inst, skills: { ...inst.skills, [rec.requiredProfession]: currentSkill + gain } });
+            // XP-based profession leveling (×50 placeholder XP-per-point; tune later).
+            DataStore.write(`instances/companions/${member.instanceId}`, addSkillXp(inst, rec.requiredProfession, gain * 50).inst);
             skillPointGained = true;
           }
           break;
@@ -2729,6 +2779,10 @@ const HomeScreen = (() => {
       const cr = Loader.load(`instances/companions/${compId}`, "companionInstance");
       if (!cr.ok) { emit(`   Companion not found.`); return; }
       const inst = cr.data;
+      // Weapon-skill gating: a character can only equip weapon types it has the skill for.
+      if (item.weaponType && typeof canEquipWeaponType === "function" && !canEquipWeaponType(inst, item.weaponType)) {
+        emit(`   ${inst.name} lacks the weapon skill to equip ${item.name}.`); return;
+      }
       const prevItemId = inst.gear?.[item.slot] || null;
       DataStore.write(`instances/companions/${compId}`, { ...inst, gear: { ...(inst.gear || {}), [item.slot]: itemId } });
       let inv = save.inventory.map(e => e.itemId === itemId ? { ...e, qty: e.qty - 1 } : e).filter(e => e.qty > 0);
@@ -3054,7 +3108,16 @@ const HomeScreen = (() => {
       };
     };
 
-    return { init, flush, renderHome, runEncounter, engageCombat, tryFlee, useAbility, renderMap, selectZone, renderBag, useItem, renderShop, buyItem, sellItem, getShopData, renderStats, renderParty, renderReputation, renderAbilities, renderSaveLoad, manualSave, manualLoad, renderCrafting, craftItem, renderMounts, renderNonCombat, skinCorpses, equipItem, rezMember, back, getCurrentState, getSave, STATES, executePlayerAction, setCombatMode, getCombatMode, getManualCombatState, getRosterData, swapPartyMember, removeFromParty, addToParty, setPetForCompanion, getAvailablePets };
+    // Spend one unspent stat point on a stat (stat-point allocation).
+    // `allocateStat` (bare) is the leveltables helper injected at global scope.
+    const allocateStatPoint = (instanceId, stat) => {
+      const ir = Loader.load(`instances/companions/${instanceId}`, "companionInstance");
+      if (!ir.ok) return;
+      const updated = allocateStat(ir.data, stat, 1);
+      DataStore.write(`instances/companions/${instanceId}`, updated);
+    };
+
+    return { init, flush, renderHome, runEncounter, engageCombat, tryFlee, useAbility, renderMap, selectZone, renderBag, useItem, renderShop, buyItem, sellItem, getShopData, renderStats, renderParty, renderReputation, renderAbilities, renderSaveLoad, manualSave, manualLoad, renderCrafting, craftItem, renderMounts, renderNonCombat, skinCorpses, equipItem, rezMember, allocateStat: allocateStatPoint, back, getCurrentState, getSave, STATES, executePlayerAction, setCombatMode, getCombatMode, getManualCombatState, getRosterData, swapPartyMember, removeFromParty, addToParty, setPetForCompanion, getAvailablePets };
   };
 
   return { createSession, STATES };

@@ -1,0 +1,48 @@
+{
+  "_note": "Galanova skills. All skills level 1..maxLevel via their own XP. Weapon skills map to equippable weaponTypes and gate equipping; each grants basic_attack at level 1. Magic/profession ability tables are filled as abilities are authored. category: combat | non_combat. type: weapon | magic | utility | profession.",
+  "maxLevel": 99,
+  "skills": {
+    "one_handed_swords": { "id": "one_handed_swords", "name": "One-Handed Swords", "category": "combat", "type": "weapon", "weaponTypes": ["sword_1h"], "abilities": [{ "id": "basic_attack", "skillLevel": 1 }] },
+    "two_handed_swords": { "id": "two_handed_swords", "name": "Two-Handed Swords", "category": "combat", "type": "weapon", "weaponTypes": ["sword_2h"], "abilities": [{ "id": "basic_attack", "skillLevel": 1 }] },
+    "one_handed_axes": { "id": "one_handed_axes", "name": "One-Handed Axes", "category": "combat", "type": "weapon", "weaponTypes": ["axe_1h"], "abilities": [{ "id": "basic_attack", "skillLevel": 1 }] },
+    "two_handed_axes": { "id": "two_handed_axes", "name": "Two-Handed Axes", "category": "combat", "type": "weapon", "weaponTypes": ["axe_2h"], "abilities": [{ "id": "basic_attack", "skillLevel": 1 }] },
+    "one_handed_maces": { "id": "one_handed_maces", "name": "One-Handed Maces", "category": "combat", "type": "weapon", "weaponTypes": ["mace_1h"], "abilities": [{ "id": "basic_attack", "skillLevel": 1 }] },
+    "two_handed_maces": { "id": "two_handed_maces", "name": "Two-Handed Maces", "category": "combat", "type": "weapon", "weaponTypes": ["mace_2h"], "abilities": [{ "id": "basic_attack", "skillLevel": 1 }] },
+    "daggers": { "id": "daggers", "name": "Daggers", "category": "combat", "type": "weapon", "weaponTypes": ["dagger"], "abilities": [{ "id": "basic_attack", "skillLevel": 1 }] },
+    "polearms": { "id": "polearms", "name": "Polearms", "category": "combat", "type": "weapon", "weaponTypes": ["polearm"], "abilities": [{ "id": "basic_attack", "skillLevel": 1 }] },
+    "guns": { "id": "guns", "name": "Guns", "category": "combat", "type": "weapon", "weaponTypes": ["gun"], "abilities": [{ "id": "basic_attack", "skillLevel": 1 }] },
+    "bows": { "id": "bows", "name": "Bows", "category": "combat", "type": "weapon", "weaponTypes": ["bow"], "abilities": [{ "id": "basic_attack", "skillLevel": 1 }] },
+    "crossbows": { "id": "crossbows", "name": "Crossbows", "category": "combat", "type": "weapon", "weaponTypes": ["crossbow"], "abilities": [{ "id": "basic_attack", "skillLevel": 1 }] },
+    "thrown": { "id": "thrown", "name": "Thrown", "category": "combat", "type": "weapon", "weaponTypes": ["thrown"], "abilities": [{ "id": "basic_attack", "skillLevel": 1 }] },
+    "staves": { "id": "staves", "name": "Staves", "category": "combat", "type": "weapon", "weaponTypes": ["staff"], "abilities": [{ "id": "basic_attack", "skillLevel": 1 }] },
+    "wands": { "id": "wands", "name": "Wands", "category": "combat", "type": "weapon", "weaponTypes": ["wand"], "abilities": [{ "id": "basic_attack", "skillLevel": 1 }] },
+
+    "dueling": { "id": "dueling", "name": "Dueling", "category": "combat", "type": "magic", "abilities": [] },
+    "manipulation": { "id": "manipulation", "name": "Manipulation", "category": "combat", "type": "magic", "abilities": [] },
+    "madness": { "id": "madness", "name": "Madness", "category": "combat", "type": "magic", "abilities": [] },
+    "morale": { "id": "morale", "name": "Morale", "category": "combat", "type": "magic", "abilities": [] },
+    "subtlety": { "id": "subtlety", "name": "Subtlety", "category": "combat", "type": "magic", "abilities": [] },
+    "poisons": { "id": "poisons", "name": "Poisons", "category": "combat", "type": "magic", "abilities": [] },
+    "pyromancy": { "id": "pyromancy", "name": "Pyromancy", "category": "combat", "type": "magic", "abilities": [] },
+    "cryomancy": { "id": "cryomancy", "name": "Cryomancy", "category": "combat", "type": "magic", "abilities": [] },
+    "geomancy": { "id": "geomancy", "name": "Geomancy", "category": "combat", "type": "magic", "abilities": [] },
+    "energetics": { "id": "energetics", "name": "Energetics", "category": "combat", "type": "magic", "abilities": [] },
+    "hydromancy": { "id": "hydromancy", "name": "Hydromancy", "category": "combat", "type": "magic", "abilities": [] },
+    "biomancy": { "id": "biomancy", "name": "Biomancy", "category": "combat", "type": "magic", "abilities": [] },
+
+    "lockpicking": { "id": "lockpicking", "name": "Lockpicking", "category": "non_combat", "type": "utility", "abilities": [] },
+    "riding": { "id": "riding", "name": "Riding", "category": "non_combat", "type": "utility", "abilities": [] },
+    "trading": { "id": "trading", "name": "Trading", "category": "non_combat", "type": "utility", "abilities": [] },
+
+    "blacksmithing": { "id": "blacksmithing", "name": "Blacksmithing", "category": "non_combat", "type": "profession", "abilities": [] },
+    "engineering": { "id": "engineering", "name": "Engineering", "category": "non_combat", "type": "profession", "abilities": [] },
+    "enchanting": { "id": "enchanting", "name": "Enchanting", "category": "non_combat", "type": "profession", "abilities": [] },
+    "alchemy": { "id": "alchemy", "name": "Alchemy", "category": "non_combat", "type": "profession", "abilities": [] },
+    "fishing": { "id": "fishing", "name": "Fishing", "category": "non_combat", "type": "profession", "abilities": [] },
+    "mining": { "id": "mining", "name": "Mining", "category": "non_combat", "type": "profession", "abilities": [] },
+    "herbalism": { "id": "herbalism", "name": "Herbalism", "category": "non_combat", "type": "profession", "abilities": [] },
+    "woodcutting": { "id": "woodcutting", "name": "Woodcutting", "category": "non_combat", "type": "profession", "abilities": [] },
+    "first_aid": { "id": "first_aid", "name": "First Aid", "category": "non_combat", "type": "profession", "abilities": [] },
+    "cooking": { "id": "cooking", "name": "Cooking", "category": "non_combat", "type": "profession", "abilities": [] }
+  }
+}

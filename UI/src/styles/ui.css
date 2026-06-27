@@ -195,7 +195,8 @@ html, body, #root { height: 100%; overflow: hidden; }
 .hp-bar   { background: var(--green);  box-shadow: 0 0 4px rgba(30,255,0,0.3); }
 .mp-bar   { background: var(--blue);   box-shadow: 0 0 4px rgba(74,144,217,0.3); }
 .rage-bar   { background: var(--red);    box-shadow: 0 0 4px rgba(255,68,68,0.3); }
-.energy-bar { background: #e8d44d;      box-shadow: 0 0 4px rgba(232,212,77,0.3); }
+.stamina-bar { background: #e8d44d;      box-shadow: 0 0 4px rgba(232,212,77,0.3); }
+.combo-bar { background: #c75fd6;      box-shadow: 0 0 4px rgba(199,95,214,0.3); }
 .xp-bar   { background: var(--purple); }
 
 .gold { color: var(--gold); }
@@ -548,6 +549,18 @@ html, body, #root { height: 100%; overflow: hidden; }
 .cs-attr-key { font-size: 9px; font-weight: 700; color: var(--gold-dim); letter-spacing: 0.06em; }
 .cs-attr-val { font-size: 15px; font-weight: 700; color: var(--text-bright); line-height: 1.1; }
 .cs-attr-bonus { font-size: 9px; color: var(--green); line-height: 1; }
+.cs-alloc-banner {
+  font-size: 10px; font-weight: 700; color: #1a1208;
+  background: var(--gold, #e8c45a); border-radius: 4px;
+  padding: 3px 6px; margin-bottom: 4px; text-align: center; letter-spacing: 0.04em;
+}
+.cs-alloc-btn {
+  margin-top: 2px; width: 18px; height: 18px; line-height: 1;
+  font-size: 13px; font-weight: 700; cursor: pointer;
+  color: var(--text-bright); background: rgba(232,196,90,0.18);
+  border: 1px solid var(--gold-dim, #8a6d2f); border-radius: 4px; padding: 0;
+}
+.cs-alloc-btn:hover { background: rgba(232,196,90,0.38); }
 
 /* Derived stat rows */
 .cs-stat-row {
@@ -925,7 +938,7 @@ html, body, #root { height: 100%; overflow: hidden; }
 .cab-cost   { font-size: 9px; font-weight: bold; }
 .cab-cost-rage   { color: #ff6644; }
 .cab-cost-mana   { color: #4a90d9; }
-.cab-cost-energy { color: #eeee44; }
+.cab-cost-stamina { color: #eeee44; }
 .cab-cd     { font-size: 9px; color: var(--text-dim); }
 .cab-sep    { font-size: 9px; color: var(--border2); }
 
