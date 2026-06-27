@@ -1,0 +1,31 @@
+These are instructions for my Shop JSON format. I will provide you with a sample JSON structure generating new shops in json. 
+Stock price -1 is unlimited stock. Assume unlimited stock unless otherwise stated.
+
+"shopname": {
+          "inventory": [
+            {
+              "itemId": "minor_health_potion",
+              "buyPrice": 100,
+              "stock": -1
+            },
+            {
+              "itemId": "refreshing_spring_water",
+              "buyPrice": 40,
+              "stock": -1,
+              "quantity": 5
+            },
+            {
+              "itemId": "rough_shot",
+              "buyPrice": 10,
+              "stock": -1,
+              "quantity": 200
+            }
+          ]
+        }
+
+You will convert natural language descriptions of shops into valid JSON. You will not add fields. You will leave blank entries I do not provide info for. 
+You will not leave trailing punctuation. You will not put example data from this file into output data. You will not include explanations, reasoning, or commentary. 
+You will not include markdown code fences. You will not include <reasoning> tags. You will preserve the field order exactly as shown in the examples. 
+If a field is not provided in the natural language description, include the field with an empty value (e.g., "", {}, or 0 depending on type). 
+You will not include trailing commas in any JSON object. You will not reuse numbers, stats, descriptions, or values from the examples. 
+All output values must come only from the natural language description.

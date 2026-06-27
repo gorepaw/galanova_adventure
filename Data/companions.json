@@ -1,0 +1,826 @@
+{
+  "companions": {
+    "thazzril": {
+      "id":                "thazzril",
+      "name":              "Thazz'ril",
+      "_version":          1,
+      "raceId":            "orc",
+      "classId":           "warrior",
+      "profession":        "mining",
+      "joinLevel":         1,
+      "unlockZone":        "durotar",
+      "unlockQuest":       null,
+      "unlockRepFaction":  null,
+      "unlockRepRequired": null,
+      "startingSkills":    { "mining": 1 },
+      "traits":            [],
+      "quirks":            [],
+      "gear": {
+        "head": null, "neck": null, "shoulders": null, "back": null,
+        "chest": null, "waist": null, "tabard": null, "wrist": null,
+        "hands": null, "feet": null, "legs": null, "ring": null,
+        "trinket": null, "mainhand": null, "offhand": null,
+        "ranged": null, "ammo": null, "relic": null
+      },
+      "joinDialogue": [
+        "You fight well, stranger.",
+        "I have been working these mines alone for too long.",
+        "Let me join you. My pick and my axe are yours."
+      ],
+      "lore": "A former grunt who left Orgrimmar to work the mines of Durotar alone. Toughened by years of hard labor and harder living.",
+      "tags": ["orc","warrior","mining","zone_durotar"]
+    },
+
+    "taijin": {
+      "id":                "taijin",
+      "name":              "Tai'Jin",
+      "_version":          1,
+      "raceId":            "troll",
+      "classId":           "priest",
+      "profession":        "herbalism",
+      "joinLevel":         2,
+      "unlockZone":        "valley_of_trials",
+      "unlockQuest":       null,
+      "unlockRepFaction":  null,
+      "unlockRepRequired": null,
+      "startingSkills":    { "herbalism": 1 },
+      "traits":            [],
+      "quirks":            [],
+      "gear": {
+        "head": null, "neck": null, "shoulders": null, "back": null,
+        "chest": null, "waist": null, "tabard": null, "wrist": null,
+        "hands": null, "feet": null, "legs": null, "ring": null,
+        "trinket": null, "mainhand": null, "offhand": null,
+        "ranged": null, "ammo": null, "relic": null
+      },
+      "joinDialogue": [
+        "Da spirits, dey been whisperin' your name.",
+        "I been waitin' for someone worth healin'.",
+        "Stay alive long enough and maybe I keep you dat way."
+      ],
+      "lore": "A troll shadow priest who walked away from his tribe's darker practices. He tends to the wounded and the dying with equal calm.",
+      "tags": ["troll","priest","herbalism","zone_valley_of_trials"]
+    },
+
+    "ulaelek": {
+      "id":                "ulaelek",
+      "name":              "Ula'Elek",
+      "_version":          1,
+      "raceId":            "troll",
+      "classId":           "rogue",
+      "profession":        "blacksmithing",
+      "joinLevel":         3,
+      "unlockZone":        "valley_of_trials",
+      "unlockQuest":       null,
+      "unlockRepFaction":  null,
+      "unlockRepRequired": null,
+      "startingSkills":    { "lockpicking": 1 },
+      "traits":            [],
+      "quirks":            [],
+      "gear": {
+        "head": null, "neck": null, "shoulders": null, "back": null,
+        "chest": null, "waist": null, "tabard": null, "wrist": null,
+        "hands": null, "feet": null, "legs": null, "ring": null,
+        "trinket": null, "mainhand": null, "offhand": null,
+        "ranged": null, "ammo": null, "relic": null
+      },
+      "joinDialogue": [
+        "You almost didn't see me. Almost.",
+        "I forge my own blades. Better dat way.",
+        "Don't ask where I been. Just be glad I'm here now."
+      ],
+      "lore": "A troll who left the Echo Isles with nothing but a knife and a grudge. She learned blacksmithing to never depend on anyone else for a weapon again.",
+      "tags": ["troll","rogue","blacksmithing","zone_valley_of_trials"]
+    },
+
+    "zevrost": {
+      "id":                "zevrost",
+      "name":              "Zevrost",
+      "_version":          1,
+      "raceId":            "orc",
+      "classId":           "warlock",
+      "profession":        "alchemy",
+      "joinLevel":         4,
+      "unlockZone":        "valley_of_trials",
+      "unlockQuest":       null,
+      "unlockRepFaction":  null,
+      "unlockRepRequired": null,
+      "startingSkills":    {},
+      "traits":            [],
+      "quirks":            [],
+      "gear": {
+        "head": null, "neck": null, "shoulders": null, "back": null,
+        "chest": null, "waist": null, "tabard": null, "wrist": null,
+        "hands": null, "feet": null, "legs": null, "ring": null,
+        "trinket": null, "mainhand": null, "offhand": null,
+        "ranged": null, "ammo": null, "relic": null
+      },
+      "joinDialogue": [
+        "Power is just a substance. I have learned to refine it.",
+        "My concoctions are... reliable. Mostly.",
+        "The demon is under control. You have my word."
+      ],
+      "lore": "An orc warlock who turned to alchemy after realizing fel energy alone was unstable. He now brews potions that few others would dare drink.",
+      "tags": ["orc","warlock","alchemy","zone_valley_of_trials"]
+    },
+
+    "mukdrak": {
+      "id":                "mukdrak",
+      "name":              "Mukdrak",
+      "_version":          1,
+      "raceId":            "orc",
+      "classId":           "shaman",
+      "profession":        "skinning",
+      "joinLevel":         5,
+      "unlockZone":        "durotar",
+      "unlockQuest":       null,
+      "unlockRepFaction":  null,
+      "unlockRepRequired": null,
+      "startingSkills":    { "skinning": 1 },
+      "traits":            [],
+      "quirks":            [],
+      "gear": {
+        "head": null, "neck": null, "shoulders": null, "back": null,
+        "chest": null, "waist": null, "tabard": null, "wrist": null,
+        "hands": null, "feet": null, "legs": null, "ring": null,
+        "trinket": null, "mainhand": null, "offhand": null,
+        "ranged": null, "ammo": null, "relic": null
+      },
+      "joinDialogue": [
+        "The elements brought you to me. Or me to you.",
+        "I skin what I kill. Waste nothing — the elements taught me that.",
+        "Walk with me. The spirits will watch over us both."
+      ],
+      "lore": "An orc shaman who communes with the earth elements of Durotar. He hunts to survive and wastes nothing, curing and skinning every kill himself.",
+      "tags": ["orc","shaman","skinning","zone_durotar"]
+    },
+
+    "larprowltusk": {
+      "id":                "larprowltusk",
+      "name":              "Lar Prowltusk",
+      "_version":          1,
+      "raceId":            "troll",
+      "classId":           "hunter",
+      "profession":        "leatherworking",
+      "joinLevel":         6,
+      "unlockZone":        "kolkar_crag",
+      "unlockQuest":       null,
+      "unlockRepFaction":  null,
+      "unlockRepRequired": null,
+      "startingSkills":    {},
+      "traits":            [],
+      "quirks":            [],
+      "gear": {
+        "head": null, "neck": null, "shoulders": null, "back": null,
+        "chest": null, "waist": null, "tabard": null, "wrist": null,
+        "hands": null, "feet": null, "legs": null, "ring": null,
+        "trinket": null, "mainhand": null, "offhand": null,
+        "ranged": null, "ammo": null, "relic": null
+      },
+      "joinDialogue": [
+        "You're noisier than a kodo in a copper mine.",
+        "I been trackin' you for an hour. You never noticed.",
+        "I make my own armor. Means it fits right and it holds."
+      ],
+      "lore": "A troll hunter who followed prey into Durotar's harsh interior and found he preferred it to the coast. He works every hide he takes into armor.",
+      "tags": ["troll","hunter","leatherworking","zone_kolkar_crag"]
+    },
+
+    "zureethafargazee": {
+      "id":                "zureethafargazee",
+      "name":              "Zureetha Fargaze",
+      "_version":          1,
+      "raceId":            "troll",
+      "classId":           "mage",
+      "profession":        "tailoring",
+      "joinLevel":         7,
+      "unlockZone":        "durotar",
+      "unlockQuest":       null,
+      "unlockRepFaction":  null,
+      "unlockRepRequired": null,
+      "startingSkills":    {},
+      "traits":            [],
+      "quirks":            [],
+      "gear": {
+        "head": null, "neck": null, "shoulders": null, "back": null,
+        "chest": null, "waist": null, "tabard": null, "wrist": null,
+        "hands": null, "feet": null, "legs": null, "ring": null,
+        "trinket": null, "mainhand": null, "offhand": null,
+        "ranged": null, "ammo": null, "relic": null
+      },
+      "joinDialogue": [
+        "My robes? I made them. Everything I wear, I make.",
+        "Durotar is boring when you have already mapped it with your mind.",
+        "I will travel with you. Interesting things tend to happen around people like you."
+      ],
+      "lore": "A troll mage with an obsessive interest in the intersection of arcane theory and practical craft. She sews her own robes to precise magical tolerances.",
+      "tags": ["troll","mage","tailoring","zone_durotar"]
+    },
+
+    "nartok": {
+      "id":                "nartok",
+      "name":              "Nartok",
+      "_version":          1,
+      "raceId":            "troll",
+      "classId":           "warrior",
+      "profession":        "engineering",
+      "joinLevel":         8,
+      "unlockZone":        "tiragarde_keep",
+      "unlockQuest":       null,
+      "unlockRepFaction":  null,
+      "unlockRepRequired": null,
+      "startingSkills":    {},
+      "traits":            [],
+      "quirks":            [],
+      "gear": {
+        "head": null, "neck": null, "shoulders": null, "back": null,
+        "chest": null, "waist": null, "tabard": null, "wrist": null,
+        "hands": null, "feet": null, "legs": null, "ring": null,
+        "trinket": null, "mainhand": null, "offhand": null,
+        "ranged": null, "ammo": null, "relic": null
+      },
+      "joinDialogue": [
+        "That device on my belt? Don't touch it.",
+        "I fight better with something that explodes in my pocket, trust me.",
+        "Engineering and combat. One informs the other. Usually."
+      ],
+      "lore": "A troll warrior who became fascinated with goblin engineering after a chance encounter with a misfired rocket. He now builds his own gadgets and carries them into every fight.",
+      "tags": ["troll","warrior","engineering","zone_tiragarde_keep"]
+    },
+
+    "zargh": {
+      "id":                "zargh",
+      "name":              "Zargh",
+      "_version":          1,
+      "raceId":            "orc",
+      "classId":           "hunter",
+      "profession":        "cooking",
+      "joinLevel":         9,
+      "unlockZone":        "durotar",
+      "unlockQuest":       null,
+      "unlockRepFaction":  null,
+      "unlockRepRequired": null,
+      "startingSkills":    {},
+      "traits":            [],
+      "quirks":            [],
+      "gear": {
+        "head": null, "neck": null, "shoulders": null, "back": null,
+        "chest": null, "waist": null, "tabard": null, "wrist": null,
+        "hands": null, "feet": null, "legs": null, "ring": null,
+        "trinket": null, "mainhand": null, "offhand": null,
+        "ranged": null, "ammo": null, "relic": null
+      },
+      "joinDialogue": [
+        "I hunt it. I cook it. Simple.",
+        "You look hungry. When did you last eat a real meal?",
+        "Travel with me and you won't go hungry. That much I promise."
+      ],
+      "lore": "An orc hunter who takes as much pride in what he does with a kill afterward as the hunt itself. His camp always smells better than anyone else's.",
+      "tags": ["orc","hunter","cooking","zone_durotar"]
+    },
+
+    "gadrin": {
+      "id":                "gadrin",
+      "name":              "Gadrin",
+      "_version":          1,
+      "raceId":            "troll",
+      "classId":           "shaman",
+      "profession":        "enchanting",
+      "joinLevel":         10,
+      "unlockZone":        "echo_isles",
+      "unlockQuest":       null,
+      "unlockRepFaction":  null,
+      "unlockRepRequired": null,
+      "startingSkills":    {},
+      "traits":            [],
+      "quirks":            [],
+      "gear": {
+        "head": null, "neck": null, "shoulders": null, "back": null,
+        "chest": null, "waist": null, "tabard": null, "wrist": null,
+        "hands": null, "feet": null, "legs": null, "ring": null,
+        "trinket": null, "mainhand": null, "offhand": null,
+        "ranged": null, "ammo": null, "relic": null
+      },
+      "joinDialogue": [
+        "Every weapon has a voice. I simply teach them to speak louder.",
+        "The elements and the arcane are not so different. Both respond to intent.",
+        "I have been watching you. Your equipment is... underperforming. Let me fix that."
+      ],
+      "lore": "A troll shaman who discovered that the elemental forces he channels share properties with enchanting magic. He now weaves both into everything he touches.",
+      "tags": ["troll","shaman","enchanting","zone_echo_isles"]
+    },
+
+    "genniarunetotem": {
+      "id":                "genniarunetotem",
+      "name":              "Gennia Runetotem",
+      "_version":          1,
+      "raceId":            "tauren",
+      "classId":           "druid",
+      "profession":        "enchanting",
+      "joinLevel":         6,
+      "unlockZone":        "palemane_camp",
+      "unlockQuest":       null,
+      "unlockRepFaction":  null,
+      "unlockRepRequired": null,
+      "startingSkills":    {},
+      "traits":            [],
+      "quirks":            [],
+      "gear": {
+        "head": null, "neck": null, "shoulders": null, "back": null,
+        "chest": null, "waist": null, "tabard": null, "wrist": null,
+        "hands": null, "feet": null, "legs": null, "ring": null,
+        "trinket": null, "mainhand": null, "offhand": null,
+        "ranged": null, "ammo": null, "relic": null
+      },
+      "joinDialogue": [
+        "The gnolls here corrupt the land they touch. I came to study the pattern.",
+        "An enchantment is not power borrowed — it is power woven into what already is.",
+        "Walk with me. There is much I can add to what you carry."
+      ],
+      "lore": "A tauren druid who came to the edge of the Palemane gnoll camp to study the corrupting enchantments the gnolls leave on the land. She believes understanding corruption is the first step to undoing it.",
+      "tags": ["tauren","druid","enchanting","zone_palemane_camp"]
+    },
+
+    "younghawkwind": {
+      "id":                "younghawkwind",
+      "name":              "Young Hawkwind",
+      "_version":          1,
+      "raceId":            "tauren",
+      "classId":           "druid",
+      "profession":        "herbalism",
+      "joinLevel":         6,
+      "unlockZone":        "mulgore",
+      "unlockQuest":       null,
+      "unlockRepFaction":  null,
+      "unlockRepRequired": null,
+      "startingSkills":    { "herbalism": 1 },
+      "traits":            [],
+      "quirks":            [],
+      "gear": {
+        "head": null, "neck": null, "shoulders": null, "back": null,
+        "chest": null, "waist": null, "tabard": null, "wrist": null,
+        "hands": null, "feet": null, "legs": null, "ring": null,
+        "trinket": null, "mainhand": null, "offhand": null,
+        "ranged": null, "ammo": null, "relic": null
+      },
+      "joinDialogue": [
+        "The plains speak if you know how to listen. I am still learning.",
+        "My family say I spend more time with the flowers than with people. They are right.",
+        "I will come with you. Every journey teaches you something the roots cannot."
+      ],
+      "lore": "A young tauren druid who has spent most of his life cataloguing the herbs of Mulgore's open plains. He is eager to prove himself beyond the borders he was born inside.",
+      "tags": ["tauren","druid","herbalism","zone_mulgore"]
+    },
+
+    "maurraincaller": {
+      "id":                "maurraincaller",
+      "name":              "Maur Raincaller",
+      "_version":          1,
+      "raceId":            "tauren",
+      "classId":           "druid",
+      "profession":        "skinning",
+      "joinLevel":         3,
+      "unlockZone":        "red_cloud_mesa",
+      "unlockQuest":       null,
+      "unlockRepFaction":  null,
+      "unlockRepRequired": null,
+      "startingSkills":    { "skinning": 1 },
+      "traits":            [],
+      "quirks":            [],
+      "gear": {
+        "head": null, "neck": null, "shoulders": null, "back": null,
+        "chest": null, "waist": null, "tabard": null, "wrist": null,
+        "hands": null, "feet": null, "legs": null, "ring": null,
+        "trinket": null, "mainhand": null, "offhand": null,
+        "ranged": null, "ammo": null, "relic": null
+      },
+      "joinDialogue": [
+        "I call the rain when the herd is thirsty. Today the land is dry.",
+        "Nothing from a kill goes to waste when I am near. Not the hide, not the spirit.",
+        "You look like you could use a druid. I could use a reason to walk further east."
+      ],
+      "lore": "A tauren druid who practices skinning as a form of ritual respect — every hide carefully taken, every beast honored in its passing. He roams Red Cloud Mesa calling weather for the village herds.",
+      "tags": ["tauren","druid","skinning","zone_red_cloud_mesa"]
+    },
+
+    "hamuulrunetotem": {
+      "id":                "hamuulrunetotem",
+      "name":              "Hamuul Runetotem",
+      "_version":          1,
+      "raceId":            "tauren",
+      "classId":           "druid",
+      "profession":        "alchemy",
+      "joinLevel":         10,
+      "unlockZone":        "mulgore",
+      "unlockQuest":       null,
+      "unlockRepFaction":  null,
+      "unlockRepRequired": null,
+      "startingSkills":    {},
+      "traits":            [],
+      "quirks":            [],
+      "gear": {
+        "head": null, "neck": null, "shoulders": null, "back": null,
+        "chest": null, "waist": null, "tabard": null, "wrist": null,
+        "hands": null, "feet": null, "legs": null, "ring": null,
+        "trinket": null, "mainhand": null, "offhand": null,
+        "ranged": null, "ammo": null, "relic": null
+      },
+      "joinDialogue": [
+        "In the dream, you were there. I am not surprised to find you on this road.",
+        "The Cenarion Circle has no stronger root than Mulgore's soil.",
+        "Speak freely. I have been listening to the earth far longer than you have been walking it."
+      ],
+      "lore": "Archdruid of Thunder Bluff and one of the most revered figures in the Cenarion Circle. Hamuul walks Mulgore's hills with ancient patience, distilling remedies from plants that others overlook entirely.",
+      "tags": ["tauren","druid","alchemy","zone_mulgore"]
+    },
+
+    "grullhawkwind": {
+      "id":                "grullhawkwind",
+      "name":              "Grull Hawkwind",
+      "_version":          1,
+      "raceId":            "tauren",
+      "classId":           "warrior",
+      "profession":        "cooking",
+      "joinLevel":         8,
+      "unlockZone":        "mulgore",
+      "unlockQuest":       null,
+      "unlockRepFaction":  null,
+      "unlockRepRequired": null,
+      "startingSkills":    {},
+      "traits":            [],
+      "quirks":            [],
+      "gear": {
+        "head": null, "neck": null, "shoulders": null, "back": null,
+        "chest": null, "waist": null, "tabard": null, "wrist": null,
+        "hands": null, "feet": null, "legs": null, "ring": null,
+        "trinket": null, "mainhand": null, "offhand": null,
+        "ranged": null, "ammo": null, "relic": null
+      },
+      "joinDialogue": [
+        "Sit. Eat first. Fight better.",
+        "My cousin says I put too much time into the fire and not enough into the blade. My cousin is wrong.",
+        "Come along if you want. My cooking alone is worth the trouble of keeping me alive."
+      ],
+      "lore": "A tauren warrior who measures a good campaign by whether everyone ate well at the end of it. He carries a cleaver for enemies and a separate one, far better-kept, for the cook-fire.",
+      "tags": ["tauren","warrior","cooking","zone_mulgore"]
+    },
+
+    "ahmothunderhorn": {
+      "id":                "ahmothunderhorn",
+      "name":              "Ahmo Thunderhorn",
+      "_version":          1,
+      "raceId":            "tauren",
+      "classId":           "warrior",
+      "profession":        "mining",
+      "joinLevel":         5,
+      "unlockZone":        "brambleblade_ravine",
+      "unlockQuest":       null,
+      "unlockRepFaction":  null,
+      "unlockRepRequired": null,
+      "startingSkills":    { "mining": 1 },
+      "traits":            [],
+      "quirks":            [],
+      "gear": {
+        "head": null, "neck": null, "shoulders": null, "back": null,
+        "chest": null, "waist": null, "tabard": null, "wrist": null,
+        "hands": null, "feet": null, "legs": null, "ring": null,
+        "trinket": null, "mainhand": null, "offhand": null,
+        "ranged": null, "ammo": null, "relic": null
+      },
+      "joinDialogue": [
+        "The Venture Company digs where they have no right to dig. Someone has to stop them.",
+        "I know this ravine better than any gnome with a map and a drill.",
+        "You need copper, I find copper. Simple trade."
+      ],
+      "lore": "A tauren warrior who has spent years defending Brambleblade Ravine from Venture Company encroachment. He learned mining to understand what the goblins are after — and how to take it back.",
+      "tags": ["tauren","warrior","mining","zone_brambleblade_ravine"]
+    },
+
+    "morincloudstalker": {
+      "id":                "morincloudstalker",
+      "name":              "Morin Cloudstalker",
+      "_version":          1,
+      "raceId":            "tauren",
+      "classId":           "warrior",
+      "profession":        "first_aid",
+      "joinLevel":         2,
+      "unlockZone":        "red_cloud_mesa",
+      "unlockQuest":       null,
+      "unlockRepFaction":  null,
+      "unlockRepRequired": null,
+      "startingSkills":    { "first_aid": 1 },
+      "traits":            [],
+      "quirks":            [],
+      "gear": {
+        "head": null, "neck": null, "shoulders": null, "back": null,
+        "chest": null, "waist": null, "tabard": null, "wrist": null,
+        "hands": null, "feet": null, "legs": null, "ring": null,
+        "trinket": null, "mainhand": null, "offhand": null,
+        "ranged": null, "ammo": null, "relic": null
+      },
+      "joinDialogue": [
+        "A warrior who cannot keep his allies standing is only half a warrior.",
+        "I have seen too many die from wounds that a little cloth and pressure could have closed.",
+        "Fight. I will keep you breathing long enough to finish it."
+      ],
+      "lore": "A tauren warrior on Red Cloud Mesa who insists that first aid is as vital a skill as any weapon. He has bandaged more wounds than he has given, and he sees no shame in that.",
+      "tags": ["tauren","warrior","first_aid","zone_red_cloud_mesa"]
+    },
+
+    "bainebloodhoof": {
+      "id":                "bainebloodhoof",
+      "name":              "Baine Bloodhoof",
+      "_version":          1,
+      "raceId":            "tauren",
+      "classId":           "warrior",
+      "profession":        "blacksmithing",
+      "joinLevel":         10,
+      "unlockZone":        "red_rocks",
+      "unlockQuest":       null,
+      "unlockRepFaction":  null,
+      "unlockRepRequired": null,
+      "startingSkills":    {},
+      "traits":            [],
+      "quirks":            [],
+      "gear": {
+        "head": null, "neck": null, "shoulders": null, "back": null,
+        "chest": null, "waist": null, "tabard": null, "wrist": null,
+        "hands": null, "feet": null, "legs": null, "ring": null,
+        "trinket": null, "mainhand": null, "offhand": null,
+        "ranged": null, "ammo": null, "relic": null
+      },
+      "joinDialogue": [
+        "My father's spirit is in this land. I feel it when I stand here.",
+        "I have learned to forge in silence. A hammer's rhythm steadies the mind.",
+        "Walk with me, friend. The Bloodhoof name means something. I intend to keep it that way."
+      ],
+      "lore": "Son of Cairne Bloodhoof and heir to the chieftainship of the Bloodhoof tribe. At Red Rocks, Baine forges weapons in honor of the fallen and keeps his grief close where no one else can use it against him.",
+      "tags": ["tauren","warrior","blacksmithing","zone_red_rocks"]
+    },
+
+    "adanathunderhorn": {
+      "id":                "adanathunderhorn",
+      "name":              "Adana Thunderhorn",
+      "_version":          1,
+      "raceId":            "tauren",
+      "classId":           "hunter",
+      "profession":        "cooking",
+      "joinLevel":         1,
+      "unlockZone":        "red_cloud_mesa",
+      "unlockQuest":       null,
+      "unlockRepFaction":  null,
+      "unlockRepRequired": null,
+      "startingSkills":    {},
+      "traits":            [],
+      "quirks":            [],
+      "gear": {
+        "head": null, "neck": null, "shoulders": null, "back": null,
+        "chest": null, "waist": null, "tabard": null, "wrist": null,
+        "hands": null, "feet": null, "legs": null, "ring": null,
+        "trinket": null, "mainhand": null, "offhand": null,
+        "ranged": null, "ammo": null, "relic": null
+      },
+      "joinDialogue": [
+        "My first hunt was yesterday. I did not miss.",
+        "There is a fire back at camp. Whatever you bring back, I can cook it.",
+        "I am young, not helpless. There is a difference."
+      ],
+      "lore": "A young tauren hunter making her first forays out from Red Cloud Mesa. She hunts to feed her family and has discovered she is better at it than most people twice her age.",
+      "tags": ["tauren","hunter","cooking","zone_red_cloud_mesa"]
+    },
+
+    "harkenwindtotem": {
+      "id":                "harkenwindtotem",
+      "name":              "Harken Windtotem",
+      "_version":          1,
+      "raceId":            "tauren",
+      "classId":           "hunter",
+      "profession":        "leatherworking",
+      "joinLevel":         9,
+      "unlockZone":        "mulgore",
+      "unlockQuest":       null,
+      "unlockRepFaction":  null,
+      "unlockRepRequired": null,
+      "startingSkills":    {},
+      "traits":            [],
+      "quirks":            [],
+      "gear": {
+        "head": null, "neck": null, "shoulders": null, "back": null,
+        "chest": null, "waist": null, "tabard": null, "wrist": null,
+        "hands": null, "feet": null, "legs": null, "ring": null,
+        "trinket": null, "mainhand": null, "offhand": null,
+        "ranged": null, "ammo": null, "relic": null
+      },
+      "joinDialogue": [
+        "I have tracked every major predator across these plains. Twice.",
+        "The armor I make fits better than anything you will find in a shop. I measured it for the living, not the average.",
+        "You ride with me, you eat well and you stay armored. Fair terms."
+      ],
+      "lore": "A veteran tauren hunter whose reputation across Mulgore rests as much on his leatherwork as his bowmanship. He stitches armor for the living, built around how a body actually moves in a fight.",
+      "tags": ["tauren","hunter","leatherworking","zone_mulgore"]
+    },
+
+    "ruuleagletalon": {
+      "id":                "ruuleagletalon",
+      "name":              "Ruul Eagletalon",
+      "_version":          1,
+      "raceId":            "tauren",
+      "classId":           "hunter",
+      "profession":        "skinning",
+      "joinLevel":         7,
+      "unlockZone":        "baeldun_digsite",
+      "unlockQuest":       null,
+      "unlockRepFaction":  null,
+      "unlockRepRequired": null,
+      "startingSkills":    { "skinning": 1 },
+      "traits":            [],
+      "quirks":            [],
+      "gear": {
+        "head": null, "neck": null, "shoulders": null, "back": null,
+        "chest": null, "waist": null, "tabard": null, "wrist": null,
+        "hands": null, "feet": null, "legs": null, "ring": null,
+        "trinket": null, "mainhand": null, "offhand": null,
+        "ranged": null, "ammo": null, "relic": null
+      },
+      "joinDialogue": [
+        "The dwarves dig without asking. The land remembers everything taken from it.",
+        "I hunt what threatens the mesa. Right now that includes excavation crews.",
+        "Stay quiet near the digsite. Sound carries strange here."
+      ],
+      "lore": "A tauren hunter who has made the Bael'dun Digsite his personal patrol zone, watching the dwarven excavation with steady suspicion. He skins every beast the dig crew disturbs to ensure nothing is wasted by their disruption.",
+      "tags": ["tauren","hunter","skinning","zone_baeldun_digsite"]
+    },
+
+    "skornwhitecloud": {
+      "id":                "skornwhitecloud",
+      "name":              "Skorn Whitecloud",
+      "_version":          1,
+      "raceId":            "tauren",
+      "classId":           "hunter",
+      "profession":        "fishing",
+      "joinLevel":         5,
+      "unlockZone":        "mulgore",
+      "unlockQuest":       null,
+      "unlockRepFaction":  null,
+      "unlockRepRequired": null,
+      "startingSkills":    { "fishing": 1 },
+      "traits":            [],
+      "quirks":            [],
+      "gear": {
+        "head": null, "neck": null, "shoulders": null, "back": null,
+        "chest": null, "waist": null, "tabard": null, "wrist": null,
+        "hands": null, "feet": null, "legs": null, "ring": null,
+        "trinket": null, "mainhand": null, "offhand": null,
+        "ranged": null, "ammo": null, "relic": null
+      },
+      "joinDialogue": [
+        "A good hunter knows when to be loud and when to be still. Fishing teaches the still part.",
+        "I know every stream and pool on these plains. Useful in a fight, actually.",
+        "Come along. Traveling is just hunting with longer gaps between the interesting parts."
+      ],
+      "lore": "A tauren hunter who treats fishing as a form of serious scouting. He has mapped every waterway in Mulgore from the bank up and uses that knowledge as much as his bow.",
+      "tags": ["tauren","hunter","fishing","zone_mulgore"]
+    },
+
+    "mullthunderhorn": {
+      "id":                "mullthunderhorn",
+      "name":              "Mull Thunderhorn",
+      "_version":          1,
+      "raceId":            "tauren",
+      "classId":           "shaman",
+      "profession":        "herbalism",
+      "joinLevel":         4,
+      "unlockZone":        "brambleblade_ravine",
+      "unlockQuest":       null,
+      "unlockRepFaction":  null,
+      "unlockRepRequired": null,
+      "startingSkills":    { "herbalism": 1 },
+      "traits":            [],
+      "quirks":            [],
+      "gear": {
+        "head": null, "neck": null, "shoulders": null, "back": null,
+        "chest": null, "waist": null, "tabard": null, "wrist": null,
+        "hands": null, "feet": null, "legs": null, "ring": null,
+        "trinket": null, "mainhand": null, "offhand": null,
+        "ranged": null, "ammo": null, "relic": null
+      },
+      "joinDialogue": [
+        "The ravine is being choked. I can feel the roots pulling back from the machines.",
+        "Earth totems work best when the soil remembers being healthy. Out here I have to remind it.",
+        "You have a good reason for being here. I will travel with good reasons."
+      ],
+      "lore": "A tauren shaman who came to Brambleblade Ravine to commune with the earth spirits being disturbed by Venture Company drilling. He gathers the herbs that still grow between the excavation scars.",
+      "tags": ["tauren","shaman","herbalism","zone_brambleblade_ravine"]
+    },
+
+    "zarlmantwomoons": {
+      "id":                "zarlmantwomoons",
+      "name":              "Zarlman Two-Moons",
+      "_version":          1,
+      "raceId":            "tauren",
+      "classId":           "shaman",
+      "profession":        "alchemy",
+      "joinLevel":         7,
+      "unlockZone":        "mulgore",
+      "unlockQuest":       null,
+      "unlockRepFaction":  null,
+      "unlockRepRequired": null,
+      "startingSkills":    {},
+      "traits":            [],
+      "quirks":            [],
+      "gear": {
+        "head": null, "neck": null, "shoulders": null, "back": null,
+        "chest": null, "waist": null, "tabard": null, "wrist": null,
+        "hands": null, "feet": null, "legs": null, "ring": null,
+        "trinket": null, "mainhand": null, "offhand": null,
+        "ranged": null, "ammo": null, "relic": null
+      },
+      "joinDialogue": [
+        "Two moons overhead and still most people cannot read what they say.",
+        "The elements do not argue with a properly brewed reagent. Neither should you.",
+        "You have questions. I have answers, and also several potions you should not open without asking first."
+      ],
+      "lore": "A tauren shaman whose study of the stars led him into alchemy as a natural extension — the same forces that govern the sky, he believes, govern what happens inside a flask. His results support the theory.",
+      "tags": ["tauren","shaman","alchemy","zone_mulgore"]
+    },
+
+    "unawildmane": {
+      "id":                "unawildmane",
+      "name":              "Una Wildmane",
+      "_version":          1,
+      "raceId":            "tauren",
+      "classId":           "shaman",
+      "profession":        "skinning",
+      "joinLevel":         8,
+      "unlockZone":        "venture_co_mine",
+      "unlockQuest":       null,
+      "unlockRepFaction":  null,
+      "unlockRepRequired": null,
+      "startingSkills":    { "skinning": 1 },
+      "traits":            [],
+      "quirks":            [],
+      "gear": {
+        "head": null, "neck": null, "shoulders": null, "back": null,
+        "chest": null, "waist": null, "tabard": null, "wrist": null,
+        "hands": null, "feet": null, "legs": null, "ring": null,
+        "trinket": null, "mainhand": null, "offhand": null,
+        "ranged": null, "ammo": null, "relic": null
+      },
+      "joinDialogue": [
+        "The goblins brought machines. I brought a knife and the patience to wait them out.",
+        "Every creature they drive out of this mine I take care of properly. It is the least I can do.",
+        "You want help clearing this place? Good. So do I."
+      ],
+      "lore": "A tauren shaman who set up camp at the edge of the Venture Co. Mine to oppose the goblin operation one spirit-call at a time. She skins the beasts displaced by the mining to honor what the goblins destroy without a second thought.",
+      "tags": ["tauren","shaman","skinning","zone_venture_co_mine"]
+    }
+  },
+
+  "classRestrictions": {
+    "warrior": {
+      "weaponTypes": ["wand"],
+      "armorTypes":  [],
+      "slots":       ["relic"]
+    },
+    "paladin": {
+      "weaponTypes": ["bow","crossbow","gun","thrown","wand","fist"],
+      "armorTypes":  [],
+      "slots":       []
+    },
+    "hunter": {
+      "weaponTypes": ["wand","shield"],
+      "armorTypes":  ["plate"],
+      "slots":       ["relic","tabard"]
+    },
+    "rogue": {
+      "weaponTypes": ["wand","shield","two_hand_sword","two_hand_axe","two_hand_mace","polearm","staff"],
+      "armorTypes":  ["mail","plate"],
+      "slots":       ["relic"]
+    },
+    "priest": {
+      "weaponTypes": ["axe","sword","mace_2h","bow","crossbow","gun","thrown","fist","shield"],
+      "armorTypes":  ["leather","mail","plate"],
+      "slots":       ["relic","ranged","ammo"]
+    },
+    "shaman": {
+      "weaponTypes": ["sword","bow","crossbow","gun","thrown","wand","polearm"],
+      "armorTypes":  ["plate"],
+      "slots":       []
+    },
+    "mage": {
+      "weaponTypes": ["axe","mace","bow","crossbow","gun","thrown","fist","shield","polearm"],
+      "armorTypes":  ["leather","mail","plate"],
+      "slots":       ["relic","ranged","ammo"]
+    },
+    "warlock": {
+      "weaponTypes": ["axe","mace","bow","crossbow","gun","thrown","fist","shield","polearm"],
+      "armorTypes":  ["leather","mail","plate"],
+      "slots":       ["relic","ranged","ammo"]
+    },
+    "druid": {
+      "weaponTypes": ["sword","axe","mace_1h","bow","crossbow","gun","thrown","wand","shield"],
+      "armorTypes":  ["mail","plate"],
+      "slots":       []
+    }
+  }
+}

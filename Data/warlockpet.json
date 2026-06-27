@@ -1,0 +1,94 @@
+{
+  "pets": [
+    {
+      "id": "imp",
+      "name": "Imp",
+      "unlockLevel": 1,
+      "type": "demon",
+      "role": "caster",
+      "aiProfile": "caster",
+      "baseStats": { "str": 2, "agi": 4, "sta": 4, "int": 9, "spi": 6 },
+      "statGrowthPerLevel": { "str": 0.1, "agi": 0.2, "sta": 0.3, "int": 0.8, "spi": 0.4 },
+      "baseHp": 30,
+      "hpPerLevel": 9,
+      "abilities": [
+        { "id": "pet_firebolt", "level": 1 }
+      ],
+      "description": "A mischievous imp that hurls firebolts at the warlock's enemies.",
+      "tags": ["demon", "caster"]
+    },
+    {
+      "id": "voidwalker",
+      "name": "Voidwalker",
+      "unlockLevel": 10,
+      "type": "demon",
+      "role": "tank",
+      "aiProfile": "tank",
+      "baseStats": { "str": 9, "agi": 3, "sta": 13, "int": 3, "spi": 2 },
+      "statGrowthPerLevel": { "str": 0.6, "agi": 0.2, "sta": 1.1, "int": 0.1, "spi": 0.1 },
+      "baseHp": 70,
+      "hpPerLevel": 22,
+      "abilities": [
+        { "id": "pet_torment", "level": 10 },
+        { "id": "pet_consume_shadows", "level": 10 }
+      ],
+      "description": "A hulking void creature that takes hits for the warlock.",
+      "tags": ["demon", "tank"]
+    },
+    {
+      "id": "succubus",
+      "name": "Succubus",
+      "unlockLevel": 20,
+      "type": "demon",
+      "role": "dps",
+      "aiProfile": "aggressive",
+      "baseStats": { "str": 7, "agi": 9, "sta": 6, "int": 7, "spi": 4 },
+      "statGrowthPerLevel": { "str": 0.5, "agi": 0.7, "sta": 0.5, "int": 0.6, "spi": 0.2 },
+      "baseHp": 50,
+      "hpPerLevel": 15,
+      "abilities": [
+        { "id": "pet_seethe", "level": 20 },
+        { "id": "pet_firebolt", "level": 20 }
+      ],
+      "description": "A powerful demon that combines melee and fire to deal heavy damage.",
+      "tags": ["demon", "dps"]
+    },
+    {
+      "id": "felhunter",
+      "name": "Felhunter",
+      "unlockLevel": 30,
+      "type": "demon",
+      "role": "utility",
+      "aiProfile": "aggressive",
+      "baseStats": { "str": 6, "agi": 7, "sta": 8, "int": 5, "spi": 3 },
+      "statGrowthPerLevel": { "str": 0.5, "agi": 0.5, "sta": 0.7, "int": 0.3, "spi": 0.2 },
+      "baseHp": 55,
+      "hpPerLevel": 16,
+      "abilities": [
+        { "id": "pet_bite", "level": 30 },
+        { "id": "pet_spell_lock", "level": 30 }
+      ],
+      "description": "A hound that sniffs out and silences enemy spellcasters.",
+      "tags": ["demon", "utility"]
+    },
+    {
+      "id": "felguard",
+      "name": "Felguard",
+      "unlockLevel": 40,
+      "type": "demon",
+      "role": "dps",
+      "aiProfile": "aggressive",
+      "baseStats": { "str": 13, "agi": 7, "sta": 11, "int": 4, "spi": 2 },
+      "statGrowthPerLevel": { "str": 1.1, "agi": 0.5, "sta": 0.9, "int": 0.2, "spi": 0.1 },
+      "baseHp": 65,
+      "hpPerLevel": 20,
+      "abilities": [
+        { "id": "pet_seethe", "level": 40 },
+        { "id": "pet_growl", "level": 40 },
+        { "id": "pet_charge", "level": 40 }
+      ],
+      "description": "An elite demon warrior armed with a massive axe. The pinnacle of warlock summoning.",
+      "tags": ["demon", "dps"]
+    }
+  ]
+}

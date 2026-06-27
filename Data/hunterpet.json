@@ -1,0 +1,118 @@
+{
+  "pets": [
+    {
+      "id": "wolf",
+      "name": "Wolf",
+      "unlockLevel": 1,
+      "type": "beast",
+      "role": "dps",
+      "aiProfile": "aggressive",
+      "baseStats": { "str": 5, "agi": 8, "sta": 6, "int": 2, "spi": 3 },
+      "statGrowthPerLevel": { "str": 0.5, "agi": 0.7, "sta": 0.5, "int": 0.1, "spi": 0.1 },
+      "baseHp": 45,
+      "hpPerLevel": 14,
+      "abilities": [
+        { "id": "pet_bite", "level": 1 },
+        { "id": "pet_growl", "level": 1 }
+      ],
+      "description": "A loyal wolf companion. Fights aggressively alongside the hunter.",
+      "tags": ["beast", "dps"]
+    },
+    {
+      "id": "boar",
+      "name": "Boar",
+      "unlockLevel": 1,
+      "type": "beast",
+      "role": "tank",
+      "aiProfile": "tank",
+      "baseStats": { "str": 7, "agi": 4, "sta": 10, "int": 1, "spi": 3 },
+      "statGrowthPerLevel": { "str": 0.5, "agi": 0.3, "sta": 0.9, "int": 0.0, "spi": 0.1 },
+      "baseHp": 60,
+      "hpPerLevel": 18,
+      "abilities": [
+        { "id": "pet_bite", "level": 1 },
+        { "id": "pet_growl", "level": 1 },
+        { "id": "pet_charge", "level": 5 }
+      ],
+      "description": "A tough boar that charges into enemies and soaks up damage.",
+      "tags": ["beast", "tank"]
+    },
+    {
+      "id": "cat",
+      "name": "Cat",
+      "unlockLevel": 10,
+      "type": "beast",
+      "role": "dps",
+      "aiProfile": "aggressive",
+      "baseStats": { "str": 6, "agi": 11, "sta": 5, "int": 2, "spi": 3 },
+      "statGrowthPerLevel": { "str": 0.5, "agi": 0.9, "sta": 0.4, "int": 0.1, "spi": 0.1 },
+      "baseHp": 40,
+      "hpPerLevel": 12,
+      "abilities": [
+        { "id": "pet_claw", "level": 10 },
+        { "id": "pet_growl", "level": 10 },
+        { "id": "pet_frenzy", "level": 20 }
+      ],
+      "description": "A swift cat that shreds enemies with its claws.",
+      "tags": ["beast", "dps"]
+    },
+    {
+      "id": "owl",
+      "name": "Owl",
+      "unlockLevel": 20,
+      "type": "beast",
+      "role": "utility",
+      "aiProfile": "aggressive",
+      "baseStats": { "str": 4, "agi": 9, "sta": 5, "int": 3, "spi": 4 },
+      "statGrowthPerLevel": { "str": 0.3, "agi": 0.7, "sta": 0.4, "int": 0.2, "spi": 0.2 },
+      "baseHp": 38,
+      "hpPerLevel": 11,
+      "abilities": [
+        { "id": "pet_bite", "level": 20 },
+        { "id": "pet_growl", "level": 20 },
+        { "id": "pet_screech", "level": 20 }
+      ],
+      "description": "A wise owl that weakens enemies with its piercing screech.",
+      "tags": ["beast", "utility"]
+    },
+    {
+      "id": "raptor",
+      "name": "Raptor",
+      "unlockLevel": 30,
+      "type": "beast",
+      "role": "dps",
+      "aiProfile": "aggressive",
+      "baseStats": { "str": 8, "agi": 12, "sta": 6, "int": 2, "spi": 3 },
+      "statGrowthPerLevel": { "str": 0.6, "agi": 1.0, "sta": 0.5, "int": 0.1, "spi": 0.1 },
+      "baseHp": 42,
+      "hpPerLevel": 13,
+      "abilities": [
+        { "id": "pet_claw", "level": 30 },
+        { "id": "pet_bite", "level": 30 },
+        { "id": "pet_growl", "level": 30 },
+        { "id": "pet_frenzy", "level": 35 }
+      ],
+      "description": "A ferocious raptor with incredible attack speed and power.",
+      "tags": ["beast", "dps"]
+    },
+    {
+      "id": "wind_serpent",
+      "name": "Wind Serpent",
+      "unlockLevel": 40,
+      "type": "beast",
+      "role": "ranged_dps",
+      "aiProfile": "aggressive",
+      "baseStats": { "str": 4, "agi": 8, "sta": 5, "int": 6, "spi": 4 },
+      "statGrowthPerLevel": { "str": 0.3, "agi": 0.6, "sta": 0.4, "int": 0.5, "spi": 0.2 },
+      "baseHp": 40,
+      "hpPerLevel": 12,
+      "abilities": [
+        { "id": "pet_bite", "level": 40 },
+        { "id": "pet_growl", "level": 40 },
+        { "id": "pet_lightning_breath", "level": 40 }
+      ],
+      "description": "A serpent that breathes arcs of lightning, striking all enemies.",
+      "tags": ["beast", "ranged_dps"]
+    }
+  ]
+}

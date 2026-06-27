@@ -1,0 +1,2038 @@
+﻿{
+  "encounterTables": {
+    "encounter_test_plains": {
+      "id": "encounter_test_plains",
+      "_version": 1,
+      "slots": [],
+      "combatPool": [
+        { "enemyId": "enemy_test_grunt",  "weight": 70 },
+        { "enemyId": "enemy_test_caster", "weight": 30 }
+      ],
+      "exclusiveGroups": [],
+      "recruitPool": []
+    },
+    "enc_valley_of_trials": {
+      "id": "enc_valley_of_trials",
+      "_version": 1,
+      "slots": [
+        { "type": "companion",    "chance": 0.25,   "rerollIf": "no_eligible_companions" },
+        { "type": "quest",        "chance": 0.15,   "rerollIf": "no_eligible_quests" },
+        { "type": "gather_node",  "chance": 0.075,  "nodeId": "copper_vein",  "qty": 1, "rerollIf": "no_party_profession:mining" },
+        { "type": "gather_node",  "chance": 0.0225, "nodeId": "peacebloom_patch",  "qty": 1, "rerollIf": "no_party_profession:herbalism" },
+        { "type": "gather_node",  "chance": 0.0225, "nodeId": "silverleaf_bush",  "qty": 1, "rerollIf": "no_party_profession:herbalism" },
+        { "type": "gather_node",  "chance": 0.0125, "nodeId": "earthroot_tuft",   "qty": 1, "rerollIf": "no_party_skill_min:herbalism:15" },
+        { "type": "gather_node",  "chance": 0.005,  "nodeId": "mageroyal_cluster",   "qty": 1, "rerollIf": "no_party_skill_min:herbalism:50" },
+        { "type": "locked_chest", "chance": 0.10,   "rerollIf": "no_party_skill:lockpicking" },
+        { "type": "fishing_spot", "chance": 0.05,   "rerollIf": "no_party_skill:fishing" }
+      ],
+      "combatPool": [
+        { "enemyId": "mottled_boar",   "weight": 50 },
+        { "enemyId": "scorpid_worker", "weight": 30 },
+        { "enemyId": "vile_familiar",  "weight": 13 },
+        { "enemyId": "felstalker",     "weight": 7 }
+      ],
+      "exclusiveGroups": [],
+      "recruitPool": ["taijin","ulaelek","zevrost"]
+    },
+    "enc_durotar": {
+      "id": "enc_durotar",
+      "_version": 1,
+      "slots": [
+        { "type": "companion",    "chance": 0.25,   "rerollIf": "no_eligible_companions" },
+        { "type": "quest",        "chance": 0.15,   "rerollIf": "no_eligible_quests" },
+        { "type": "gather_node",  "chance": 0.075,  "nodeId": "copper_vein",  "qty": 1, "rerollIf": "no_party_profession:mining" },
+        { "type": "gather_node",  "chance": 0.0225, "nodeId": "peacebloom_patch",  "qty": 1, "rerollIf": "no_party_profession:herbalism" },
+        { "type": "gather_node",  "chance": 0.0225, "nodeId": "silverleaf_bush",  "qty": 1, "rerollIf": "no_party_profession:herbalism" },
+        { "type": "gather_node",  "chance": 0.0125, "nodeId": "earthroot_tuft",   "qty": 1, "rerollIf": "no_party_skill_min:herbalism:15" },
+        { "type": "gather_node",  "chance": 0.005,  "nodeId": "mageroyal_cluster",   "qty": 1, "rerollIf": "no_party_skill_min:herbalism:50" },
+        { "type": "locked_chest", "chance": 0.10,   "rerollIf": "no_party_skill:lockpicking" },
+        { "type": "fishing_spot", "chance": 0.05,   "rerollIf": "no_party_skill:fishing" }
+      ],
+      "combatPool": [
+        { "enemyId": "clattering_scorpid",      "weight": 15 },
+        { "enemyId": "pygmy_surf_crawler",      "weight": 15 },
+        { "enemyId": "surf_crawler",            "weight": 15 },
+        { "enemyId": "dire_mottled_boar",       "weight": 20 },
+        { "enemyId": "elder_mottled_boar",      "weight": 12 },
+        { "enemyId": "bloodtalon_taillasher",   "weight": 25 },
+        { "enemyId": "armored_scorpid",         "weight": 20 },
+        { "enemyId": "makrura_clacker",                  "weight": 15 },
+        { "enemyId": "makrura_shellhide",                "weight": 12 },
+        { "enemyId": "encrusted_surf_crawler",           "weight": 12 },
+        { "enemyId": "corrupted_bloodtalon_scythemaw",   "weight": 10 },
+        { "enemyId": "corrupted_dreadmaw_crocolisk",     "weight": 10 },
+        { "enemyId": "corrupted_mottled_boar",           "weight": 10 },
+        { "enemyId": "corrupted_scorpid",                "weight": 10 },
+        { "enemyId": "corrupted_surf_crawler",            "weight": 10 },
+        { "enemyId": "makasgar",                          "weight": 5 }
+      ],
+      "exclusiveGroups": [],
+      "recruitPool": ["mukdrak","zureethafargazee","zargh"]
+    },
+    "enc_echo_isles": {
+      "id": "enc_echo_isles",
+      "_version": 1,
+      "slots": [
+        { "type": "companion",   "chance": 0.20, "rerollIf": "no_eligible_companions" },
+        { "type": "quest",       "chance": 0.15, "rerollIf": "no_eligible_quests" },
+        { "type": "gather_node", "chance": 0.06, "nodeId": "peacebloom_patch", "qty": 1, "rerollIf": "no_party_profession:herbalism" },
+        { "type": "gather_node", "chance": 0.06, "nodeId": "silverleaf_bush", "qty": 1, "rerollIf": "no_party_profession:herbalism" },
+        { "type": "fishing_spot","chance": 0.10, "rerollIf": "no_party_skill:fishing" }
+      ],
+      "combatPool": [
+        { "enemyId": "durotar_tiger",           "weight": 25 },
+        { "enemyId": "surf_crawler",            "weight": 20 },
+        { "enemyId": "bloodtalon_taillasher",   "weight": 25 },
+        { "enemyId": "hexed_troll",             "weight": 20 },
+        { "enemyId": "voodoo_troll",            "weight": 18 },
+        { "enemyId": "voodoo_slave",            "weight": 7  },
+        { "enemyId": "zalazane",                "weight": 6 }
+      ],
+      "exclusiveGroups": [],
+      "recruitPool": ["gadrin"]
+    },
+    "enc_northern_barrens": {
+      "id": "enc_northern_barrens",
+      "_version": 1,
+      "slots": [
+        { "type": "companion",    "chance": 0.10, "rerollIf": "no_eligible_companions" },
+        { "type": "quest",        "chance": 0.15, "rerollIf": "no_eligible_quests" },
+        { "type": "gather_node",  "chance": 0.075, "nodeId": "copper_vein", "qty": 1, "rerollIf": "no_party_profession:mining" },
+        { "type": "gather_node",  "chance": 0.05,  "nodeId": "earthroot_tuft",  "qty": 1, "rerollIf": "no_party_skill_min:herbalism:15" },
+        { "type": "gather_node",  "chance": 0.025, "nodeId": "mageroyal_cluster",  "qty": 1, "rerollIf": "no_party_skill_min:herbalism:50" },
+        { "type": "locked_chest", "chance": 0.08,  "rerollIf": "no_party_skill:lockpicking" },
+        { "type": "fishing_spot", "chance": 0.05,  "rerollIf": "no_party_skill:fishing" }
+      ],
+      "combatPool": [
+        { "enemyId": "zhevra_charger",       "weight": 35 },
+        { "enemyId": "sunscale_lashtail",    "weight": 25 },
+        { "enemyId": "savannah_prowler",     "weight": 20 },
+        { "enemyId": "kolkar_pack_runner",   "weight": 18 },
+        { "enemyId": "bristleback_quilboar", "weight": 15 },
+        { "enemyId": "zhevra_courser",       "weight": 10 },
+        { "enemyId": "sunscale_scytheclaw",  "weight": 8 },
+        { "enemyId": "kolkar_centaur",       "weight": 8 }
+      ],
+      "exclusiveGroups": [],
+      "recruitPool": []
+    },
+    "enc_kolkar_crag": {
+      "id": "enc_kolkar_crag",
+      "_version": 1,
+      "slots": [
+        { "type": "companion",    "chance": 0.25,   "rerollIf": "no_eligible_companions" },
+        { "type": "quest",        "chance": 0.15,   "rerollIf": "no_eligible_quests" },
+        { "type": "gather_node",  "chance": 0.075,  "nodeId": "copper_vein",  "qty": 1, "rerollIf": "no_party_profession:mining" },
+        { "type": "gather_node",  "chance": 0.0225, "nodeId": "peacebloom_patch",  "qty": 1, "rerollIf": "no_party_profession:herbalism" },
+        { "type": "gather_node",  "chance": 0.0225, "nodeId": "silverleaf_bush",  "qty": 1, "rerollIf": "no_party_profession:herbalism" },
+        { "type": "gather_node",  "chance": 0.0125, "nodeId": "earthroot_tuft",   "qty": 1, "rerollIf": "no_party_skill_min:herbalism:15" },
+        { "type": "gather_node",  "chance": 0.005,  "nodeId": "mageroyal_cluster",   "qty": 1, "rerollIf": "no_party_skill_min:herbalism:50" },
+        { "type": "locked_chest", "chance": 0.10,   "rerollIf": "no_party_skill:lockpicking" },
+        { "type": "fishing_spot", "chance": 0.05,   "rerollIf": "no_party_skill:fishing" }
+      ],
+      "combatPool": [
+        { "enemyId": "kolkar_drudge",       "weight": 25 },
+        { "enemyId": "kolkar_outrunner",    "weight": 30 },
+        { "enemyId": "warlord_kolkanis",    "weight": 10 }
+      ],
+      "exclusiveGroups": [],
+      "recruitPool": ["larprowltusk"]
+    },
+    "enc_tiragarde_keep": {
+      "id": "enc_tiragarde_keep",
+      "_version": 1,
+      "slots": [
+        { "type": "companion",    "chance": 0.25,   "rerollIf": "no_eligible_companions" },
+        { "type": "quest",        "chance": 0.15,   "rerollIf": "no_eligible_quests" },
+        { "type": "gather_node",  "chance": 0.075,  "nodeId": "copper_vein",  "qty": 1, "rerollIf": "no_party_profession:mining" },
+        { "type": "gather_node",  "chance": 0.0225, "nodeId": "peacebloom_patch",  "qty": 1, "rerollIf": "no_party_profession:herbalism" },
+        { "type": "gather_node",  "chance": 0.0225, "nodeId": "silverleaf_bush",  "qty": 1, "rerollIf": "no_party_profession:herbalism" },
+        { "type": "gather_node",  "chance": 0.0125, "nodeId": "earthroot_tuft",   "qty": 1, "rerollIf": "no_party_skill_min:herbalism:15" },
+        { "type": "gather_node",  "chance": 0.005,  "nodeId": "mageroyal_cluster",   "qty": 1, "rerollIf": "no_party_skill_min:herbalism:50" },
+        { "type": "locked_chest", "chance": 0.10,   "rerollIf": "no_party_skill:lockpicking" },
+        { "type": "fishing_spot", "chance": 0.05,   "rerollIf": "no_party_skill:fishing" }
+      ],
+      "combatPool": [
+        { "enemyId": "kultiran_sailor",           "weight": 15 },
+        { "enemyId": "kultiran_marine",           "weight": 10 },
+        { "enemyId": "watch_commander_zalaphil",  "weight": 2  }
+      ],
+      "exclusiveGroups": [],
+      "recruitPool": ["nartok"]
+    },
+    "enc_drygulch_ravine": {
+      "id": "enc_drygulch_ravine",
+      "_version": 1,
+      "slots": [
+        { "type": "companion",    "chance": 0.25,   "rerollIf": "no_eligible_companions" },
+        { "type": "quest",        "chance": 0.15,   "rerollIf": "no_eligible_quests" },
+        { "type": "gather_node",  "chance": 0.075,  "nodeId": "copper_vein",  "qty": 1, "rerollIf": "no_party_profession:mining" },
+        { "type": "gather_node",  "chance": 0.0225, "nodeId": "peacebloom_patch",  "qty": 1, "rerollIf": "no_party_profession:herbalism" },
+        { "type": "gather_node",  "chance": 0.0225, "nodeId": "silverleaf_bush",  "qty": 1, "rerollIf": "no_party_profession:herbalism" },
+        { "type": "gather_node",  "chance": 0.0125, "nodeId": "earthroot_tuft",   "qty": 1, "rerollIf": "no_party_skill_min:herbalism:15" },
+        { "type": "gather_node",  "chance": 0.005,  "nodeId": "mageroyal_cluster",   "qty": 1, "rerollIf": "no_party_skill_min:herbalism:50" },
+        { "type": "locked_chest", "chance": 0.10,   "rerollIf": "no_party_skill:lockpicking" },
+        { "type": "fishing_spot", "chance": 0.05,   "rerollIf": "no_party_skill:fishing" }
+      ],
+      "combatPool": [
+        { "enemyId": "dustwind_pillager",    "weight": 20 },
+        { "enemyId": "dustwind_harpy",       "weight": 15 },
+        { "enemyId": "dustwind_savage",      "weight": 15 },
+        { "enemyId": "dustwind_storm_witch", "weight": 10 }
+      ],
+      "exclusiveGroups": [],
+      "recruitPool": []
+    },
+    "enc_razormane_grounds": {
+      "id": "enc_razormane_grounds",
+      "_version": 1,
+      "slots": [
+        { "type": "companion",    "chance": 0.25,   "rerollIf": "no_eligible_companions" },
+        { "type": "quest",        "chance": 0.15,   "rerollIf": "no_eligible_quests" },
+        { "type": "gather_node",  "chance": 0.075,  "nodeId": "copper_vein",  "qty": 1, "rerollIf": "no_party_profession:mining" },
+        { "type": "gather_node",  "chance": 0.0225, "nodeId": "peacebloom_patch",  "qty": 1, "rerollIf": "no_party_profession:herbalism" },
+        { "type": "gather_node",  "chance": 0.0225, "nodeId": "silverleaf_bush",  "qty": 1, "rerollIf": "no_party_profession:herbalism" },
+        { "type": "gather_node",  "chance": 0.0125, "nodeId": "earthroot_tuft",   "qty": 1, "rerollIf": "no_party_skill_min:herbalism:15" },
+        { "type": "gather_node",  "chance": 0.005,  "nodeId": "mageroyal_cluster",   "qty": 1, "rerollIf": "no_party_skill_min:herbalism:50" },
+        { "type": "locked_chest", "chance": 0.10,   "rerollIf": "no_party_skill:lockpicking" },
+        { "type": "fishing_spot", "chance": 0.05,   "rerollIf": "no_party_skill:fishing" }
+      ],
+      "combatPool": [
+        { "enemyId": "razormane_quilboar",     "weight": 50 },
+        { "enemyId": "razormane_scout",        "weight": 50 },
+        { "enemyId": "razormane_dustrunner",   "weight": 35 },
+        { "enemyId": "razormane_battleguard",  "weight": 30 },
+        { "enemyId": "geolord_mottle",         "weight": 10 }
+      ],
+      "exclusiveGroups": [],
+      "recruitPool": []
+    },
+    "enc_thunder_ridge": {
+      "id": "enc_thunder_ridge",
+      "_version": 1,
+      "slots": [
+        { "type": "companion",    "chance": 0.25,   "rerollIf": "no_eligible_companions" },
+        { "type": "quest",        "chance": 0.15,   "rerollIf": "no_eligible_quests" },
+        { "type": "gather_node",  "chance": 0.075,  "nodeId": "copper_vein",  "qty": 1, "rerollIf": "no_party_profession:mining" },
+        { "type": "gather_node",  "chance": 0.0225, "nodeId": "peacebloom_patch",  "qty": 1, "rerollIf": "no_party_profession:herbalism" },
+        { "type": "gather_node",  "chance": 0.0225, "nodeId": "silverleaf_bush",  "qty": 1, "rerollIf": "no_party_profession:herbalism" },
+        { "type": "gather_node",  "chance": 0.0125, "nodeId": "earthroot_tuft",   "qty": 1, "rerollIf": "no_party_skill_min:herbalism:15" },
+        { "type": "gather_node",  "chance": 0.005,  "nodeId": "mageroyal_cluster",   "qty": 1, "rerollIf": "no_party_skill_min:herbalism:50" },
+        { "type": "locked_chest", "chance": 0.10,   "rerollIf": "no_party_skill:lockpicking" },
+        { "type": "fishing_spot", "chance": 0.05,   "rerollIf": "no_party_skill:fishing" }
+      ],
+      "combatPool": [
+        { "enemyId": "thunder_lizard",           "weight": 30 },
+        { "enemyId": "burning_blade_neophyte",   "weight": 25 },
+        { "enemyId": "burning_blade_apprentice", "weight": 20 },
+        { "enemyId": "lightning_hide",           "weight": 22 },
+        { "enemyId": "burning_blade_fanatic",    "weight": 15 },
+        { "enemyId": "fizzle_darkstorm",         "weight": 5 }
+      ],"exclusiveGroups": [],
+      "recruitPool": []
+    },
+    "enc_skull_rock": {
+      "id": "enc_skull_rock",
+      "_version": 1,
+      "slots": [
+        { "type": "companion",    "chance": 0.25,   "rerollIf": "no_eligible_companions" },
+        { "type": "quest",        "chance": 0.15,   "rerollIf": "no_eligible_quests" },
+        { "type": "gather_node",  "chance": 0.075,  "nodeId": "copper_vein",  "qty": 1, "rerollIf": "no_party_profession:mining" },
+        { "type": "gather_node",  "chance": 0.0225, "nodeId": "peacebloom_patch",  "qty": 1, "rerollIf": "no_party_profession:herbalism" },
+        { "type": "gather_node",  "chance": 0.0225, "nodeId": "silverleaf_bush",  "qty": 1, "rerollIf": "no_party_profession:herbalism" },
+        { "type": "gather_node",  "chance": 0.0125, "nodeId": "earthroot_tuft",   "qty": 1, "rerollIf": "no_party_skill_min:herbalism:15" },
+        { "type": "gather_node",  "chance": 0.005,  "nodeId": "mageroyal_cluster",   "qty": 1, "rerollIf": "no_party_skill_min:herbalism:50" },
+        { "type": "locked_chest", "chance": 0.10,   "rerollIf": "no_party_skill:lockpicking" },
+        { "type": "fishing_spot", "chance": 0.05,   "rerollIf": "no_party_skill:fishing" }
+      ],
+      "combatPool": [
+        { "enemyId": "burning_blade_neophyte",   "weight": 25 },
+        { "enemyId": "burning_blade_thug",       "weight": 20 },
+        { "enemyId": "burning_blade_apprentice", "weight": 18 },
+        { "enemyId": "burning_blade_fanatic",    "weight": 15 },
+        { "enemyId": "burning_blade_cultist",    "weight": 15 },
+        { "enemyId": "felweaver_scornn",         "weight": 8 }
+      ],"exclusiveGroups": [],
+      "recruitPool": []
+    },
+    "enc_red_cloud_mesa": {
+      "id": "enc_red_cloud_mesa",
+      "_version": 1,
+      "slots": [
+        { "type": "companion",    "chance": 0.25,   "rerollIf": "no_eligible_companions" },
+        { "type": "quest",        "chance": 0.15,   "rerollIf": "no_eligible_quests" },
+        { "type": "gather_node",  "chance": 0.075,  "nodeId": "copper_vein",  "qty": 1, "rerollIf": "no_party_profession:mining" },
+        { "type": "gather_node",  "chance": 0.0225, "nodeId": "peacebloom_patch",  "qty": 1, "rerollIf": "no_party_profession:herbalism" },
+        { "type": "gather_node",  "chance": 0.0225, "nodeId": "silverleaf_bush",  "qty": 1, "rerollIf": "no_party_profession:herbalism" },
+        { "type": "gather_node",  "chance": 0.0125, "nodeId": "earthroot_tuft",   "qty": 1, "rerollIf": "no_party_skill_min:herbalism:15" },
+        { "type": "gather_node",  "chance": 0.005,  "nodeId": "mageroyal_cluster", "qty": 1, "rerollIf": "no_party_skill_min:herbalism:50" },
+        { "type": "locked_chest", "chance": 0.10,   "rerollIf": "no_party_skill:lockpicking" },
+        { "type": "fishing_spot", "chance": 0.05,   "rerollIf": "no_party_skill:fishing" }
+      ],
+      "combatPool": [
+        { "enemyId": "prairie_wolf",             "weight": 30 },
+        { "enemyId": "plainstrider",             "weight": 30 },
+        { "enemyId": "mountain_cougar",          "weight": 25 },
+        { "enemyId": "bristleback_thornweaver",  "weight": 15 }
+      ],
+      "exclusiveGroups": [],
+      "recruitPool": ["maurraincaller","morincloudstalker","adanathunderhorn"]
+    },
+    "enc_brambleblade_ravine": {
+      "id": "enc_brambleblade_ravine",
+      "_version": 1,
+      "slots": [
+        { "type": "companion",    "chance": 0.25,   "rerollIf": "no_eligible_companions" },
+        { "type": "quest",        "chance": 0.15,   "rerollIf": "no_eligible_quests" },
+        { "type": "gather_node",  "chance": 0.075,  "nodeId": "copper_vein",  "qty": 1, "rerollIf": "no_party_profession:mining" },
+        { "type": "gather_node",  "chance": 0.0225, "nodeId": "peacebloom_patch",  "qty": 1, "rerollIf": "no_party_profession:herbalism" },
+        { "type": "gather_node",  "chance": 0.0225, "nodeId": "silverleaf_bush",  "qty": 1, "rerollIf": "no_party_profession:herbalism" },
+        { "type": "gather_node",  "chance": 0.0125, "nodeId": "earthroot_tuft",   "qty": 1, "rerollIf": "no_party_skill_min:herbalism:15" },
+        { "type": "gather_node",  "chance": 0.005,  "nodeId": "mageroyal_cluster", "qty": 1, "rerollIf": "no_party_skill_min:herbalism:50" },
+        { "type": "locked_chest", "chance": 0.10,   "rerollIf": "no_party_skill:lockpicking" },
+        { "type": "fishing_spot", "chance": 0.05,   "rerollIf": "no_party_skill:fishing" }
+      ],
+      "combatPool": [
+        { "enemyId": "bristleback_thornweaver", "weight": 45 },
+        { "enemyId": "bristleback_water_seeker","weight": 40 },
+        { "enemyId": "prairie_wolf",            "weight": 15 }
+      ],
+      "exclusiveGroups": [],
+      "recruitPool": ["ahmothunderhorn","mullthunderhorn"]
+    },
+    "enc_mulgore": {
+      "id": "enc_mulgore",
+      "_version": 1,
+      "slots": [
+        { "type": "companion",    "chance": 0.25,   "rerollIf": "no_eligible_companions" },
+        { "type": "quest",        "chance": 0.15,   "rerollIf": "no_eligible_quests" },
+        { "type": "gather_node",  "chance": 0.075,  "nodeId": "copper_vein",  "qty": 1, "rerollIf": "no_party_profession:mining" },
+        { "type": "gather_node",  "chance": 0.0225, "nodeId": "peacebloom_patch",  "qty": 1, "rerollIf": "no_party_profession:herbalism" },
+        { "type": "gather_node",  "chance": 0.0225, "nodeId": "silverleaf_bush",  "qty": 1, "rerollIf": "no_party_profession:herbalism" },
+        { "type": "gather_node",  "chance": 0.0125, "nodeId": "earthroot_tuft",   "qty": 1, "rerollIf": "no_party_skill_min:herbalism:15" },
+        { "type": "gather_node",  "chance": 0.005,  "nodeId": "mageroyal_cluster", "qty": 1, "rerollIf": "no_party_skill_min:herbalism:50" },
+        { "type": "locked_chest", "chance": 0.10,   "rerollIf": "no_party_skill:lockpicking" },
+        { "type": "fishing_spot", "chance": 0.05,   "rerollIf": "no_party_skill:fishing" }
+      ],
+      "combatPool": [
+        { "enemyId": "prairie_wolf_alpha",   "weight": 30 },
+        { "enemyId": "swoop",                "weight": 25 },
+        { "enemyId": "greater_plainstrider", "weight": 20 },
+        { "enemyId": "prairie_stalker",      "weight": 15 },
+        { "enemyId": "flatland_cougar",      "weight": 12 },
+        { "enemyId": "mazzranache",          "weight": 5  },
+        { "enemyId": "arra_chea",            "weight": 3  }
+      ],
+      "exclusiveGroups": [],
+      "recruitPool": ["younghawkwind","hamuulrunetotem","grullhawkwind","harkenwindtotem","skornwhitecloud","zarlmantwomoons"]
+    },
+    "enc_palemane_camp": {
+      "id": "enc_palemane_camp",
+      "_version": 1,
+      "slots": [
+        { "type": "companion",    "chance": 0.25,   "rerollIf": "no_eligible_companions" },
+        { "type": "quest",        "chance": 0.15,   "rerollIf": "no_eligible_quests" },
+        { "type": "gather_node",  "chance": 0.075,  "nodeId": "copper_vein",  "qty": 1, "rerollIf": "no_party_profession:mining" },
+        { "type": "gather_node",  "chance": 0.0225, "nodeId": "peacebloom_patch",  "qty": 1, "rerollIf": "no_party_profession:herbalism" },
+        { "type": "gather_node",  "chance": 0.0225, "nodeId": "silverleaf_bush",  "qty": 1, "rerollIf": "no_party_profession:herbalism" },
+        { "type": "gather_node",  "chance": 0.0125, "nodeId": "earthroot_tuft",   "qty": 1, "rerollIf": "no_party_skill_min:herbalism:15" },
+        { "type": "gather_node",  "chance": 0.005,  "nodeId": "mageroyal_cluster", "qty": 1, "rerollIf": "no_party_skill_min:herbalism:50" },
+        { "type": "locked_chest", "chance": 0.10,   "rerollIf": "no_party_skill:lockpicking" },
+        { "type": "fishing_spot", "chance": 0.05,   "rerollIf": "no_party_skill:fishing" }
+      ],
+      "combatPool": [
+        { "enemyId": "palemane_tanner",  "weight": 40 },
+        { "enemyId": "palemane_skinner", "weight": 35 },
+        { "enemyId": "palemane_poacher", "weight": 25 }
+      ],
+      "exclusiveGroups": [],
+      "recruitPool": ["genniarunetotem"]
+    },
+    "enc_baeldun_digsite": {
+      "id": "enc_baeldun_digsite",
+      "_version": 1,
+      "slots": [
+        { "type": "companion",    "chance": 0.25,   "rerollIf": "no_eligible_companions" },
+        { "type": "quest",        "chance": 0.15,   "rerollIf": "no_eligible_quests" },
+        { "type": "gather_node",  "chance": 0.075,  "nodeId": "copper_vein",  "qty": 1, "rerollIf": "no_party_profession:mining" },
+        { "type": "gather_node",  "chance": 0.0225, "nodeId": "peacebloom_patch",  "qty": 1, "rerollIf": "no_party_profession:herbalism" },
+        { "type": "gather_node",  "chance": 0.0225, "nodeId": "silverleaf_bush",  "qty": 1, "rerollIf": "no_party_profession:herbalism" },
+        { "type": "gather_node",  "chance": 0.0125, "nodeId": "earthroot_tuft",   "qty": 1, "rerollIf": "no_party_skill_min:herbalism:15" },
+        { "type": "gather_node",  "chance": 0.005,  "nodeId": "mageroyal_cluster", "qty": 1, "rerollIf": "no_party_skill_min:herbalism:50" },
+        { "type": "locked_chest", "chance": 0.10,   "rerollIf": "no_party_skill:lockpicking" },
+        { "type": "fishing_spot", "chance": 0.05,   "rerollIf": "no_party_skill:fishing" }
+      ],
+      "combatPool": [
+        { "enemyId": "baeldun_excavator", "weight": 35 },
+        { "enemyId": "baeldun_digger",    "weight": 30 },
+        { "enemyId": "baeldun_guard",     "weight": 25 }
+      ],
+      "exclusiveGroups": [],
+      "recruitPool": ["ruuleagletalon"]
+    },
+    "enc_venture_co_mine": {
+      "id": "enc_venture_co_mine",
+      "_version": 1,
+      "slots": [
+        { "type": "companion",    "chance": 0.25,   "rerollIf": "no_eligible_companions" },
+        { "type": "quest",        "chance": 0.15,   "rerollIf": "no_eligible_quests" },
+        { "type": "gather_node",  "chance": 0.075,  "nodeId": "copper_vein",  "qty": 1, "rerollIf": "no_party_profession:mining" },
+        { "type": "gather_node",  "chance": 0.0225, "nodeId": "peacebloom_patch",  "qty": 1, "rerollIf": "no_party_profession:herbalism" },
+        { "type": "gather_node",  "chance": 0.0225, "nodeId": "silverleaf_bush",  "qty": 1, "rerollIf": "no_party_profession:herbalism" },
+        { "type": "gather_node",  "chance": 0.0125, "nodeId": "earthroot_tuft",   "qty": 1, "rerollIf": "no_party_skill_min:herbalism:15" },
+        { "type": "gather_node",  "chance": 0.005,  "nodeId": "mageroyal_cluster", "qty": 1, "rerollIf": "no_party_skill_min:herbalism:50" },
+        { "type": "locked_chest", "chance": 0.10,   "rerollIf": "no_party_skill:lockpicking" },
+        { "type": "fishing_spot", "chance": 0.05,   "rerollIf": "no_party_skill:fishing" }
+      ],
+      "combatPool": [
+        { "enemyId": "venture_co_worker",     "weight": 45 },
+        { "enemyId": "venture_co_supervisor", "weight": 35 },
+        { "enemyId": "supervisor_fizsprocket","weight": 8  }
+      ],
+      "exclusiveGroups": [],
+      "recruitPool": ["unawildmane"]
+    },
+    "enc_red_rocks": {
+      "id": "enc_red_rocks",
+      "_version": 1,
+      "slots": [
+        { "type": "companion",    "chance": 0.25,   "rerollIf": "no_eligible_companions" },
+        { "type": "quest",        "chance": 0.15,   "rerollIf": "no_eligible_quests" },
+        { "type": "gather_node",  "chance": 0.075,  "nodeId": "copper_vein",  "qty": 1, "rerollIf": "no_party_profession:mining" },
+        { "type": "gather_node",  "chance": 0.0225, "nodeId": "peacebloom_patch",  "qty": 1, "rerollIf": "no_party_profession:herbalism" },
+        { "type": "gather_node",  "chance": 0.0225, "nodeId": "silverleaf_bush",  "qty": 1, "rerollIf": "no_party_profession:herbalism" },
+        { "type": "gather_node",  "chance": 0.0125, "nodeId": "earthroot_tuft",   "qty": 1, "rerollIf": "no_party_skill_min:herbalism:15" },
+        { "type": "gather_node",  "chance": 0.005,  "nodeId": "mageroyal_cluster", "qty": 1, "rerollIf": "no_party_skill_min:herbalism:50" },
+        { "type": "locked_chest", "chance": 0.10,   "rerollIf": "no_party_skill:lockpicking" },
+        { "type": "fishing_spot", "chance": 0.05,   "rerollIf": "no_party_skill:fishing" }
+      ],
+      "combatPool": [
+        { "enemyId": "windfury_harpy",     "weight": 55 },
+        { "enemyId": "windfury_matriarch", "weight": 8  }
+      ],
+      "exclusiveGroups": [],
+      "recruitPool": ["bainebloodhoof"]
+    },
+    "enc_forgotten_pool": {
+      "id": "enc_forgotten_pool",
+      "_version": 1,
+      "slots": [
+        { "type": "companion",    "chance": 0.25,   "rerollIf": "no_eligible_companions" },
+        { "type": "quest",        "chance": 0.15,   "rerollIf": "no_eligible_quests" },
+        { "type": "gather_node",  "chance": 0.075,  "nodeId": "copper_vein",  "qty": 1, "rerollIf": "no_party_profession:mining" },
+        { "type": "gather_node",  "chance": 0.0225, "nodeId": "peacebloom_patch",  "qty": 1, "rerollIf": "no_party_profession:herbalism" },
+        { "type": "gather_node",  "chance": 0.0225, "nodeId": "silverleaf_bush",  "qty": 1, "rerollIf": "no_party_profession:herbalism" },
+        { "type": "gather_node",  "chance": 0.0125, "nodeId": "earthroot_tuft",   "qty": 1, "rerollIf": "no_party_skill_min:herbalism:15" },
+        { "type": "gather_node",  "chance": 0.005,  "nodeId": "mageroyal_cluster", "qty": 1, "rerollIf": "no_party_skill_min:herbalism:50" },
+        { "type": "locked_chest", "chance": 0.10,   "rerollIf": "no_party_skill:lockpicking" },
+        { "type": "fishing_spot", "chance": 0.05,   "rerollIf": "no_party_skill:fishing" }
+      ],
+      "combatPool": [
+        { "enemyId": "prairie_wolf_alpha",   "weight": 35 },
+        { "enemyId": "swoop",                "weight": 30 },
+        { "enemyId": "greater_plainstrider", "weight": 25 },
+        { "enemyId": "venture_co_worker",    "weight": 20 }
+      ],
+      "exclusiveGroups": [],
+      "recruitPool": []
+    },
+    "enc_stagnant_oasis": {
+      "id": "enc_stagnant_oasis",
+      "_version": 1,
+      "slots": [
+        { "type": "companion",    "chance": 0.25,   "rerollIf": "no_eligible_companions" },
+        { "type": "quest",        "chance": 0.15,   "rerollIf": "no_eligible_quests" },
+        { "type": "gather_node",  "chance": 0.075,  "nodeId": "copper_vein",  "qty": 1, "rerollIf": "no_party_profession:mining" },
+        { "type": "gather_node",  "chance": 0.0225, "nodeId": "peacebloom_patch",  "qty": 1, "rerollIf": "no_party_profession:herbalism" },
+        { "type": "gather_node",  "chance": 0.0225, "nodeId": "silverleaf_bush",  "qty": 1, "rerollIf": "no_party_profession:herbalism" },
+        { "type": "gather_node",  "chance": 0.0125, "nodeId": "earthroot_tuft",   "qty": 1, "rerollIf": "no_party_skill_min:herbalism:15" },
+        { "type": "gather_node",  "chance": 0.005,  "nodeId": "mageroyal_cluster",   "qty": 1, "rerollIf": "no_party_skill_min:herbalism:50" },
+        { "type": "locked_chest", "chance": 0.10,   "rerollIf": "no_party_skill:lockpicking" },
+        { "type": "fishing_spot", "chance": 0.05,   "rerollIf": "no_party_skill:fishing" }
+      ],
+      "combatPool": [
+        { "enemyId": "witchwing_harpy",  "weight": 55 },
+        { "enemyId": "witchwing_slayer", "weight": 35 }
+      ],"exclusiveGroups": [],
+      "recruitPool": []
+    },
+    "enc_lushwater_oasis": {
+      "id": "enc_lushwater_oasis",
+      "_version": 1,
+      "slots": [
+        { "type": "companion",    "chance": 0.25,   "rerollIf": "no_eligible_companions" },
+        { "type": "quest",        "chance": 0.15,   "rerollIf": "no_eligible_quests" },
+        { "type": "gather_node",  "chance": 0.075,  "nodeId": "copper_vein",  "qty": 1, "rerollIf": "no_party_profession:mining" },
+        { "type": "gather_node",  "chance": 0.0225, "nodeId": "peacebloom_patch",  "qty": 1, "rerollIf": "no_party_profession:herbalism" },
+        { "type": "gather_node",  "chance": 0.0225, "nodeId": "silverleaf_bush",  "qty": 1, "rerollIf": "no_party_profession:herbalism" },
+        { "type": "gather_node",  "chance": 0.0125, "nodeId": "earthroot_tuft",   "qty": 1, "rerollIf": "no_party_skill_min:herbalism:15" },
+        { "type": "gather_node",  "chance": 0.005,  "nodeId": "mageroyal_cluster",   "qty": 1, "rerollIf": "no_party_skill_min:herbalism:50" },
+        { "type": "locked_chest", "chance": 0.10,   "rerollIf": "no_party_skill:lockpicking" },
+        { "type": "fishing_spot", "chance": 0.05,   "rerollIf": "no_party_skill:fishing" }
+      ],
+      "combatPool": [
+        { "enemyId": "kolkar_pack_runner",  "weight": 40 },
+        { "enemyId": "kolkar_centaur",      "weight": 30 },
+        { "enemyId": "kolkar_marauder",     "weight": 20 },
+        { "enemyId": "kolkar_destroyer",    "weight": 12 },
+        { "enemyId": "hezrul_bloodmark",    "weight": 5 }
+      ],"exclusiveGroups": [],
+      "recruitPool": []
+    },
+    "enc_wailing_caverns": {
+      "id": "enc_wailing_caverns",
+      "_version": 1,
+      "slots": [],
+      "combatPool": [
+        { "enemyId": "deviate_lurker",      "weight": 30 },
+        { "enemyId": "deviate_crocolisk",   "weight": 25 },
+        { "enemyId": "deviate_dreadfang",   "weight": 25 },
+        { "enemyId": "druid_of_the_fang",   "weight": 15 },
+        { "enemyId": "serpentis",           "weight": 5 }
+      ],"exclusiveGroups": [],
+      "recruitPool": []
+    },
+    "enc_ragefire": {
+      "id": "enc_ragefire",
+      "_version": 1,
+      "slots": [],
+      "combatPool": [
+        { "enemyId": "searing_blade_cultist", "weight": 1 }
+      ],
+      "exclusiveGroups": [],
+      "recruitPool": []
+    },
+    "enc_shadowglen": {
+      "id": "enc_shadowglen",
+      "_version": 1,
+      "slots": [
+        { "type": "companion",    "chance": 0.25,   "rerollIf": "no_eligible_companions" },
+        { "type": "quest",        "chance": 0.20,   "rerollIf": "no_eligible_quests" },
+        { "type": "gather_node",  "chance": 0.05,   "nodeId": "peacebloom_patch",  "qty": 1, "rerollIf": "no_party_profession:herbalism" },
+        { "type": "gather_node",  "chance": 0.05,   "nodeId": "silverleaf_bush",   "qty": 1, "rerollIf": "no_party_profession:herbalism" },
+        { "type": "fishing_spot", "chance": 0.08,   "rerollIf": "no_party_skill:fishing" }
+      ],
+      "combatPool": [
+        { "enemyId": "young_nightsaber",  "weight": 35 },
+        { "enemyId": "grellkin",          "weight": 30 },
+        { "enemyId": "webwood_lurker",    "weight": 30 },
+        { "enemyId": "young_thistle_bear","weight": 20 }
+      ],
+      "exclusiveGroups": [],
+      "recruitPool": []
+    },
+    "enc_oracle_glade": {
+      "id": "enc_oracle_glade",
+      "_version": 1,
+      "slots": [
+        { "type": "companion",    "chance": 0.20,   "rerollIf": "no_eligible_companions" },
+        { "type": "quest",        "chance": 0.18,   "rerollIf": "no_eligible_quests" },
+        { "type": "gather_node",  "chance": 0.05,   "nodeId": "peacebloom_patch",  "qty": 1, "rerollIf": "no_party_profession:herbalism" },
+        { "type": "gather_node",  "chance": 0.05,   "nodeId": "silverleaf_bush",   "qty": 1, "rerollIf": "no_party_profession:herbalism" },
+        { "type": "gather_node",  "chance": 0.03,   "nodeId": "mageroyal_cluster", "qty": 1, "rerollIf": "no_party_skill_min:herbalism:50" },
+        { "type": "fishing_spot", "chance": 0.06,   "rerollIf": "no_party_skill:fishing" }
+      ],
+      "combatPool": [
+        { "enemyId": "bloodfeather_harpy",     "weight": 45 },
+        { "enemyId": "bloodfeather_wind_witch","weight": 30 },
+        { "enemyId": "strigid_screecher",      "weight": 25 }
+      ],
+      "exclusiveGroups": [],
+      "recruitPool": []
+    },
+    "enc_teldrassil": {
+      "id": "enc_teldrassil",
+      "_version": 1,
+      "slots": [
+        { "type": "companion",    "chance": 0.18,   "rerollIf": "no_eligible_companions" },
+        { "type": "quest",        "chance": 0.18,   "rerollIf": "no_eligible_quests" },
+        { "type": "gather_node",  "chance": 0.06,   "nodeId": "peacebloom_patch",  "qty": 1, "rerollIf": "no_party_profession:herbalism" },
+        { "type": "gather_node",  "chance": 0.06,   "nodeId": "silverleaf_bush",   "qty": 1, "rerollIf": "no_party_profession:herbalism" },
+        { "type": "gather_node",  "chance": 0.04,   "nodeId": "mageroyal_cluster", "qty": 1, "rerollIf": "no_party_skill_min:herbalism:50" },
+        { "type": "locked_chest", "chance": 0.06,   "rerollIf": "no_party_skill:lockpicking" },
+        { "type": "fishing_spot", "chance": 0.06,   "rerollIf": "no_party_skill:fishing" }
+      ],
+      "combatPool": [
+        { "enemyId": "webwood_spider",          "weight": 30 },
+        { "enemyId": "thistle_bear",            "weight": 28 },
+        { "enemyId": "timberling",              "weight": 22 },
+        { "enemyId": "webwood_venom_web_spider","weight": 18 },
+        { "enemyId": "strigid_screecher",       "weight": 15 },
+        { "enemyId": "timberling_mire",         "weight": 12 }
+      ],
+      "exclusiveGroups": [],
+      "recruitPool": []
+    },
+    "enc_gnarlpine_hold": {
+      "id": "enc_gnarlpine_hold",
+      "_version": 1,
+      "slots": [
+        { "type": "companion",    "chance": 0.15,   "rerollIf": "no_eligible_companions" },
+        { "type": "quest",        "chance": 0.18,   "rerollIf": "no_eligible_quests" },
+        { "type": "gather_node",  "chance": 0.04,   "nodeId": "mageroyal_cluster", "qty": 1, "rerollIf": "no_party_skill_min:herbalism:50" },
+        { "type": "locked_chest", "chance": 0.08,   "rerollIf": "no_party_skill:lockpicking" }
+      ],
+      "combatPool": [
+        { "enemyId": "gnarlpine_ambusher", "weight": 35 },
+        { "enemyId": "gnarlpine_hunter",   "weight": 28 },
+        { "enemyId": "gnarlpine_mystic",   "weight": 22 },
+        { "enemyId": "gnarlpine_shaman",   "weight": 18 },
+        { "enemyId": "gnarlpine_defender", "weight": 18 },
+        { "enemyId": "gnarlpine_ursa",     "weight": 12 }
+      ],
+      "exclusiveGroups": [],
+      "recruitPool": []
+    },
+    "enc_ban_ethil_barrow_den": {
+      "id": "enc_ban_ethil_barrow_den",
+      "_version": 1,
+      "slots": [
+        { "type": "companion",    "chance": 0.10,   "rerollIf": "no_eligible_companions" },
+        { "type": "quest",        "chance": 0.18,   "rerollIf": "no_eligible_quests" },
+        { "type": "locked_chest", "chance": 0.10,   "rerollIf": "no_party_skill:lockpicking" }
+      ],
+      "combatPool": [
+        { "enemyId": "gnarlpine_defender", "weight": 35 },
+        { "enemyId": "gnarlpine_ursa",     "weight": 28 },
+        { "enemyId": "gnarlpine_shaman",   "weight": 22 },
+        { "enemyId": "ursal_the_mauler",   "weight": 8 }
+      ],
+      "exclusiveGroups": [],
+      "recruitPool": []
+    },
+    "enc_ammen_vale": {
+      "id": "enc_ammen_vale",
+      "_version": 1,
+      "slots": [
+        { "type": "companion",    "chance": 0.25, "rerollIf": "no_eligible_companions" },
+        { "type": "quest",        "chance": 0.22, "rerollIf": "no_eligible_quests" },
+        { "type": "gather_node",  "chance": 0.04, "nodeId": "peacebloom_patch",  "qty": 1, "rerollIf": "no_party_profession:herbalism" },
+        { "type": "gather_node",  "chance": 0.04, "nodeId": "silverleaf_bush",   "qty": 1, "rerollIf": "no_party_profession:herbalism" },
+        { "type": "fishing_spot", "chance": 0.06, "rerollIf": "no_party_skill:fishing" }
+      ],
+      "combatPool": [
+        { "enemyId": "crazed_owlkin",       "weight": 35 },
+        { "enemyId": "volatile_mutant",     "weight": 30 },
+        { "enemyId": "manaforged_fragment", "weight": 20 },
+        { "enemyId": "infected_nightstalker","weight": 20 }
+      ],
+      "exclusiveGroups": [],
+      "recruitPool": []
+    },
+    "enc_azuremyst_isle": {
+      "id": "enc_azuremyst_isle",
+      "_version": 1,
+      "slots": [
+        { "type": "companion",    "chance": 0.18, "rerollIf": "no_eligible_companions" },
+        { "type": "quest",        "chance": 0.18, "rerollIf": "no_eligible_quests" },
+        { "type": "gather_node",  "chance": 0.05, "nodeId": "peacebloom_patch",  "qty": 1, "rerollIf": "no_party_profession:herbalism" },
+        { "type": "gather_node",  "chance": 0.05, "nodeId": "silverleaf_bush",   "qty": 1, "rerollIf": "no_party_profession:herbalism" },
+        { "type": "gather_node",  "chance": 0.03, "nodeId": "mageroyal_cluster", "qty": 1, "rerollIf": "no_party_skill_min:herbalism:50" },
+        { "type": "locked_chest", "chance": 0.06, "rerollIf": "no_party_skill:lockpicking" },
+        { "type": "fishing_spot", "chance": 0.06, "rerollIf": "no_party_skill:fishing" }
+      ],
+      "combatPool": [
+        { "enemyId": "moongraze_stag",  "weight": 30 },
+        { "enemyId": "crag_boar",       "weight": 25 },
+        { "enemyId": "ravager",         "weight": 22 },
+        { "enemyId": "moongraze_buck",  "weight": 18 },
+        { "enemyId": "mutant_owlkin",   "weight": 15 }
+      ],
+      "exclusiveGroups": [],
+      "recruitPool": []
+    },
+    "enc_wrathscale_point": {
+      "id": "enc_wrathscale_point",
+      "_version": 1,
+      "slots": [
+        { "type": "companion",    "chance": 0.15, "rerollIf": "no_eligible_companions" },
+        { "type": "quest",        "chance": 0.18, "rerollIf": "no_eligible_quests" },
+        { "type": "gather_node",  "chance": 0.04, "nodeId": "mageroyal_cluster", "qty": 1, "rerollIf": "no_party_skill_min:herbalism:50" },
+        { "type": "fishing_spot", "chance": 0.10, "rerollIf": "no_party_skill:fishing" }
+      ],
+      "combatPool": [
+        { "enemyId": "wrathscale_naiad",   "weight": 40 },
+        { "enemyId": "wrathscale_naga",    "weight": 30 },
+        { "enemyId": "wrathscale_serpent", "weight": 25 }
+      ],
+      "exclusiveGroups": [],
+      "recruitPool": []
+    },
+    "enc_stillpine_hold": {
+      "id": "enc_stillpine_hold",
+      "_version": 1,
+      "slots": [
+        { "type": "companion",    "chance": 0.12, "rerollIf": "no_eligible_companions" },
+        { "type": "quest",        "chance": 0.18, "rerollIf": "no_eligible_quests" },
+        { "type": "locked_chest", "chance": 0.08, "rerollIf": "no_party_skill:lockpicking" }
+      ],
+      "combatPool": [
+        { "enemyId": "bristlelimb_furbolg", "weight": 42 },
+        { "enemyId": "bristlelimb_shaman",  "weight": 28 },
+        { "enemyId": "the_kurken",          "weight": 8 }
+      ],
+      "exclusiveGroups": [],
+      "recruitPool": []
+    },
+    "enc_silvermyst_isle": {
+      "id": "enc_silvermyst_isle",
+      "_version": 1,
+      "slots": [
+        { "type": "companion",    "chance": 0.10, "rerollIf": "no_eligible_companions" },
+        { "type": "quest",        "chance": 0.18, "rerollIf": "no_eligible_quests" },
+        { "type": "locked_chest", "chance": 0.10, "rerollIf": "no_party_skill:lockpicking" }
+      ],
+      "combatPool": [
+        { "enemyId": "blood_elf_tracker",   "weight": 40 },
+        { "enemyId": "blood_elf_conjurer",  "weight": 28 },
+        { "enemyId": "sironas",             "weight": 8 }
+      ],
+      "exclusiveGroups": [],
+      "recruitPool": []
+    },
+    "enc_bloodmyst_isle": {
+      "id": "enc_bloodmyst_isle",
+      "_version": 1,
+      "slots": [
+        { "type": "companion",    "chance": 0.15, "rerollIf": "no_eligible_companions" },
+        { "type": "quest",        "chance": 0.18, "rerollIf": "no_eligible_quests" },
+        { "type": "gather_node",  "chance": 0.05, "nodeId": "mageroyal_cluster", "qty": 1, "rerollIf": "no_party_skill_min:herbalism:50" },
+        { "type": "gather_node",  "chance": 0.04, "nodeId": "briarthorn_patch",  "qty": 1, "rerollIf": "no_party_skill_min:herbalism:70" },
+        { "type": "locked_chest", "chance": 0.07, "rerollIf": "no_party_skill:lockpicking" },
+        { "type": "fishing_spot", "chance": 0.06, "rerollIf": "no_party_skill:fishing" }
+      ],
+      "combatPool": [
+        { "enemyId": "corrupted_moongraze", "weight": 28 },
+        { "enemyId": "wrath_hound",         "weight": 32 },
+        { "enemyId": "corrupted_owlkin",    "weight": 25 },
+        { "enemyId": "bloodmyst_ravager",   "weight": 22 },
+        { "enemyId": "sunhawk_spy",         "weight": 18 }
+      ],
+      "exclusiveGroups": [],
+      "recruitPool": []
+    },
+    "enc_nazzivian": {
+      "id": "enc_nazzivian",
+      "_version": 1,
+      "slots": [
+        { "type": "companion",    "chance": 0.10, "rerollIf": "no_eligible_companions" },
+        { "type": "quest",        "chance": 0.18, "rerollIf": "no_eligible_quests" },
+        { "type": "locked_chest", "chance": 0.10, "rerollIf": "no_party_skill:lockpicking" }
+      ],
+      "combatPool": [
+        { "enemyId": "nazzivus_satyr",   "weight": 40 },
+        { "enemyId": "nazzivus_felsworn","weight": 30 },
+        { "enemyId": "void_anomaly",     "weight": 25 }
+      ],
+      "exclusiveGroups": [],
+      "recruitPool": []
+    },
+    "enc_hidden_reef": {
+      "id": "enc_hidden_reef",
+      "_version": 1,
+      "slots": [
+        { "type": "companion",    "chance": 0.10, "rerollIf": "no_eligible_companions" },
+        { "type": "quest",        "chance": 0.18, "rerollIf": "no_eligible_quests" },
+        { "type": "fishing_spot", "chance": 0.12, "rerollIf": "no_party_skill:fishing" }
+      ],
+      "combatPool": [
+        { "enemyId": "wrathtail_naiad",        "weight": 42 },
+        { "enemyId": "wrathtail_wave_mistress", "weight": 28 },
+        { "enemyId": "razormaw",               "weight": 8 }
+      ],
+      "exclusiveGroups": [],
+      "recruitPool": []
+    },
+    "enc_sunhawk_base": {
+      "id": "enc_sunhawk_base",
+      "_version": 1,
+      "slots": [
+        { "type": "companion",    "chance": 0.08, "rerollIf": "no_eligible_companions" },
+        { "type": "quest",        "chance": 0.18, "rerollIf": "no_eligible_quests" },
+        { "type": "locked_chest", "chance": 0.12, "rerollIf": "no_party_skill:lockpicking" }
+      ],
+      "combatPool": [
+        { "enemyId": "sunhawk_defender",   "weight": 38 },
+        { "enemyId": "sunhawk_conjurer",   "weight": 28 },
+        { "enemyId": "sunhawk_legionnaire","weight": 22 },
+        { "enemyId": "sunhawk_harbinger",  "weight": 10 }
+      ],
+      "exclusiveGroups": [],
+      "recruitPool": []
+    },
+    "enc_vector_coil": {
+      "id": "enc_vector_coil",
+      "_version": 1,
+      "slots": [
+        { "type": "companion",    "chance": 0.08, "rerollIf": "no_eligible_companions" },
+        { "type": "quest",        "chance": 0.18, "rerollIf": "no_eligible_quests" },
+        { "type": "locked_chest", "chance": 0.10, "rerollIf": "no_party_skill:lockpicking" }
+      ],
+      "combatPool": [
+        { "enemyId": "vector_coil_guardian", "weight": 38 },
+        { "enemyId": "bloodcrystal_reaver",  "weight": 30 },
+        { "enemyId": "zarakh",               "weight": 8 }
+      ],
+      "exclusiveGroups": [],
+      "recruitPool": []
+    },
+    "enc_darkshore": {
+      "id": "enc_darkshore",
+      "_version": 1,
+      "slots": [
+        { "type": "companion",    "chance": 0.15, "rerollIf": "no_eligible_companions" },
+        { "type": "quest",        "chance": 0.18, "rerollIf": "no_eligible_quests" },
+        { "type": "gather_node",  "chance": 0.05, "nodeId": "mageroyal_cluster",  "qty": 1, "rerollIf": "no_party_skill_min:herbalism:50" },
+        { "type": "gather_node",  "chance": 0.04, "nodeId": "briarthorn_patch",   "qty": 1, "rerollIf": "no_party_skill_min:herbalism:70" },
+        { "type": "locked_chest", "chance": 0.06, "rerollIf": "no_party_skill:lockpicking" },
+        { "type": "fishing_spot", "chance": 0.08, "rerollIf": "no_party_skill:fishing" }
+      ],
+      "combatPool": [
+        { "enemyId": "moonstalker",          "weight": 32 },
+        { "enemyId": "grizzled_thistle_bear", "weight": 28 },
+        { "enemyId": "grove_tender",          "weight": 24 },
+        { "enemyId": "darkshore_thresher",    "weight": 18 }
+      ],
+      "exclusiveGroups": [],
+      "recruitPool": []
+    },
+    "enc_blackwood_den": {
+      "id": "enc_blackwood_den",
+      "_version": 1,
+      "slots": [
+        { "type": "companion",    "chance": 0.10, "rerollIf": "no_eligible_companions" },
+        { "type": "quest",        "chance": 0.18, "rerollIf": "no_eligible_quests" },
+        { "type": "locked_chest", "chance": 0.09, "rerollIf": "no_party_skill:lockpicking" }
+      ],
+      "combatPool": [
+        { "enemyId": "blackwood_warrior",     "weight": 40 },
+        { "enemyId": "blackwood_ursa",        "weight": 30 },
+        { "enemyId": "blackwood_shaman",      "weight": 20 },
+        { "enemyId": "blackwood_pathfinder",  "weight": 22 }
+      ],
+      "exclusiveGroups": [],
+      "recruitPool": []
+    },
+    "enc_mathystra_ruins": {
+      "id": "enc_mathystra_ruins",
+      "_version": 1,
+      "slots": [
+        { "type": "companion",    "chance": 0.10, "rerollIf": "no_eligible_companions" },
+        { "type": "quest",        "chance": 0.18, "rerollIf": "no_eligible_quests" },
+        { "type": "locked_chest", "chance": 0.10, "rerollIf": "no_party_skill:lockpicking" },
+        { "type": "fishing_spot", "chance": 0.08, "rerollIf": "no_party_skill:fishing" }
+      ],
+      "combatPool": [
+        { "enemyId": "ruins_golem",          "weight": 35 },
+        { "enemyId": "mathystra_naga",        "weight": 38 },
+        { "enemyId": "mathystra_wave_dancer", "weight": 25 }
+      ],
+      "exclusiveGroups": [],
+      "recruitPool": []
+    },
+    "enc_tower_of_althalaxx": {
+      "id": "enc_tower_of_althalaxx",
+      "_version": 1,
+      "slots": [
+        { "type": "companion",    "chance": 0.08, "rerollIf": "no_eligible_companions" },
+        { "type": "quest",        "chance": 0.18, "rerollIf": "no_eligible_quests" },
+        { "type": "locked_chest", "chance": 0.12, "rerollIf": "no_party_skill:lockpicking" }
+      ],
+      "combatPool": [
+        { "enemyId": "twilight_acolyte",    "weight": 42 },
+        { "enemyId": "twilight_geolord",    "weight": 28 },
+        { "enemyId": "athrikus_narassin",   "weight": 8 }
+      ],
+      "exclusiveGroups": [],
+      "recruitPool": []
+    },
+    "enc_shatterspear_vale": {
+      "id": "enc_shatterspear_vale",
+      "_version": 1,
+      "slots": [
+        { "type": "companion",    "chance": 0.08, "rerollIf": "no_eligible_companions" },
+        { "type": "quest",        "chance": 0.18, "rerollIf": "no_eligible_quests" },
+        { "type": "locked_chest", "chance": 0.10, "rerollIf": "no_party_skill:lockpicking" }
+      ],
+      "combatPool": [
+        { "enemyId": "shatterspear_warrior",     "weight": 40 },
+        { "enemyId": "shatterspear_headhunter",  "weight": 28 },
+        { "enemyId": "shatterspear_witch_doctor","weight": 22 },
+        { "enemyId": "shatterspear_chieftain",   "weight": 8 }
+      ],
+      "exclusiveGroups": [],
+      "recruitPool": []
+    },
+    "enc_ashenvale": {
+      "id": "enc_ashenvale",
+      "_version": 1,
+      "slots": [
+        { "type": "companion",    "chance": 0.15, "rerollIf": "no_eligible_companions" },
+        { "type": "quest",        "chance": 0.18, "rerollIf": "no_eligible_quests" },
+        { "type": "gather_node",  "chance": 0.05, "nodeId": "briarthorn_patch",    "qty": 1, "rerollIf": "no_party_skill_min:herbalism:70" },
+        { "type": "gather_node",  "chance": 0.04, "nodeId": "stranglekelp_patch",  "qty": 1, "rerollIf": "no_party_skill_min:herbalism:85" },
+        { "type": "locked_chest", "chance": 0.07, "rerollIf": "no_party_skill:lockpicking" },
+        { "type": "fishing_spot", "chance": 0.07, "rerollIf": "no_party_skill:fishing" }
+      ],
+      "combatPool": [
+        { "enemyId": "ghostpaw_runner",      "weight": 35 },
+        { "enemyId": "night_web_spider",     "weight": 28 },
+        { "enemyId": "giant_ashenvale_bear", "weight": 22 },
+        { "enemyId": "spitelash_naga",       "weight": 18 }
+      ],
+      "exclusiveGroups": [],
+      "recruitPool": []
+    },
+    "enc_foulweald_den": {
+      "id": "enc_foulweald_den",
+      "_version": 1,
+      "slots": [
+        { "type": "companion",    "chance": 0.10, "rerollIf": "no_eligible_companions" },
+        { "type": "quest",        "chance": 0.18, "rerollIf": "no_eligible_quests" },
+        { "type": "locked_chest", "chance": 0.10, "rerollIf": "no_party_skill:lockpicking" }
+      ],
+      "combatPool": [
+        { "enemyId": "foulweald_pathfinder", "weight": 40 },
+        { "enemyId": "foulweald_ursa",       "weight": 30 },
+        { "enemyId": "foulweald_shaman",     "weight": 22 }
+      ],
+      "exclusiveGroups": [],
+      "recruitPool": []
+    },
+    "enc_warsong_lumber_camp": {
+      "id": "enc_warsong_lumber_camp",
+      "_version": 1,
+      "slots": [
+        { "type": "companion",    "chance": 0.08, "rerollIf": "no_eligible_companions" },
+        { "type": "quest",        "chance": 0.18, "rerollIf": "no_eligible_quests" },
+        { "type": "locked_chest", "chance": 0.12, "rerollIf": "no_party_skill:lockpicking" }
+      ],
+      "combatPool": [
+        { "enemyId": "warsong_axe_thrower", "weight": 38 },
+        { "enemyId": "warsong_outrider",    "weight": 30 },
+        { "enemyId": "warsong_shredder",    "weight": 20 },
+        { "enemyId": "warsong_commander",   "weight": 10 }
+      ],
+      "exclusiveGroups": [],
+      "recruitPool": []
+    },
+    "enc_xavian": {
+      "id": "enc_xavian",
+      "_version": 1,
+      "slots": [
+        { "type": "companion",    "chance": 0.08, "rerollIf": "no_eligible_companions" },
+        { "type": "quest",        "chance": 0.18, "rerollIf": "no_eligible_quests" },
+        { "type": "locked_chest", "chance": 0.10, "rerollIf": "no_party_skill:lockpicking" }
+      ],
+      "combatPool": [
+        { "enemyId": "xavian_betrayer", "weight": 42 },
+        { "enemyId": "xavian_skulker",  "weight": 32 },
+        { "enemyId": "lord_xavialis",   "weight": 8 }
+      ],
+      "exclusiveGroups": [],
+      "recruitPool": []
+    },
+    "enc_raynewood_retreat": {
+      "id": "enc_raynewood_retreat",
+      "_version": 1,
+      "slots": [
+        { "type": "companion",    "chance": 0.08, "rerollIf": "no_eligible_companions" },
+        { "type": "quest",        "chance": 0.18, "rerollIf": "no_eligible_quests" },
+        { "type": "locked_chest", "chance": 0.08, "rerollIf": "no_party_skill:lockpicking" }
+      ],
+      "combatPool": [
+        { "enemyId": "raynewood_treant",   "weight": 38 },
+        { "enemyId": "fel_spirit",         "weight": 32 },
+        { "enemyId": "raynewood_guardian", "weight": 22 },
+        { "enemyId": "ordanus",            "weight": 8 }
+      ],
+      "exclusiveGroups": [],
+      "recruitPool": []
+    },
+    "enc_stonetalon_mountains": {
+      "id": "enc_stonetalon_mountains",
+      "_version": 1,
+      "slots": [
+        { "type": "companion",    "chance": 0.15, "rerollIf": "no_eligible_companions" },
+        { "type": "quest",        "chance": 0.18, "rerollIf": "no_eligible_quests" },
+        { "type": "gather_node",  "chance": 0.05, "nodeId": "mageroyal_patch",   "qty": 1, "rerollIf": "no_party_skill_min:herbalism:70" },
+        { "type": "gather_node",  "chance": 0.04, "nodeId": "kingsblood_patch",  "qty": 1, "rerollIf": "no_party_skill_min:herbalism:100" },
+        { "type": "locked_chest", "chance": 0.07, "rerollIf": "no_party_skill:lockpicking" },
+        { "type": "fishing_spot", "chance": 0.06, "rerollIf": "no_party_skill:fishing" }
+      ],
+      "combatPool": [
+        { "enemyId": "stonetalon_mountain_lion", "weight": 38 },
+        { "enemyId": "bloodfury_harpy",          "weight": 28 },
+        { "enemyId": "greater_thunder_lizard",   "weight": 22 },
+        { "enemyId": "stoneclaw_scorpid",        "weight": 18 }
+      ],
+      "exclusiveGroups": [],
+      "recruitPool": []
+    },
+    "enc_windshear_crag": {
+      "id": "enc_windshear_crag",
+      "_version": 1,
+      "slots": [
+        { "type": "companion",    "chance": 0.10, "rerollIf": "no_eligible_companions" },
+        { "type": "quest",        "chance": 0.18, "rerollIf": "no_eligible_quests" },
+        { "type": "locked_chest", "chance": 0.12, "rerollIf": "no_party_skill:lockpicking" }
+      ],
+      "combatPool": [
+        { "enemyId": "venture_co_worker",    "weight": 42 },
+        { "enemyId": "venture_co_geologist", "weight": 30 },
+        { "enemyId": "windshear_shredder",   "weight": 20 },
+        { "enemyId": "venture_co_foreman",   "weight": 12 }
+      ],
+      "exclusiveGroups": [],
+      "recruitPool": []
+    },
+    "enc_grimtotem_post": {
+      "id": "enc_grimtotem_post",
+      "_version": 1,
+      "slots": [
+        { "type": "companion",    "chance": 0.08, "rerollIf": "no_eligible_companions" },
+        { "type": "quest",        "chance": 0.18, "rerollIf": "no_eligible_quests" },
+        { "type": "locked_chest", "chance": 0.10, "rerollIf": "no_party_skill:lockpicking" }
+      ],
+      "combatPool": [
+        { "enemyId": "grimtotem_warrior", "weight": 42 },
+        { "enemyId": "grimtotem_brute",   "weight": 32 },
+        { "enemyId": "grimtotem_shaman",  "weight": 22 }
+      ],
+      "exclusiveGroups": [],
+      "recruitPool": []
+    },
+    "enc_charred_vale": {
+      "id": "enc_charred_vale",
+      "_version": 1,
+      "slots": [
+        { "type": "companion",    "chance": 0.08, "rerollIf": "no_eligible_companions" },
+        { "type": "quest",        "chance": 0.18, "rerollIf": "no_eligible_quests" },
+        { "type": "locked_chest", "chance": 0.08, "rerollIf": "no_party_skill:lockpicking" }
+      ],
+      "combatPool": [
+        { "enemyId": "charred_spirit",   "weight": 40 },
+        { "enemyId": "charred_basilisk", "weight": 32 },
+        { "enemyId": "magma_elemental",  "weight": 22 },
+        { "enemyId": "charred_ancient",  "weight": 8 }
+      ],
+      "exclusiveGroups": [],
+      "recruitPool": []
+    },
+    "enc_stonetalon_peak": {
+      "id": "enc_stonetalon_peak",
+      "_version": 1,
+      "slots": [
+        { "type": "companion",    "chance": 0.08, "rerollIf": "no_eligible_companions" },
+        { "type": "quest",        "chance": 0.18, "rerollIf": "no_eligible_quests" },
+        { "type": "locked_chest", "chance": 0.08, "rerollIf": "no_party_skill:lockpicking" }
+      ],
+      "combatPool": [
+        { "enemyId": "bloodfury_ripper",    "weight": 45 },
+        { "enemyId": "bloodfury_windwitch", "weight": 38 },
+        { "enemyId": "bloodfury_matriarch", "weight": 8 }
+      ],
+      "exclusiveGroups": [],
+      "recruitPool": []
+    },
+    "enc_southern_barrens": {
+      "id": "enc_southern_barrens",
+      "_version": 1,
+      "slots": [
+        { "type": "companion",    "chance": 0.15, "rerollIf": "no_eligible_companions" },
+        { "type": "quest",        "chance": 0.18, "rerollIf": "no_eligible_quests" },
+        { "type": "gather_node",  "chance": 0.05, "nodeId": "kingsblood_patch",  "qty": 1, "rerollIf": "no_party_skill_min:herbalism:125" },
+        { "type": "gather_node",  "chance": 0.04, "nodeId": "liferoot_patch",    "qty": 1, "rerollIf": "no_party_skill_min:herbalism:150" },
+        { "type": "locked_chest", "chance": 0.06, "rerollIf": "no_party_skill:lockpicking" },
+        { "type": "fishing_spot", "chance": 0.07, "rerollIf": "no_party_skill:fishing" }
+      ],
+      "combatPool": [
+        { "enemyId": "southern_barrens_raptor", "weight": 38 },
+        { "enemyId": "barrens_lion",            "weight": 28 },
+        { "enemyId": "greater_plainstrider",    "weight": 24 },
+        { "enemyId": "barrens_kodo",            "weight": 18 }
+      ],
+      "exclusiveGroups": [],
+      "recruitPool": []
+    },
+    "enc_razorfen_fields": {
+      "id": "enc_razorfen_fields",
+      "_version": 1,
+      "slots": [
+        { "type": "companion",    "chance": 0.10, "rerollIf": "no_eligible_companions" },
+        { "type": "quest",        "chance": 0.18, "rerollIf": "no_eligible_quests" },
+        { "type": "locked_chest", "chance": 0.10, "rerollIf": "no_party_skill:lockpicking" }
+      ],
+      "combatPool": [
+        { "enemyId": "razorfen_battleguard",  "weight": 40 },
+        { "enemyId": "razorfen_warden",       "weight": 30 },
+        { "enemyId": "razorfen_geomancer",    "weight": 22 },
+        { "enemyId": "razorfen_thornweaver",  "weight": 15 }
+      ],
+      "exclusiveGroups": [],
+      "recruitPool": []
+    },
+    "enc_bristleback_camp": {
+      "id": "enc_bristleback_camp",
+      "_version": 1,
+      "slots": [
+        { "type": "companion",    "chance": 0.08, "rerollIf": "no_eligible_companions" },
+        { "type": "quest",        "chance": 0.18, "rerollIf": "no_eligible_quests" },
+        { "type": "locked_chest", "chance": 0.10, "rerollIf": "no_party_skill:lockpicking" }
+      ],
+      "combatPool": [
+        { "enemyId": "bristleback_warrior",  "weight": 42 },
+        { "enemyId": "bristleback_shaman",   "weight": 32 },
+        { "enemyId": "bristleback_thornlord","weight": 22 }
+      ],
+      "exclusiveGroups": [],
+      "recruitPool": []
+    },
+    "enc_kolkar_hold": {
+      "id": "enc_kolkar_hold",
+      "_version": 1,
+      "slots": [
+        { "type": "companion",    "chance": 0.08, "rerollIf": "no_eligible_companions" },
+        { "type": "quest",        "chance": 0.18, "rerollIf": "no_eligible_quests" },
+        { "type": "locked_chest", "chance": 0.10, "rerollIf": "no_party_skill:lockpicking" }
+      ],
+      "combatPool": [
+        { "enemyId": "kolkar_drudge",    "weight": 40 },
+        { "enemyId": "kolkar_marauder",  "weight": 35 },
+        { "enemyId": "kolkar_stormseer", "weight": 25 },
+        { "enemyId": "kolkar_khan",      "weight": 8 }
+      ],
+      "exclusiveGroups": [],
+      "recruitPool": []
+    },
+    "enc_razorfen_kraul": {
+      "id": "enc_razorfen_kraul",
+      "_version": 1,
+      "slots": [
+        { "type": "companion",    "chance": 0.08, "rerollIf": "no_eligible_companions" },
+        { "type": "quest",        "chance": 0.18, "rerollIf": "no_eligible_quests" },
+        { "type": "locked_chest", "chance": 0.08, "rerollIf": "no_party_skill:lockpicking" }
+      ],
+      "combatPool": [
+        { "enemyId": "razorfen_defender",   "weight": 45 },
+        { "enemyId": "razorfen_spearhide",  "weight": 38 },
+        { "enemyId": "charlga_razorflank",  "weight": 8 }
+      ],
+      "exclusiveGroups": [],
+      "recruitPool": []
+    },
+    "enc_thousand_needles": {
+      "id": "enc_thousand_needles",
+      "_version": 1,
+      "slots": [
+        { "type": "companion",    "chance": 0.15, "rerollIf": "no_eligible_companions" },
+        { "type": "quest",        "chance": 0.18, "rerollIf": "no_eligible_quests" },
+        { "type": "gather_node",  "chance": 0.05, "nodeId": "kingsblood_patch",  "qty": 1, "rerollIf": "no_party_skill_min:herbalism:125" },
+        { "type": "gather_node",  "chance": 0.04, "nodeId": "goldthorn_patch",   "qty": 1, "rerollIf": "no_party_skill_min:herbalism:170" },
+        { "type": "locked_chest", "chance": 0.06, "rerollIf": "no_party_skill:lockpicking" },
+        { "type": "fishing_spot", "chance": 0.06, "rerollIf": "no_party_skill:fishing" }
+      ],
+      "combatPool": [
+        { "enemyId": "screeching_swoop",    "weight": 35 },
+        { "enemyId": "saltstone_basilisk",  "weight": 28 },
+        { "enemyId": "needles_cougar",      "weight": 26 },
+        { "enemyId": "galak_scout",         "weight": 20 }
+      ],
+      "exclusiveGroups": [],
+      "recruitPool": []
+    },
+    "enc_screeching_canyon": {
+      "id": "enc_screeching_canyon",
+      "_version": 1,
+      "slots": [
+        { "type": "companion",    "chance": 0.10, "rerollIf": "no_eligible_companions" },
+        { "type": "quest",        "chance": 0.18, "rerollIf": "no_eligible_quests" },
+        { "type": "locked_chest", "chance": 0.08, "rerollIf": "no_party_skill:lockpicking" }
+      ],
+      "combatPool": [
+        { "enemyId": "whitefeather_swooper",   "weight": 38 },
+        { "enemyId": "saltstone_stalker",      "weight": 30 },
+        { "enemyId": "canyon_rock_elemental",  "weight": 22 },
+        { "enemyId": "galak_outrunner",        "weight": 18 }
+      ],
+      "exclusiveGroups": [],
+      "recruitPool": []
+    },
+    "enc_galak_encampment": {
+      "id": "enc_galak_encampment",
+      "_version": 1,
+      "slots": [
+        { "type": "companion",    "chance": 0.08, "rerollIf": "no_eligible_companions" },
+        { "type": "quest",        "chance": 0.18, "rerollIf": "no_eligible_quests" },
+        { "type": "locked_chest", "chance": 0.10, "rerollIf": "no_party_skill:lockpicking" }
+      ],
+      "combatPool": [
+        { "enemyId": "galak_windchaser", "weight": 42 },
+        { "enemyId": "galak_mauler",     "weight": 32 },
+        { "enemyId": "galak_stormer",    "weight": 22 }
+      ],
+      "exclusiveGroups": [],
+      "recruitPool": []
+    },
+    "enc_darkcloud_pinnacle": {
+      "id": "enc_darkcloud_pinnacle",
+      "_version": 1,
+      "slots": [
+        { "type": "companion",    "chance": 0.08, "rerollIf": "no_eligible_companions" },
+        { "type": "quest",        "chance": 0.18, "rerollIf": "no_eligible_quests" },
+        { "type": "locked_chest", "chance": 0.08, "rerollIf": "no_party_skill:lockpicking" }
+      ],
+      "combatPool": [
+        { "enemyId": "grimtotem_raider",        "weight": 40 },
+        { "enemyId": "grimtotem_stomper",       "weight": 30 },
+        { "enemyId": "grimtotem_elder_shaman",  "weight": 22 },
+        { "enemyId": "grimtotem_elder_crone",   "weight": 8 }
+      ],
+      "exclusiveGroups": [],
+      "recruitPool": []
+    },
+    "enc_splithoof_hold": {
+      "id": "enc_splithoof_hold",
+      "_version": 1,
+      "slots": [
+        { "type": "companion",    "chance": 0.08, "rerollIf": "no_eligible_companions" },
+        { "type": "quest",        "chance": 0.18, "rerollIf": "no_eligible_quests" },
+        { "type": "locked_chest", "chance": 0.08, "rerollIf": "no_party_skill:lockpicking" }
+      ],
+      "combatPool": [
+        { "enemyId": "galak_wrangler",      "weight": 45 },
+        { "enemyId": "galak_bloodseeker",   "weight": 38 },
+        { "enemyId": "galak_high_warlord",  "weight": 8 }
+      ],
+      "exclusiveGroups": [],
+      "recruitPool": []
+    },
+    "enc_desolace_plains": {
+      "id": "enc_desolace_plains",
+      "_version": 1,
+      "slots": [
+        { "type": "companion",    "chance": 0.15, "rerollIf": "no_eligible_companions" },
+        { "type": "quest",        "chance": 0.18, "rerollIf": "no_eligible_quests" },
+        { "type": "gather_node",  "chance": 0.06, "nodeId": "node_briarthorn",    "qty": 1, "rerollIf": "no_party_skill_min:herbalism:120" },
+        { "type": "locked_chest", "chance": 0.07, "rerollIf": "no_party_skill:lockpicking" },
+        { "type": "fishing_spot", "chance": 0.07, "rerollIf": "no_party_skill:fishing" }
+      ],
+      "combatPool": [
+        { "enemyId": "desolace_kodo_bull", "weight": 35 },
+        { "enemyId": "desolace_buzzard",   "weight": 25 },
+        { "enemyId": "scorpashi_snapper",  "weight": 30 },
+        { "enemyId": "desolace_ghost",     "weight": 10 }
+      ],
+      "exclusiveGroups": [],
+      "recruitPool": []
+    },
+    "enc_mannoroc_coven": {
+      "id": "enc_mannoroc_coven",
+      "_version": 1,
+      "slots": [
+        { "type": "companion",    "chance": 0.15, "rerollIf": "no_eligible_companions" },
+        { "type": "quest",        "chance": 0.18, "rerollIf": "no_eligible_quests" },
+        { "type": "gather_node",  "chance": 0.05, "nodeId": "node_stranglekelp",  "qty": 1, "rerollIf": "no_party_skill_min:herbalism:85" },
+        { "type": "locked_chest", "chance": 0.08, "rerollIf": "no_party_skill:lockpicking" },
+        { "type": "fishing_spot", "chance": 0.05, "rerollIf": "no_party_skill:fishing" }
+      ],
+      "combatPool": [
+        { "enemyId": "burning_blade_cultist",  "weight": 30 },
+        { "enemyId": "burning_blade_warlock",  "weight": 25 },
+        { "enemyId": "mannoroc_lesser_demon",  "weight": 35 },
+        { "enemyId": "mannoroc_greater_demon", "weight": 10 }
+      ],
+      "exclusiveGroups": [],
+      "recruitPool": []
+    },
+    "enc_magram_village": {
+      "id": "enc_magram_village",
+      "_version": 1,
+      "slots": [
+        { "type": "companion",    "chance": 0.15, "rerollIf": "no_eligible_companions" },
+        { "type": "quest",        "chance": 0.18, "rerollIf": "no_eligible_quests" },
+        { "type": "gather_node",  "chance": 0.05, "nodeId": "node_iron_ore",      "qty": 1, "rerollIf": "no_party_skill_min:mining:100" },
+        { "type": "locked_chest", "chance": 0.09, "rerollIf": "no_party_skill:lockpicking" },
+        { "type": "fishing_spot", "chance": 0.04, "rerollIf": "no_party_skill:fishing" }
+      ],
+      "combatPool": [
+        { "enemyId": "magram_marauder", "weight": 40 },
+        { "enemyId": "magram_stormer",  "weight": 35 },
+        { "enemyId": "scorpashi_lasher","weight": 15 },
+        { "enemyId": "magram_overlord", "weight": 10 }
+      ],
+      "exclusiveGroups": [],
+      "recruitPool": []
+    },
+    "enc_valley_of_spears": {
+      "id": "enc_valley_of_spears",
+      "_version": 1,
+      "slots": [
+        { "type": "companion",    "chance": 0.15, "rerollIf": "no_eligible_companions" },
+        { "type": "quest",        "chance": 0.18, "rerollIf": "no_eligible_quests" },
+        { "type": "gather_node",  "chance": 0.05, "nodeId": "node_iron_ore",      "qty": 1, "rerollIf": "no_party_skill_min:mining:100" },
+        { "type": "locked_chest", "chance": 0.08, "rerollIf": "no_party_skill:lockpicking" },
+        { "type": "fishing_spot", "chance": 0.04, "rerollIf": "no_party_skill:fishing" }
+      ],
+      "combatPool": [
+        { "enemyId": "gelkis_outrunner", "weight": 40 },
+        { "enemyId": "gelkis_mauler",    "weight": 35 },
+        { "enemyId": "satyr_shadowsage", "weight": 15 },
+        { "enemyId": "desolace_ghost",   "weight": 10 }
+      ],
+      "exclusiveGroups": [],
+      "recruitPool": []
+    },
+    "enc_maraudon": {
+      "id": "enc_maraudon",
+      "_version": 1,
+      "slots": [
+        { "type": "companion",    "chance": 0.10, "rerollIf": "no_eligible_companions" },
+        { "type": "quest",        "chance": 0.20, "rerollIf": "no_eligible_quests" },
+        { "type": "locked_chest", "chance": 0.10, "rerollIf": "no_party_skill:lockpicking" }
+      ],
+      "combatPool": [
+        { "enemyId": "stone_golem_maraudon", "weight": 30 },
+        { "enemyId": "maraudon_sprite",      "weight": 35 },
+        { "enemyId": "mannoroc_greater_demon","weight": 15 },
+        { "enemyId": "landslide",            "weight": 20 }
+      ],
+      "exclusiveGroups": [],
+      "recruitPool": []
+    },
+    "enc_bloodfen": {
+      "id": "enc_bloodfen",
+      "_version": 1,
+      "slots": [
+        { "type": "companion",    "chance": 0.15, "rerollIf": "no_eligible_companions" },
+        { "type": "quest",        "chance": 0.18, "rerollIf": "no_eligible_quests" },
+        { "type": "gather_node",  "chance": 0.06, "nodeId": "node_briarthorn",   "qty": 1, "rerollIf": "no_party_skill_min:herbalism:120" },
+        { "type": "locked_chest", "chance": 0.07, "rerollIf": "no_party_skill:lockpicking" },
+        { "type": "fishing_spot", "chance": 0.07, "rerollIf": "no_party_skill:fishing" }
+      ],
+      "combatPool": [
+        { "enemyId": "bloodfen_raptor",   "weight": 35 },
+        { "enemyId": "bloodfen_screamer", "weight": 25 },
+        { "enemyId": "grimscale_murloc",  "weight": 25 },
+        { "enemyId": "dustwallow_hyena",  "weight": 15 }
+      ],
+      "exclusiveGroups": [],
+      "recruitPool": []
+    },
+    "enc_darkmist_ruins": {
+      "id": "enc_darkmist_ruins",
+      "_version": 1,
+      "slots": [
+        { "type": "companion",    "chance": 0.15, "rerollIf": "no_eligible_companions" },
+        { "type": "quest",        "chance": 0.18, "rerollIf": "no_eligible_quests" },
+        { "type": "gather_node",  "chance": 0.05, "nodeId": "node_stranglekelp", "qty": 1, "rerollIf": "no_party_skill_min:herbalism:85" },
+        { "type": "locked_chest", "chance": 0.07, "rerollIf": "no_party_skill:lockpicking" },
+        { "type": "fishing_spot", "chance": 0.08, "rerollIf": "no_party_skill:fishing" }
+      ],
+      "combatPool": [
+        { "enemyId": "darkmist_widow",      "weight": 40 },
+        { "enemyId": "darkmist_hatchling",  "weight": 30 },
+        { "enemyId": "darkwater_crocolisk", "weight": 20 },
+        { "enemyId": "snapjaw_crocolisk",   "weight": 10 }
+      ],
+      "exclusiveGroups": [],
+      "recruitPool": []
+    },
+    "enc_swampwalker_grove": {
+      "id": "enc_swampwalker_grove",
+      "_version": 1,
+      "slots": [
+        { "type": "companion",    "chance": 0.15, "rerollIf": "no_eligible_companions" },
+        { "type": "quest",        "chance": 0.18, "rerollIf": "no_eligible_quests" },
+        { "type": "gather_node",  "chance": 0.05, "nodeId": "node_stranglekelp", "qty": 1, "rerollIf": "no_party_skill_min:herbalism:85" },
+        { "type": "locked_chest", "chance": 0.07, "rerollIf": "no_party_skill:lockpicking" },
+        { "type": "fishing_spot", "chance": 0.10, "rerollIf": "no_party_skill:fishing" }
+      ],
+      "combatPool": [
+        { "enemyId": "swampwalker",           "weight": 40 },
+        { "enemyId": "swampwalker_elder",     "weight": 25 },
+        { "enemyId": "snapjaw_crocolisk",     "weight": 20 },
+        { "enemyId": "dustwallow_marsh_horror","weight": 15 }
+      ],
+      "exclusiveGroups": [],
+      "recruitPool": []
+    },
+    "enc_theramore_outskirts": {
+      "id": "enc_theramore_outskirts",
+      "_version": 1,
+      "slots": [
+        { "type": "companion",    "chance": 0.15, "rerollIf": "no_eligible_companions" },
+        { "type": "quest",        "chance": 0.18, "rerollIf": "no_eligible_quests" },
+        { "type": "gather_node",  "chance": 0.05, "nodeId": "node_iron_ore",     "qty": 1, "rerollIf": "no_party_skill_min:mining:100" },
+        { "type": "locked_chest", "chance": 0.08, "rerollIf": "no_party_skill:lockpicking" },
+        { "type": "fishing_spot", "chance": 0.06, "rerollIf": "no_party_skill:fishing" }
+      ],
+      "combatPool": [
+        { "enemyId": "theramore_deserter",    "weight": 35 },
+        { "enemyId": "theramore_conjuror",    "weight": 30 },
+        { "enemyId": "grimscale_oracle",      "weight": 20 },
+        { "enemyId": "grimscale_high_oracle", "weight": 15 }
+      ],
+      "exclusiveGroups": [],
+      "recruitPool": []
+    },
+    "enc_wyrmbog": {
+      "id": "enc_wyrmbog",
+      "_version": 1,
+      "slots": [
+        { "type": "companion",    "chance": 0.10, "rerollIf": "no_eligible_companions" },
+        { "type": "quest",        "chance": 0.20, "rerollIf": "no_eligible_quests" },
+        { "type": "gather_node",  "chance": 0.06, "nodeId": "node_mithril_deposit", "qty": 1, "rerollIf": "no_party_skill_min:mining:150" },
+        { "type": "locked_chest", "chance": 0.10, "rerollIf": "no_party_skill:lockpicking" }
+      ],
+      "combatPool": [
+        { "enemyId": "black_dragon_whelp",  "weight": 35 },
+        { "enemyId": "wyrmbog_scalebane",   "weight": 35 },
+        { "enemyId": "dustwallow_marsh_horror","weight": 15 },
+        { "enemyId": "wyrmbog_matriarch",   "weight": 15 }
+      ],
+      "exclusiveGroups": [],
+      "recruitPool": []
+    },
+    "enc_feralas_wilds": {
+      "id": "enc_feralas_wilds",
+      "_version": 1,
+      "slots": [
+        { "type": "companion",    "chance": 0.15, "rerollIf": "no_eligible_companions" },
+        { "type": "quest",        "chance": 0.18, "rerollIf": "no_eligible_quests" },
+        { "type": "gather_node",  "chance": 0.06, "nodeId": "node_briarthorn",      "qty": 1, "rerollIf": "no_party_skill_min:herbalism:120" },
+        { "type": "locked_chest", "chance": 0.07, "rerollIf": "no_party_skill:lockpicking" },
+        { "type": "fishing_spot", "chance": 0.06, "rerollIf": "no_party_skill:fishing" }
+      ],
+      "combatPool": [
+        { "enemyId": "feralas_hippogryph",  "weight": 35 },
+        { "enemyId": "sprite_darter_nymph", "weight": 30 },
+        { "enemyId": "feral_scar_yeti",     "weight": 25 },
+        { "enemyId": "feralas_treant",      "weight": 10 }
+      ],
+      "exclusiveGroups": [],
+      "recruitPool": []
+    },
+    "enc_frayfeather_highlands": {
+      "id": "enc_frayfeather_highlands",
+      "_version": 1,
+      "slots": [
+        { "type": "companion",    "chance": 0.15, "rerollIf": "no_eligible_companions" },
+        { "type": "quest",        "chance": 0.18, "rerollIf": "no_eligible_quests" },
+        { "type": "gather_node",  "chance": 0.05, "nodeId": "node_mithril_deposit", "qty": 1, "rerollIf": "no_party_skill_min:mining:150" },
+        { "type": "locked_chest", "chance": 0.08, "rerollIf": "no_party_skill:lockpicking" },
+        { "type": "fishing_spot", "chance": 0.05, "rerollIf": "no_party_skill:fishing" }
+      ],
+      "combatPool": [
+        { "enemyId": "frayfeather_harpy",    "weight": 40 },
+        { "enemyId": "frayfeather_screecher","weight": 30 },
+        { "enemyId": "cliff_giant",          "weight": 20 },
+        { "enemyId": "mountain_giant",       "weight": 10 }
+      ],
+      "exclusiveGroups": [],
+      "recruitPool": []
+    },
+    "enc_gordunni_outpost": {
+      "id": "enc_gordunni_outpost",
+      "_version": 1,
+      "slots": [
+        { "type": "companion",    "chance": 0.15, "rerollIf": "no_eligible_companions" },
+        { "type": "quest",        "chance": 0.18, "rerollIf": "no_eligible_quests" },
+        { "type": "gather_node",  "chance": 0.05, "nodeId": "node_mithril_deposit", "qty": 1, "rerollIf": "no_party_skill_min:mining:150" },
+        { "type": "locked_chest", "chance": 0.09, "rerollIf": "no_party_skill:lockpicking" },
+        { "type": "fishing_spot", "chance": 0.04, "rerollIf": "no_party_skill:fishing" }
+      ],
+      "combatPool": [
+        { "enemyId": "gordunni_ogre",      "weight": 40 },
+        { "enemyId": "gordunni_mauler",    "weight": 35 },
+        { "enemyId": "grimtotem_warrior",  "weight": 15 },
+        { "enemyId": "gordunni_warchief",  "weight": 10 }
+      ],
+      "exclusiveGroups": [],
+      "recruitPool": []
+    },
+    "enc_woodpaw_gnoll_camp": {
+      "id": "enc_woodpaw_gnoll_camp",
+      "_version": 1,
+      "slots": [
+        { "type": "companion",    "chance": 0.15, "rerollIf": "no_eligible_companions" },
+        { "type": "quest",        "chance": 0.18, "rerollIf": "no_eligible_quests" },
+        { "type": "gather_node",  "chance": 0.06, "nodeId": "node_briarthorn",      "qty": 1, "rerollIf": "no_party_skill_min:herbalism:120" },
+        { "type": "locked_chest", "chance": 0.08, "rerollIf": "no_party_skill:lockpicking" },
+        { "type": "fishing_spot", "chance": 0.05, "rerollIf": "no_party_skill:fishing" }
+      ],
+      "combatPool": [
+        { "enemyId": "woodpaw_gnoll_pack_runner","weight": 40 },
+        { "enemyId": "woodpaw_gnoll_alpha",      "weight": 35 },
+        { "enemyId": "grimtotem_shaman",         "weight": 15 },
+        { "enemyId": "grimtotem_warrior",        "weight": 10 }
+      ],
+      "exclusiveGroups": [],
+      "recruitPool": []
+    },
+    "enc_dire_maul": {
+      "id": "enc_dire_maul",
+      "_version": 1,
+      "slots": [
+        { "type": "companion",    "chance": 0.10, "rerollIf": "no_eligible_companions" },
+        { "type": "quest",        "chance": 0.20, "rerollIf": "no_eligible_quests" },
+        { "type": "gather_node",  "chance": 0.06, "nodeId": "node_mithril_deposit", "qty": 1, "rerollIf": "no_party_skill_min:mining:150" },
+        { "type": "locked_chest", "chance": 0.10, "rerollIf": "no_party_skill:lockpicking" }
+      ],
+      "combatPool": [
+        { "enemyId": "feralas_treant",  "weight": 30 },
+        { "enemyId": "arcane_golem",    "weight": 30 },
+        { "enemyId": "dire_maul_imp",   "weight": 25 },
+        { "enemyId": "immol_thar",      "weight": 15 }
+      ],
+      "exclusiveGroups": [],
+      "recruitPool": []
+    },
+    "enc_waterspring_field": {
+      "id": "enc_waterspring_field",
+      "_version": 1,
+      "slots": [
+        { "type": "companion",    "chance": 0.15, "rerollIf": "no_eligible_companions" },
+        { "type": "quest",        "chance": 0.18, "rerollIf": "no_eligible_quests" },
+        { "type": "gather_node",  "chance": 0.05, "nodeId": "node_iron_ore",      "qty": 1, "rerollIf": "no_party_skill_min:mining:100" },
+        { "type": "locked_chest", "chance": 0.08, "rerollIf": "no_party_skill:lockpicking" },
+        { "type": "fishing_spot", "chance": 0.04, "rerollIf": "no_party_skill:fishing" }
+      ],
+      "combatPool": [
+        { "enemyId": "wastewander_bandit", "weight": 40 },
+        { "enemyId": "wastewander_rogue",  "weight": 30 },
+        { "enemyId": "tanaris_basilisk",   "weight": 20 },
+        { "enemyId": "tanaris_hyena",      "weight": 10 }
+      ],
+      "exclusiveGroups": [],
+      "recruitPool": []
+    },
+    "enc_lost_rigger_cove": {
+      "id": "enc_lost_rigger_cove",
+      "_version": 1,
+      "slots": [
+        { "type": "companion",    "chance": 0.15, "rerollIf": "no_eligible_companions" },
+        { "type": "quest",        "chance": 0.18, "rerollIf": "no_eligible_quests" },
+        { "type": "gather_node",  "chance": 0.06, "nodeId": "node_stranglekelp",  "qty": 1, "rerollIf": "no_party_skill_min:herbalism:85" },
+        { "type": "locked_chest", "chance": 0.09, "rerollIf": "no_party_skill:lockpicking" },
+        { "type": "fishing_spot", "chance": 0.08, "rerollIf": "no_party_skill:fishing" }
+      ],
+      "combatPool": [
+        { "enemyId": "southsea_privateer",       "weight": 35 },
+        { "enemyId": "southsea_freebooter",      "weight": 35 },
+        { "enemyId": "tanaris_water_elemental",  "weight": 20 },
+        { "enemyId": "tanaris_fire_elemental",   "weight": 10 }
+      ],
+      "exclusiveGroups": [],
+      "recruitPool": []
+    },
+    "enc_silithid_hive": {
+      "id": "enc_silithid_hive",
+      "_version": 1,
+      "slots": [
+        { "type": "companion",    "chance": 0.15, "rerollIf": "no_eligible_companions" },
+        { "type": "quest",        "chance": 0.18, "rerollIf": "no_eligible_quests" },
+        { "type": "gather_node",  "chance": 0.05, "nodeId": "node_mithril_deposit","qty": 1, "rerollIf": "no_party_skill_min:mining:150" },
+        { "type": "locked_chest", "chance": 0.07, "rerollIf": "no_party_skill:lockpicking" }
+      ],
+      "combatPool": [
+        { "enemyId": "silithid_wasp",          "weight": 40 },
+        { "enemyId": "silithid_creeper",       "weight": 35 },
+        { "enemyId": "desert_scorpid",         "weight": 15 },
+        { "enemyId": "tanaris_fire_elemental", "weight": 10 }
+      ],
+      "exclusiveGroups": [],
+      "recruitPool": []
+    },
+    "enc_dunemaul_compound": {
+      "id": "enc_dunemaul_compound",
+      "_version": 1,
+      "slots": [
+        { "type": "companion",    "chance": 0.15, "rerollIf": "no_eligible_companions" },
+        { "type": "quest",        "chance": 0.18, "rerollIf": "no_eligible_quests" },
+        { "type": "gather_node",  "chance": 0.05, "nodeId": "node_mithril_deposit","qty": 1, "rerollIf": "no_party_skill_min:mining:150" },
+        { "type": "locked_chest", "chance": 0.09, "rerollIf": "no_party_skill:lockpicking" }
+      ],
+      "combatPool": [
+        { "enemyId": "dunemaul_ogre",          "weight": 40 },
+        { "enemyId": "dunemaul_warlock",       "weight": 30 },
+        { "enemyId": "tanaris_fire_elemental", "weight": 20 },
+        { "enemyId": "sandfury_troll",         "weight": 10 }
+      ],
+      "exclusiveGroups": [],
+      "recruitPool": []
+    },
+    "enc_zulfarrak": {
+      "id": "enc_zulfarrak",
+      "_version": 1,
+      "slots": [
+        { "type": "companion",    "chance": 0.10, "rerollIf": "no_eligible_companions" },
+        { "type": "quest",        "chance": 0.20, "rerollIf": "no_eligible_quests" },
+        { "type": "locked_chest", "chance": 0.10, "rerollIf": "no_party_skill:lockpicking" }
+      ],
+      "combatPool": [
+        { "enemyId": "sandfury_troll",        "weight": 30 },
+        { "enemyId": "sandfury_axe_thrower",  "weight": 25 },
+        { "enemyId": "zulfarrak_warden",      "weight": 20 },
+        { "enemyId": "sandfury_high_priest",  "weight": 15 },
+        { "enemyId": "gahzrilla",             "weight": 10 }
+      ],
+      "exclusiveGroups": [],
+      "recruitPool": []
+    },
+    "enc_thalassian_base_camp": {
+      "id": "enc_thalassian_base_camp",
+      "_version": 1,
+      "slots": [
+        { "type": "companion",    "chance": 0.15, "rerollIf": "no_eligible_companions" },
+        { "type": "quest",        "chance": 0.18, "rerollIf": "no_eligible_quests" },
+        { "type": "gather_node",  "chance": 0.05, "nodeId": "node_mithril_deposit", "qty": 1, "rerollIf": "no_party_skill_min:mining:150" },
+        { "type": "locked_chest", "chance": 0.08, "rerollIf": "no_party_skill:lockpicking" },
+        { "type": "fishing_spot", "chance": 0.04, "rerollIf": "no_party_skill:fishing" }
+      ],
+      "combatPool": [
+        { "enemyId": "blood_elf_surveyor",  "weight": 40 },
+        { "enemyId": "azshara_hippogryph",  "weight": 25 },
+        { "enemyId": "blood_elf_arcanist",  "weight": 20 },
+        { "enemyId": "azsharan_wolf",       "weight": 15 }
+      ],
+      "exclusiveGroups": [],
+      "recruitPool": []
+    },
+    "enc_shattered_strand": {
+      "id": "enc_shattered_strand",
+      "_version": 1,
+      "slots": [
+        { "type": "companion",    "chance": 0.15, "rerollIf": "no_eligible_companions" },
+        { "type": "quest",        "chance": 0.18, "rerollIf": "no_eligible_quests" },
+        { "type": "gather_node",  "chance": 0.06, "nodeId": "node_stranglekelp",   "qty": 1, "rerollIf": "no_party_skill_min:herbalism:85" },
+        { "type": "locked_chest", "chance": 0.09, "rerollIf": "no_party_skill:lockpicking" },
+        { "type": "fishing_spot", "chance": 0.09, "rerollIf": "no_party_skill:fishing" }
+      ],
+      "combatPool": [
+        { "enemyId": "coastal_naga",               "weight": 35 },
+        { "enemyId": "naga_siren",                 "weight": 25 },
+        { "enemyId": "azshara_crocolisk",          "weight": 15 },
+        { "enemyId": "naga_sea_witch",             "weight": 15 },
+        { "enemyId": "shattered_strand_warlord",   "weight": 10 }
+      ],
+      "exclusiveGroups": [],
+      "recruitPool": []
+    },
+    "enc_ruins_of_eldarath": {
+      "id": "enc_ruins_of_eldarath",
+      "_version": 1,
+      "slots": [
+        { "type": "companion",    "chance": 0.15, "rerollIf": "no_eligible_companions" },
+        { "type": "quest",        "chance": 0.18, "rerollIf": "no_eligible_quests" },
+        { "type": "gather_node",  "chance": 0.05, "nodeId": "node_mithril_deposit", "qty": 1, "rerollIf": "no_party_skill_min:mining:150" },
+        { "type": "locked_chest", "chance": 0.08, "rerollIf": "no_party_skill:lockpicking" }
+      ],
+      "combatPool": [
+        { "enemyId": "highborne_apparition", "weight": 35 },
+        { "enemyId": "highborne_lich",       "weight": 30 },
+        { "enemyId": "blood_elf_reclaimer",  "weight": 25 },
+        { "enemyId": "legash_satyr",         "weight": 10 }
+      ],
+      "exclusiveGroups": [],
+      "recruitPool": []
+    },
+    "enc_legash_encampment": {
+      "id": "enc_legash_encampment",
+      "_version": 1,
+      "slots": [
+        { "type": "companion",    "chance": 0.15, "rerollIf": "no_eligible_companions" },
+        { "type": "quest",        "chance": 0.18, "rerollIf": "no_eligible_quests" },
+        { "type": "gather_node",  "chance": 0.05, "nodeId": "node_mithril_deposit", "qty": 1, "rerollIf": "no_party_skill_min:mining:150" },
+        { "type": "locked_chest", "chance": 0.09, "rerollIf": "no_party_skill:lockpicking" }
+      ],
+      "combatPool": [
+        { "enemyId": "legash_satyr",          "weight": 40 },
+        { "enemyId": "legash_darkweaver",     "weight": 35 },
+        { "enemyId": "highborne_apparition",  "weight": 15 },
+        { "enemyId": "thunderhead_hippogryph","weight": 10 }
+      ],
+      "exclusiveGroups": [],
+      "recruitPool": []
+    },
+    "enc_bay_of_storms": {
+      "id": "enc_bay_of_storms",
+      "_version": 1,
+      "slots": [
+        { "type": "companion",    "chance": 0.10, "rerollIf": "no_eligible_companions" },
+        { "type": "quest",        "chance": 0.20, "rerollIf": "no_eligible_quests" },
+        { "type": "locked_chest", "chance": 0.08, "rerollIf": "no_party_skill:lockpicking" },
+        { "type": "fishing_spot", "chance": 0.12, "rerollIf": "no_party_skill:fishing" }
+      ],
+      "combatPool": [
+        { "enemyId": "azure_whelp",        "weight": 30 },
+        { "enemyId": "azure_scalebane",    "weight": 30 },
+        { "enemyId": "thunderhead_hippogryph", "weight": 20 },
+        { "enemyId": "elder_azure_drake",  "weight": 20 }
+      ],
+      "exclusiveGroups": [],
+      "recruitPool": []
+    },
+    "enc_ruins_of_keltheril": {
+      "id": "enc_ruins_of_keltheril",
+      "_version": 1,
+      "slots": [
+        { "type": "companion",    "chance": 0.15, "rerollIf": "no_eligible_companions" },
+        { "type": "quest",        "chance": 0.18, "rerollIf": "no_eligible_quests" },
+        { "type": "gather_node",  "chance": 0.05, "nodeId": "node_mithril_deposit", "qty": 1, "rerollIf": "no_party_skill_min:mining:150" },
+        { "type": "locked_chest", "chance": 0.08, "rerollIf": "no_party_skill:lockpicking" },
+        { "type": "fishing_spot", "chance": 0.06, "rerollIf": "no_party_skill:fishing" }
+      ],
+      "combatPool": [
+        { "enemyId": "keltheril_apparition", "weight": 35 },
+        { "enemyId": "keltheril_lichling",   "weight": 30 },
+        { "enemyId": "cobalt_wyvern",        "weight": 20 },
+        { "enemyId": "frostbit_spider",      "weight": 15 }
+      ],
+      "exclusiveGroups": [],
+      "recruitPool": []
+    },
+    "enc_winterfall_village": {
+      "id": "enc_winterfall_village",
+      "_version": 1,
+      "slots": [
+        { "type": "companion",    "chance": 0.15, "rerollIf": "no_eligible_companions" },
+        { "type": "quest",        "chance": 0.18, "rerollIf": "no_eligible_quests" },
+        { "type": "gather_node",  "chance": 0.05, "nodeId": "node_mithril_deposit", "qty": 1, "rerollIf": "no_party_skill_min:mining:150" },
+        { "type": "locked_chest", "chance": 0.08, "rerollIf": "no_party_skill:lockpicking" }
+      ],
+      "combatPool": [
+        { "enemyId": "winterfall_warrior",     "weight": 35 },
+        { "enemyId": "winterfall_den_watcher", "weight": 25 },
+        { "enemyId": "winterfall_shaman",      "weight": 20 },
+        { "enemyId": "frostsaber",             "weight": 10 },
+        { "enemyId": "winterfall_high_shaman", "weight": 10 }
+      ],
+      "exclusiveGroups": [],
+      "recruitPool": []
+    },
+    "enc_frozen_reaches": {
+      "id": "enc_frozen_reaches",
+      "_version": 1,
+      "slots": [
+        { "type": "companion",    "chance": 0.15, "rerollIf": "no_eligible_companions" },
+        { "type": "quest",        "chance": 0.18, "rerollIf": "no_eligible_quests" },
+        { "type": "gather_node",  "chance": 0.05, "nodeId": "node_mithril_deposit", "qty": 1, "rerollIf": "no_party_skill_min:mining:150" },
+        { "type": "locked_chest", "chance": 0.07, "rerollIf": "no_party_skill:lockpicking" },
+        { "type": "fishing_spot", "chance": 0.06, "rerollIf": "no_party_skill:fishing" }
+      ],
+      "combatPool": [
+        { "enemyId": "ice_thistle_yeti",      "weight": 35 },
+        { "enemyId": "chillwind_chimera",     "weight": 30 },
+        { "enemyId": "ice_thistle_matriarch", "weight": 25 },
+        { "enemyId": "frostbit_spider",       "weight": 10 }
+      ],
+      "exclusiveGroups": [],
+      "recruitPool": []
+    },
+    "enc_cobalt_ridge": {
+      "id": "enc_cobalt_ridge",
+      "_version": 1,
+      "slots": [
+        { "type": "companion",    "chance": 0.15, "rerollIf": "no_eligible_companions" },
+        { "type": "quest",        "chance": 0.18, "rerollIf": "no_eligible_quests" },
+        { "type": "gather_node",  "chance": 0.05, "nodeId": "node_mithril_deposit", "qty": 1, "rerollIf": "no_party_skill_min:mining:150" },
+        { "type": "locked_chest", "chance": 0.08, "rerollIf": "no_party_skill:lockpicking" }
+      ],
+      "combatPool": [
+        { "enemyId": "cobalt_scalebane",  "weight": 35 },
+        { "enemyId": "cobalt_mageweaver", "weight": 35 },
+        { "enemyId": "frostmaul_giant",   "weight": 20 },
+        { "enemyId": "cobalt_wyvern",     "weight": 10 }
+      ],
+      "exclusiveGroups": [],
+      "recruitPool": []
+    },
+    "enc_darkwhisper_gorge": {
+      "id": "enc_darkwhisper_gorge",
+      "_version": 1,
+      "slots": [
+        { "type": "companion",    "chance": 0.10, "rerollIf": "no_eligible_companions" },
+        { "type": "quest",        "chance": 0.20, "rerollIf": "no_eligible_quests" },
+        { "type": "locked_chest", "chance": 0.10, "rerollIf": "no_party_skill:lockpicking" }
+      ],
+      "combatPool": [
+        { "enemyId": "darkwhisper_abyssal",  "weight": 30 },
+        { "enemyId": "darkwhisper_terrordar","weight": 25 },
+        { "enemyId": "frostmaul_giant",      "weight": 25 },
+        { "enemyId": "darkwhisper_lord",     "weight": 20 }
+      ],
+      "exclusiveGroups": [],
+      "recruitPool": []
+    },
+    "enc_angerclaw_thicket": {
+      "id": "enc_angerclaw_thicket",
+      "_version": 1,
+      "slots": [
+        { "type": "companion",    "chance": 0.15, "rerollIf": "no_eligible_companions" },
+        { "type": "quest",        "chance": 0.18, "rerollIf": "no_eligible_quests" },
+        { "type": "gather_node",  "chance": 0.05, "nodeId": "node_mithril_deposit", "qty": 1, "rerollIf": "no_party_skill_min:mining:150" },
+        { "type": "locked_chest", "chance": 0.07, "rerollIf": "no_party_skill:lockpicking" },
+        { "type": "fishing_spot", "chance": 0.05, "rerollIf": "no_party_skill:fishing" }
+      ],
+      "combatPool": [
+        { "enemyId": "angerclaw_bear",       "weight": 35 },
+        { "enemyId": "felwood_corrupted_wolf","weight": 25 },
+        { "enemyId": "jadefire_trickster",   "weight": 25 },
+        { "enemyId": "angerclaw_mauler",     "weight": 15 }
+      ],
+      "exclusiveGroups": [],
+      "recruitPool": []
+    },
+    "enc_deadwood_village": {
+      "id": "enc_deadwood_village",
+      "_version": 1,
+      "slots": [
+        { "type": "companion",    "chance": 0.15, "rerollIf": "no_eligible_companions" },
+        { "type": "quest",        "chance": 0.18, "rerollIf": "no_eligible_quests" },
+        { "type": "gather_node",  "chance": 0.05, "nodeId": "node_mithril_deposit", "qty": 1, "rerollIf": "no_party_skill_min:mining:150" },
+        { "type": "locked_chest", "chance": 0.08, "rerollIf": "no_party_skill:lockpicking" }
+      ],
+      "combatPool": [
+        { "enemyId": "deadwood_pathfinder", "weight": 35 },
+        { "enemyId": "deadwood_avenger",    "weight": 30 },
+        { "enemyId": "deadwood_shaman",     "weight": 25 },
+        { "enemyId": "corrupted_wildkin",   "weight": 10 }
+      ],
+      "exclusiveGroups": [],
+      "recruitPool": []
+    },
+    "enc_jadefire_run": {
+      "id": "enc_jadefire_run",
+      "_version": 1,
+      "slots": [
+        { "type": "companion",    "chance": 0.15, "rerollIf": "no_eligible_companions" },
+        { "type": "quest",        "chance": 0.18, "rerollIf": "no_eligible_quests" },
+        { "type": "gather_node",  "chance": 0.05, "nodeId": "node_mithril_deposit", "qty": 1, "rerollIf": "no_party_skill_min:mining:150" },
+        { "type": "locked_chest", "chance": 0.09, "rerollIf": "no_party_skill:lockpicking" }
+      ],
+      "combatPool": [
+        { "enemyId": "jadefire_satyr",    "weight": 35 },
+        { "enemyId": "jadefire_felsworn", "weight": 30 },
+        { "enemyId": "jadefire_warlord",  "weight": 20 },
+        { "enemyId": "jadefire_trickster","weight": 15 }
+      ],
+      "exclusiveGroups": [],
+      "recruitPool": []
+    },
+    "enc_irontree_woods": {
+      "id": "enc_irontree_woods",
+      "_version": 1,
+      "slots": [
+        { "type": "companion",    "chance": 0.15, "rerollIf": "no_eligible_companions" },
+        { "type": "quest",        "chance": 0.18, "rerollIf": "no_eligible_quests" },
+        { "type": "gather_node",  "chance": 0.05, "nodeId": "node_mithril_deposit", "qty": 1, "rerollIf": "no_party_skill_min:mining:150" },
+        { "type": "locked_chest", "chance": 0.07, "rerollIf": "no_party_skill:lockpicking" }
+      ],
+      "combatPool": [
+        { "enemyId": "irontree_wanderer", "weight": 35 },
+        { "enemyId": "irontree_stomper",  "weight": 30 },
+        { "enemyId": "withered_ancient",  "weight": 25 },
+        { "enemyId": "corrupted_wildkin", "weight": 10 }
+      ],
+      "exclusiveGroups": [],
+      "recruitPool": []
+    },
+    "enc_jaedenar": {
+      "id": "enc_jaedenar",
+      "_version": 1,
+      "slots": [
+        { "type": "companion",    "chance": 0.10, "rerollIf": "no_eligible_companions" },
+        { "type": "quest",        "chance": 0.20, "rerollIf": "no_eligible_quests" },
+        { "type": "locked_chest", "chance": 0.10, "rerollIf": "no_party_skill:lockpicking" }
+      ],
+      "combatPool": [
+        { "enemyId": "jaedenar_cultist",     "weight": 35 },
+        { "enemyId": "jaedenar_warlock",     "weight": 30 },
+        { "enemyId": "jaedenar_houndmaster", "weight": 20 },
+        { "enemyId": "jaedenar_shadow_lord", "weight": 15 }
+      ],
+      "exclusiveGroups": [],
+      "recruitPool": []
+    },
+    "enc_marshals_refuge": {
+      "id": "enc_marshals_refuge",
+      "_version": 1,
+      "slots": [
+        { "type": "companion",    "chance": 0.15, "rerollIf": "no_eligible_companions" },
+        { "type": "quest",        "chance": 0.18, "rerollIf": "no_eligible_quests" },
+        { "type": "gather_node",  "chance": 0.05, "nodeId": "node_mithril_deposit", "qty": 1, "rerollIf": "no_party_skill_min:mining:150" },
+        { "type": "locked_chest", "chance": 0.07, "rerollIf": "no_party_skill:lockpicking" },
+        { "type": "fishing_spot", "chance": 0.05, "rerollIf": "no_party_skill:fishing" }
+      ],
+      "combatPool": [
+        { "enemyId": "ungoro_ravasaur",    "weight": 35 },
+        { "enemyId": "ungoro_gorilla",     "weight": 30 },
+        { "enemyId": "ungoro_pterrordax",  "weight": 25 },
+        { "enemyId": "lakkari_tar_lurker", "weight": 10 }
+      ],
+      "exclusiveGroups": [],
+      "recruitPool": []
+    },
+    "enc_lakkari_tar_pits": {
+      "id": "enc_lakkari_tar_pits",
+      "_version": 1,
+      "slots": [
+        { "type": "companion",    "chance": 0.15, "rerollIf": "no_eligible_companions" },
+        { "type": "quest",        "chance": 0.18, "rerollIf": "no_eligible_quests" },
+        { "type": "gather_node",  "chance": 0.05, "nodeId": "node_mithril_deposit", "qty": 1, "rerollIf": "no_party_skill_min:mining:150" },
+        { "type": "locked_chest", "chance": 0.07, "rerollIf": "no_party_skill:lockpicking" }
+      ],
+      "combatPool": [
+        { "enemyId": "ungoro_stegodon",    "weight": 30 },
+        { "enemyId": "lakkari_tar_lurker", "weight": 30 },
+        { "enemyId": "lakkari_tar_beast",  "weight": 25 },
+        { "enemyId": "bloodpetal_lasher",  "weight": 15 }
+      ],
+      "exclusiveGroups": [],
+      "recruitPool": []
+    },
+    "enc_fire_plume_ridge": {
+      "id": "enc_fire_plume_ridge",
+      "_version": 1,
+      "slots": [
+        { "type": "companion",    "chance": 0.12, "rerollIf": "no_eligible_companions" },
+        { "type": "quest",        "chance": 0.18, "rerollIf": "no_eligible_quests" },
+        { "type": "gather_node",  "chance": 0.05, "nodeId": "node_mithril_deposit", "qty": 1, "rerollIf": "no_party_skill_min:mining:150" },
+        { "type": "locked_chest", "chance": 0.08, "rerollIf": "no_party_skill:lockpicking" }
+      ],
+      "combatPool": [
+        { "enemyId": "fire_plume_elemental", "weight": 35 },
+        { "enemyId": "fire_plume_rager",     "weight": 30 },
+        { "enemyId": "ungoro_stomper",       "weight": 20 },
+        { "enemyId": "ungoro_thunderer",     "weight": 15 }
+      ],
+      "exclusiveGroups": [],
+      "recruitPool": []
+    },
+    "enc_bloodpetal_grove": {
+      "id": "enc_bloodpetal_grove",
+      "_version": 1,
+      "slots": [
+        { "type": "companion",    "chance": 0.15, "rerollIf": "no_eligible_companions" },
+        { "type": "quest",        "chance": 0.18, "rerollIf": "no_eligible_quests" },
+        { "type": "gather_node",  "chance": 0.05, "nodeId": "node_mithril_deposit", "qty": 1, "rerollIf": "no_party_skill_min:mining:150" },
+        { "type": "locked_chest", "chance": 0.07, "rerollIf": "no_party_skill:lockpicking" },
+        { "type": "fishing_spot", "chance": 0.04, "rerollIf": "no_party_skill:fishing" }
+      ],
+      "combatPool": [
+        { "enemyId": "bloodpetal_lasher",  "weight": 30 },
+        { "enemyId": "bloodpetal_trapper", "weight": 30 },
+        { "enemyId": "crystal_elemental",  "weight": 25 },
+        { "enemyId": "gorilla_silverback", "weight": 15 }
+      ],
+      "exclusiveGroups": [],
+      "recruitPool": []
+    },
+    "enc_slithering_scar": {
+      "id": "enc_slithering_scar",
+      "_version": 1,
+      "slots": [
+        { "type": "companion",    "chance": 0.10, "rerollIf": "no_eligible_companions" },
+        { "type": "quest",        "chance": 0.20, "rerollIf": "no_eligible_quests" },
+        { "type": "locked_chest", "chance": 0.10, "rerollIf": "no_party_skill:lockpicking" }
+      ],
+      "combatPool": [
+        { "enemyId": "ungoro_silithid_worker",  "weight": 30 },
+        { "enemyId": "ungoro_silithid_ravager", "weight": 25 },
+        { "enemyId": "ungoro_devilsaur",        "weight": 25 },
+        { "enemyId": "slithering_scar_queen",   "weight": 20 }
+      ],
+      "exclusiveGroups": [],
+      "recruitPool": []
+    },
+    "enc_southwind_ruins": {
+      "id": "enc_southwind_ruins",
+      "_version": 1,
+      "slots": [
+        { "type": "companion",    "chance": 0.15, "rerollIf": "no_eligible_companions" },
+        { "type": "quest",        "chance": 0.18, "rerollIf": "no_eligible_quests" },
+        { "type": "gather_node",  "chance": 0.05, "nodeId": "node_mithril_deposit", "qty": 1, "rerollIf": "no_party_skill_min:mining:150" },
+        { "type": "locked_chest", "chance": 0.08, "rerollIf": "no_party_skill:lockpicking" }
+      ],
+      "combatPool": [
+        { "enemyId": "twilight_marauder",    "weight": 30 },
+        { "enemyId": "twilight_stonecaller", "weight": 25 },
+        { "enemyId": "twilight_avenger",     "weight": 25 },
+        { "enemyId": "hivezora_wasp",        "weight": 20 }
+      ],
+      "exclusiveGroups": [],
+      "recruitPool": []
+    },
+    "enc_hive_zora": {
+      "id": "enc_hive_zora",
+      "_version": 1,
+      "slots": [
+        { "type": "companion",    "chance": 0.10, "rerollIf": "no_eligible_companions" },
+        { "type": "quest",        "chance": 0.20, "rerollIf": "no_eligible_quests" },
+        { "type": "locked_chest", "chance": 0.10, "rerollIf": "no_party_skill:lockpicking" }
+      ],
+      "combatPool": [
+        { "enemyId": "hivezora_wasp",       "weight": 30 },
+        { "enemyId": "hivezora_reaver",     "weight": 30 },
+        { "enemyId": "hivezora_hive_guard", "weight": 25 },
+        { "enemyId": "dust_stormer",        "weight": 15 }
+      ],
+      "exclusiveGroups": [],
+      "recruitPool": []
+    },
+    "enc_crystal_vale": {
+      "id": "enc_crystal_vale",
+      "_version": 1,
+      "slots": [
+        { "type": "companion",    "chance": 0.12, "rerollIf": "no_eligible_companions" },
+        { "type": "quest",        "chance": 0.18, "rerollIf": "no_eligible_quests" },
+        { "type": "gather_node",  "chance": 0.05, "nodeId": "node_mithril_deposit", "qty": 1, "rerollIf": "no_party_skill_min:mining:150" },
+        { "type": "locked_chest", "chance": 0.09, "rerollIf": "no_party_skill:lockpicking" }
+      ],
+      "combatPool": [
+        { "enemyId": "twilight_dark_shaman", "weight": 30 },
+        { "enemyId": "twilight_geolord",     "weight": 25 },
+        { "enemyId": "whirling_sandstorm",   "weight": 25 },
+        { "enemyId": "twilight_avenger",     "weight": 20 }
+      ],
+      "exclusiveGroups": [],
+      "recruitPool": []
+    },
+    "enc_hive_regal": {
+      "id": "enc_hive_regal",
+      "_version": 1,
+      "slots": [
+        { "type": "companion",    "chance": 0.10, "rerollIf": "no_eligible_companions" },
+        { "type": "quest",        "chance": 0.20, "rerollIf": "no_eligible_quests" },
+        { "type": "locked_chest", "chance": 0.10, "rerollIf": "no_party_skill:lockpicking" }
+      ],
+      "combatPool": [
+        { "enemyId": "hiveregal_stinger",     "weight": 30 },
+        { "enemyId": "hiveregal_overseer",    "weight": 25 },
+        { "enemyId": "hiveregal_colossus",    "weight": 25 },
+        { "enemyId": "twilight_high_marshal", "weight": 20 }
+      ],
+      "exclusiveGroups": [],
+      "recruitPool": []
+    },
+    "enc_abyssal_sands": {
+      "id": "enc_abyssal_sands",
+      "_version": 1,
+      "slots": [
+        { "type": "companion",    "chance": 0.10, "rerollIf": "no_eligible_companions" },
+        { "type": "quest",        "chance": 0.20, "rerollIf": "no_eligible_quests" },
+        { "type": "gather_node",  "chance": 0.05, "nodeId": "node_mithril_deposit", "qty": 1, "rerollIf": "no_party_skill_min:mining:150" },
+        { "type": "locked_chest", "chance": 0.09, "rerollIf": "no_party_skill:lockpicking" }
+      ],
+      "combatPool": [
+        { "enemyId": "obsidian_destroyer",  "weight": 30 },
+        { "enemyId": "silithid_flyer",      "weight": 25 },
+        { "enemyId": "silithid_sand_terror","weight": 25 },
+        { "enemyId": "ancient_sand_reaver", "weight": 20 }
+      ],
+      "exclusiveGroups": [],
+      "recruitPool": []
+    }
+  }
+}

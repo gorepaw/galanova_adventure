@@ -1,0 +1,77 @@
+These are instructions for my Items JSON format. I will provide you with a sample JSON structure for different types of items. 
+
+/////Weapons
+
+"gladius": {
+      "id": "gladius",
+      "name": "Gladius",
+      "_version": 2,
+      "type": "weapon",
+      "slot": "mainhand",
+      "itemLevel": 9,
+      "reqLevel": 4,
+      "weaponType": "sword_1h",
+      "minDamage": 5,
+      "maxDamage": 10,
+      "weaponSpeed": 2.70,
+      "statBonuses": { "sta": 16, "str": 11, "agi": 6 },
+      "value": 535,
+      "quality": "common",
+      "tags": ["weapon"],
+      "description": "A short wide-bladed sword favored by soldiers."
+    },
+
+/////Armor
+
+"frayed_robe": {
+      "id": "frayed_robe",
+      "name": "Frayed Robe",
+      "_version": 1,
+      "type": "armor",
+      "slot": "chest",
+      "itemLevel": 1,
+      "reqLevel": 1,
+      "statBonuses": { "sta": 16, "str": 11, "agi": 6 },
+      "value": 25,
+      "quality": "poor",
+      "tags": ["armor", "cloth"],
+      "description": "A tattered cloth robe."
+    },
+
+/////Consumables
+
+   "refreshing_spring_water": {
+      "id": "refreshing_spring_water",
+      "name": "Refreshing Spring Water",
+      "_version": 1,
+      "type": "consumable",
+      "slot": "none",
+      "value": 35,
+      "quality": "common",
+      "onUse": { "type": "mana", "percent": 0.1, "target": "party", "outOfCombatOnly": true },
+      "tags": ["drink"],
+      "description": "Cool, clean water from a mountain spring. Restores 10% mana to the whole party. Cannot be used in combat."
+    },
+
+/////Materials
+
+    "rugged_hide": {
+      "id": "rugged_hide",
+      "name": "Rugged Hide",
+      "_version": 1,
+      "type": "material",
+      "slot": "none",
+      "statBonuses": {},
+      "value": 600,
+      "quality": "rare",
+      "tags": ["material", "hide", "skinning"],
+      "description": "The toughest hide imaginable, taken from the most dangerous creatures alive."
+    },
+
+
+You will convert natural language descriptions of items into valid JSON. You will not add fields. You will leave blank entries I do not provide info for. 
+You will not leave trailing punctuation. You will not put example data from this file into output data. You will not include explanations, reasoning, or commentary. 
+You will not include markdown code fences. You will not include <reasoning> tags. You will preserve the field order exactly as shown in the examples. 
+If a field is not provided in the natural language description, include the field with an empty value (e.g., "", {}, or 0 depending on type). 
+You will not include trailing commas in any JSON object. You will not reuse numbers, stats, descriptions, or values from the examples. 
+All output values must come only from the natural language description.

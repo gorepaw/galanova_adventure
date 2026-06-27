@@ -1,0 +1,765 @@
+<!DOCTYPE html><html><head><style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:#0d0d0d;color:#c8c8c8;font-family:monospace;font-size:12px;display:flex;height:100vh;overflow:hidden;}
+#sidebar{width:200px;flex-shrink:0;background:#111;border-right:1px solid #222;display:flex;flex-direction:column;padding:8px 0;overflow-y:auto;}
+#sidebar h3{color:#569cd6;padding:6px 12px 8px;font-size:11px;letter-spacing:1px;text-transform:uppercase;border-bottom:1px solid #222;margin-bottom:4px;}
+.grp{color:#555;font-size:10px;padding:8px 12px 2px;letter-spacing:1px;text-transform:uppercase;}
+.btn{background:none;border:none;color:#aaa;text-align:left;padding:5px 12px;cursor:pointer;font:12px monospace;width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.btn:hover{color:#fff;background:#1a1a1a;}
+.btn.active{color:#4ec9b0;border-left:2px solid #4ec9b0;padding-left:10px;}
+.sep{border-top:1px solid #1e1e1e;margin:4px 0;}
+#main{flex:1;display:flex;flex-direction:column;overflow:hidden;}
+#toolbar{background:#111;border-bottom:1px solid #222;padding:6px 10px;display:flex;gap:6px;align-items:center;flex-wrap:wrap;}
+#toolbar input{background:#0d0d0d;border:1px solid #333;color:#c8c8c8;padding:4px 8px;font:12px monospace;border-radius:3px;width:220px;}
+#toolbar input:focus{outline:none;border-color:#569cd6;}
+.tbtn{background:#1a2a1a;border:1px solid #2a4a2a;color:#9cdcfe;padding:4px 10px;font:12px monospace;cursor:pointer;border-radius:3px;white-space:nowrap;}
+.tbtn:hover{background:#1e3a1e;}
+.tbtn.danger{background:#2a1a1a;border-color:#4a2a2a;color:#f08080;}
+.tbtn.danger:hover{background:#3a1a1a;}
+.tbtn.warn{background:#2a2a1a;border-color:#4a4a2a;color:#dcdcaa;}
+#output{flex:1;overflow-y:auto;padding:10px 14px;}
+#output pre{white-space:pre-wrap;word-break:break-word;line-height:1.6;}
+.ok{color:#4ec9b0;}.fail{color:#f44747;font-weight:bold;}.warn{color:#dcdcaa;}.info{color:#569cd6;}.dim{color:#555;}.gold{color:#ffd700;}.sep-line{color:#333;}
+.tag-ok{background:#0d2b0d;color:#4ec9b0;padding:0 4px;border-radius:2px;}
+.tag-fail{background:#2b0d0d;color:#f44747;padding:0 4px;border-radius:2px;}
+.tag-warn{background:#2b2b0d;color:#dcdcaa;padding:0 4px;border-radius:2px;}
+#status{background:#111;border-top:1px solid #222;padding:4px 12px;font-size:11px;color:#555;display:flex;gap:16px;}
+</style></head>
+<body>
+<div id="sidebar">
+  <h3>Debug Panel</h3>
+  <div class="grp">DataStore</div>
+  <button class="btn" onclick="run('ds_list')">📋 List All Keys</button>
+  <button class="btn" onclick="run('ds_enemies')">👾 Dump Enemies</button>
+  <button class="btn" onclick="run('ds_companions')">🧑 Dump Companions</button>
+  <button class="btn" onclick="run('ds_items')">🎒 Dump Items</button>
+  <button class="btn" onclick="run('ds_zones')">🗺 Dump Zones</button>
+  <button class="btn" onclick="run('ds_tables')">⚡ Dump Enc Tables</button>
+  <button class="btn" onclick="run('ds_quests')">📜 Dump Quests</button>
+  <button class="btn" onclick="run('ds_saves')">💾 Dump Saves</button>
+  <button class="btn" onclick="run('ds_instances')">👤 Dump Instances</button>
+  <div class="sep"></div>
+  <div class="grp">Schema / Validation</div>
+  <button class="btn" onclick="run('val_all_enemies')">✔ Validate Enemies</button>
+  <button class="btn" onclick="run('val_all_items')">✔ Validate Items</button>
+  <button class="btn" onclick="run('val_all_companions')">✔ Validate Companions</button>
+  <button class="btn" onclick="run('val_all_instances')">✔ Validate Instances</button>
+  <button class="btn" onclick="run('val_all_zones')">✔ Validate Zones</button>
+  <button class="btn" onclick="run('val_all_tables')">✔ Validate Tables</button>
+  <button class="btn" onclick="run('val_save')">✔ Validate Save</button>
+  <div class="sep"></div>
+  <div class="grp">Encounter</div>
+  <button class="btn" onclick="run('enc_probe')">🎲 Probe enc_durotar</button>
+  <button class="btn" onclick="run('enc_combatpool')">⚔ CombatPool Loads?</button>
+  <button class="btn" onclick="run('enc_generate_100')">🔁 Generate ×100</button>
+  <button class="btn" onclick="run('enc_echo')">🏝 Probe enc_echo</button>
+  <button class="btn" onclick="run('enc_barrens')">🌾 Probe enc_barrens</button>
+  <div class="sep"></div>
+  <div class="grp">Specific Failures</div>
+  <button class="btn active" onclick="run('fail_boar')">🐗 Debug: Boar</button>
+  <button class="btn" onclick="run('fail_scorpid')">🦂 Debug: Scorpid</button>
+  <button class="btn" onclick="run('fail_enc')">🔴 Debug: Enc Generate</button>
+  <button class="btn" onclick="run('fail_s0')">💾 Debug: s0 Load</button>
+  <div class="sep"></div>
+  <div class="grp">Party / Instances</div>
+  <button class="btn" onclick="run('party_skills')">🛠 Party Skills</button>
+  <button class="btn" onclick="run('inst_player')">👤 Player Instance</button>
+  <div class="sep"></div>
+  <div class="grp">Seed</div>
+  <button class="btn" onclick="run('seed_status')">🌱 Seed Status</button>
+  <button class="btn" onclick="run('reseed')">🔄 Re-seed + Reload</button>
+</div>
+<div id="main">
+  <div id="toolbar">
+    <input id="path_input" placeholder="templates/enemies/boar" onkeydown="if(e=>e.key==='Enter')run('ds_read')" />
+    <button class="tbtn" onclick="run('ds_read')">Read Path</button>
+    <button class="tbtn" onclick="run('ds_read_raw')">Raw JSON</button>
+    <button class="tbtn warn" onclick="run('full_diag')">🔍 Full Diag</button>
+    <button class="tbtn danger" onclick="clearOut()">Clear</button>
+  </div>
+  <div id="output"><pre id="out">Click a debug action or use the toolbar above.
+
+Quick start:
+  • Click "Debug: Boar" to trace the boar load failure
+  • Click "Full Diag" for a complete system report
+  • Type a DataStore path and click "Read Path"
+</pre></div>
+  <div id="status">
+    <span id="st_keys">keys: —</span>
+    <span id="st_enemies">enemies: —</span>
+    <span id="st_items">items: —</span>
+    <span id="st_saves">saves: —</span>
+    <span id="st_last">last: —</span>
+  </div>
+</div>
+
+<script>
+// ─── Minimal stubs so the debug panel works standalone ────────────────────────
+// In production these would come from the game's DataStore / Loader.
+// Here we wire up to the parent window if the game is loaded there,
+// otherwise we provide a self-contained stub environment.
+
+let DS, LDR, SCHEMAS_REF, Validator_REF, seed_fn, save_ref;
+
+const tryWire = () => {
+  // Try to grab live references from the same page context.
+  // Since this runs as an artifact in an iframe, we use a postMessage
+  // bridge pattern — but we also provide a FULL self-contained stub
+  // so the panel is immediately useful without any wiring.
+  return false;
+};
+
+// ─── Self-contained DataStore + Loader (mirrors data_layer.js) ───────────────
+const _fs = new Map();
+DS = {
+  write:  (p,d) => _fs.set(p, JSON.parse(JSON.stringify(d))),
+  read:   (p)   => _fs.has(p) ? JSON.parse(JSON.stringify(_fs.get(p))) : null,
+  exists: (p)   => _fs.has(p),
+  list:   (pfx) => [..._fs.keys()].filter(k => k.startsWith(pfx)),
+  remove: (p)   => _fs.delete(p),
+  size:   ()    => _fs.size,
+};
+
+// ─── Minimal validator (subset) ───────────────────────────────────────────────
+const typeCheck = (v,t) => { if(t==="integer")return Number.isInteger(v); if(t==="number")return typeof v==="number"&&!isNaN(v); if(t==="string")return typeof v==="string"; if(t==="boolean")return typeof v==="boolean"; if(t==="array")return Array.isArray(v); if(t==="object")return typeof v==="object"&&v!==null&&!Array.isArray(v); if(t==="null")return v===null; return false; };
+const validate = (data,schema,path="") => {
+  const errs=[];
+  if(schema.type){const ts=Array.isArray(schema.type)?schema.type:[schema.type];if(!ts.some(t=>typeCheck(data,t))){errs.push(`${path||"root"}: expected ${schema.type}, got ${Array.isArray(data)?"array":typeof data}`);return errs;}}
+  if(schema.oneOf){const ok=schema.oneOf.some(s=>validate(data,s,path).length===0);if(!ok)errs.push(`${path}: failed oneOf`);}
+  if(typeof data==="string"){if(schema.minLength!==undefined&&data.length<schema.minLength)errs.push(`${path}: too short`);if(schema.pattern&&!new RegExp(schema.pattern).test(data))errs.push(`${path}: pattern fail`);if(schema.enum&&!schema.enum.includes(data))errs.push(`${path}: not in enum [${schema.enum.join(",")}]`);}
+  if(typeof data==="number"){if(schema.minimum!==undefined&&data<schema.minimum)errs.push(`${path}: below min ${schema.minimum}`);if(schema.maximum!==undefined&&data>schema.maximum)errs.push(`${path}: above max`);}
+  if(typeCheck(data,"object")){if(schema.required)for(const f of schema.required)if(!(f in data))errs.push(`${path}.${f}: required field missing`);if(schema.properties)for(const[k,s]of Object.entries(schema.properties))if(k in data)errs.push(...validate(data[k],s,`${path}.${k}`));if(schema.additionalProperties===false&&schema.properties)for(const k of Object.keys(data))if(!(k in schema.properties))errs.push(`${path}.${k}: extra property not allowed`);}
+  if(Array.isArray(data)){if(schema.minItems!==undefined&&data.length<schema.minItems)errs.push(`${path}: array too short`);if(schema.items)data.forEach((item,i)=>errs.push(...validate(item,schema.items,`${path}[${i}]`)));}
+  return errs;
+};
+
+const SCHEMAS = {
+  enemy:{$id:"enemy",type:"object",required:["id","name","baseStats","aiProfile","abilities"],properties:{id:{type:"string",pattern:"^[a-z0-9_]+$"},name:{type:"string",minLength:1},_version:{type:"integer",minimum:1},type:{type:"string",enum:["humanoid","beast","undead","elemental","demon","dragon","giant","mechanical","aberration"]},baseStats:{type:"object"},abilities:{type:"array",items:{type:"string"}},aiProfile:{type:"string"},loot:{type:"array"},xpValue:{type:"number",minimum:0},tags:{type:"array",items:{type:"string"}},description:{type:"string"}},additionalProperties:true},
+  item:{$id:"item",type:"object",required:["id","name","type","slot"],properties:{id:{type:"string",pattern:"^[a-z0-9_]+$"},name:{type:"string",minLength:1},_version:{type:"integer",minimum:1},type:{type:"string",enum:["weapon","armor","trinket","consumable","quest","material","recipe","held"]},slot:{type:"string",enum:["mainhand","offhand","head","chest","legs","feet","hands","back","neck","ring","trinket","none","waist","shoulders","wrist","tabard","ranged","ammo","relic"]},statBonuses:{type:"object",properties:{str:{type:"number"},agi:{type:"number"},sta:{type:"number"},int:{type:"number"},spi:{type:"number"},attackPower:{type:"number"},spellPower:{type:"number"},armor:{type:"number"},meleeCrit:{type:"number"},spellCrit:{type:"number"}},additionalProperties:false},onUse:{oneOf:[{type:"object"},{type:"null"}]},itemLevel:{oneOf:[{type:"integer",minimum:1},{type:"null"}]},minDamage:{oneOf:[{type:"number",minimum:0},{type:"null"}]},maxDamage:{oneOf:[{type:"number",minimum:0},{type:"null"}]},weaponType:{oneOf:[{type:"string",enum:["sword_1h","sword_2h","axe_1h","axe_2h","mace_1h","mace_2h","dagger","fist","staff","polearm","wand","bow","crossbow","gun","thrown"]},{type:"null"}]},allowedClasses:{type:"array",items:{type:"string"}},unlockRepFaction:{type:["string","null"]},unlockRepRequired:{type:["number","null"]},stackable:{type:"boolean"},maxStack:{type:"integer",minimum:1},value:{type:"number",minimum:0},quality:{type:"string",enum:["poor","common","uncommon","rare","epic","legendary"]},tags:{type:"array",items:{type:"string"}},description:{type:"string"}},additionalProperties:false},
+  companion:{$id:"companion",type:"object",required:["id","name","raceId","classId"],properties:{id:{type:"string",pattern:"^[a-z0-9_]+$"},name:{type:"string",minLength:1},_version:{type:"integer",minimum:1},raceId:{type:"string"},classId:{type:"string"}},additionalProperties:true},
+  companionInstance:{$id:"companionInstance",type:"object",required:["instanceId","templateId"],properties:{instanceId:{type:"string"},templateId:{type:"string"},_version:{type:"integer",minimum:1},deathState:{type:"string",enum:["alive","downed","dead"]}},additionalProperties:true},
+  zone:{$id:"zone",type:"object",required:["id","name","encounterTableId"],properties:{id:{type:"string",pattern:"^[a-z0-9_]+$"},name:{type:"string",minLength:1},encounterTableId:{type:"string"}},additionalProperties:true},
+  encounterTable:{$id:"encounterTable",type:"object",required:["id","slots","combatPool"],properties:{id:{type:"string",pattern:"^[a-z0-9_]+$"},slots:{type:"array"},combatPool:{type:"array",minItems:1,items:{type:"object",required:["enemyId","weight"],properties:{enemyId:{type:"string"},weight:{type:"number",minimum:0}}}}},additionalProperties:true},
+  save:{$id:"save",type:"object",required:["saveId","_version","timestamp","party","quests","inventory"],properties:{saveId:{type:"string"},_version:{type:"integer",minimum:1},timestamp:{type:"string"},party:{type:"array"},quests:{type:"object"},inventory:{type:"array"}},additionalProperties:true},
+};
+
+const validateNamed = (data, sn) => {
+  const schema = SCHEMAS[sn];
+  if (!schema) return { valid:false, errors:[`No schema: ${sn}`] };
+  const errors = validate(data, schema);
+  return { valid: errors.length===0, errors };
+};
+
+LDR = {
+  load: (path, sn) => {
+    const raw = DS.read(path);
+    if (raw === null) return { ok:false, data:null, errors:[`Not found: ${path}`] };
+    const { valid, errors } = validateNamed(raw, sn);
+    if (!valid) return { ok:false, data:null, errors:[`Validation failed ${path}:`, ...errors] };
+    return { ok:true, data:raw, errors:[] };
+  },
+  loadAll: (prefix, sn) => {
+    const paths = DS.list(prefix);
+    const results = { ok:true, items:[], errors:[] };
+    for (const p of paths) {
+      const r = LDR.load(p, sn);
+      if (r.ok) results.items.push(r.data);
+      else { results.ok=false; results.errors.push(...r.errors); }
+    }
+    return results;
+  }
+};
+
+// ─── Seed game data (copied from game document) ───────────────────────────────
+// Minimal race/class stat tables needed for seeding
+const RACE_BASE = {orc:{str:26,agi:15,sta:22,int:17,spi:23},troll:{str:21,agi:22,sta:20,int:16,spi:21},tauren:{str:28,agi:13,sta:23,int:14,spi:22},night_elf:{str:17,agi:25,sta:19,int:20,spi:20},draenei:{str:21,agi:17,sta:20,int:24,spi:23},goblin:{str:15,agi:22,sta:17,int:25,spi:21},human:{str:20,agi:20,sta:20,int:20,spi:21},dwarf:{str:25,agi:16,sta:23,int:19,spi:19},gnome:{str:15,agi:23,sta:19,int:24,spi:20},undead:{str:19,agi:18,sta:20,int:18,spi:25},blood_elf:{str:17,agi:22,sta:18,int:24,spi:19}};
+const CLASS_BASE_HP={warrior:60,paladin:45,hunter:45,rogue:40,priest:30,shaman:40,mage:25,warlock:28,druid:35};
+const CLASS_BASE_MP={warrior:0,paladin:60,hunter:40,rogue:0,priest:80,shaman:60,mage:100,warlock:90,druid:70};
+const getStats=(r,c,l=1)=>{const b=RACE_BASE[r];return{str:b.str,agi:b.agi,sta:b.sta,int:b.int,spi:b.spi};};
+
+const doSeed = () => {
+  for(const k of DS.list(""))DS.remove(k);
+
+  // ── abilities
+  DS.write("templates/abilities/melee_attack",{id:"melee_attack",name:"Auto Attack",_version:1,resourceCost:{},cooldown:0,castTime:0,targeting:"single_enemy",effects:[{type:"damage",damageType:"physical",scaling:"ap",multiplier:1.0}],tags:["physical"]});
+  DS.write("templates/abilities/strike_basic",{id:"strike_basic",name:"Basic Strike",_version:1,resourceCost:{rage:10},cooldown:0,castTime:0,targeting:"single_enemy",effects:[{type:"damage",damageType:"physical",scaling:"ap",multiplier:1.0}],tags:["physical","melee"]});
+  DS.write("templates/abilities/power_smash",{id:"power_smash",name:"Power Smash",_version:1,resourceCost:{rage:25},cooldown:3,castTime:0,targeting:"single_enemy",effects:[{type:"damage",damageType:"physical",scaling:"ap",multiplier:1.6}],tags:["physical"]});
+  DS.write("templates/abilities/charge",{id:"charge",name:"Charge",_version:1,resourceCost:{},cooldown:4,castTime:0,targeting:"single_enemy",effects:[{type:"damage",damageType:"physical",scaling:"ap",multiplier:1.2},{type:"debuff",buffId:"stun",chance:1.0}],tags:["physical"],description:"Charges an enemy."});
+  DS.write("templates/abilities/scorpid_sting",{id:"scorpid_sting",name:"Scorpid Sting",_version:1,resourceCost:{},cooldown:5,castTime:0,targeting:"single_enemy",effects:[{type:"debuff",buffId:"scorpid_sting_dot",chance:1.0}],tags:["nature","poison"]});
+  DS.write("templates/abilities/imp_fireball",{id:"imp_fireball",name:"Imp Fireball",_version:1,resourceCost:{},cooldown:2,castTime:1,targeting:"single_enemy",effects:[{type:"damage",damageType:"fire",scaling:"sp",multiplier:0.8,flatBonus:10}],tags:["fire","spell"]});
+
+  // ── enemies — the ones that were failing
+  const durotarRep=[{faction:"orgrimmar",amount:1},{faction:"darkspear_trolls",amount:1}];
+  const echoRep=[{faction:"darkspear_trolls",amount:1}];
+
+  DS.write("templates/enemies/boar",{id:"boar",name:"Boar",_version:1,type:"beast",baseStats:{str:16,agi:14,sta:14,int:3,spi:6},abilities:["charge","melee_attack"],aiProfile:"aggressive",loot:[{itemId:"tattered_hide",chance:0.65,qty:1},{itemId:"boar_snout",chance:0.35,qty:1},{itemId:"boar_meat",chance:0.75,qty:1}],skinningLoot:[{itemId:"ruined_leather_scraps",chance:0.9,minQty:1,maxQty:2}],killReputation:durotarRep,xpValue:50,tags:["beast","zone_durotar"],description:"A bristly boar native to Durotar."});
+  DS.write("templates/enemies/scorpid",{id:"scorpid",name:"Scorpid",_version:1,type:"beast",baseStats:{str:14,agi:18,sta:13,int:3,spi:5},abilities:["scorpid_sting","melee_attack"],aiProfile:"aggressive",loot:[{itemId:"scorpid_tail",chance:0.50,qty:1},{itemId:"severed_pincer",chance:0.40,qty:1},{itemId:"venom_sack",chance:0.20,qty:1}],skinningLoot:[{itemId:"ruined_leather_scraps",chance:0.9,minQty:1,maxQty:2}],killReputation:durotarRep,xpValue:60,tags:["beast","zone_durotar"],description:"A venomous scorpid."});
+  DS.write("templates/enemies/imp",{id:"imp",name:"Imp",_version:1,type:"demon",baseStats:{str:10,agi:16,sta:10,int:20,spi:12},abilities:["imp_fireball","melee_attack"],aiProfile:"aggressive",loot:[{itemId:"torn_clothing",chance:0.55,qty:1}],skinningLoot:[],killReputation:durotarRep,currencyDrop:{min:20,max:60},xpValue:70,tags:["demon","zone_durotar"],description:"A mischievous fire imp."});
+  DS.write("templates/enemies/felstalker",{id:"felstalker",name:"Felstalker",_version:1,type:"demon",baseStats:{str:20,agi:18,sta:16,int:8,spi:8},abilities:["melee_attack"],aiProfile:"aggressive",loot:[{itemId:"felstalker_hoof",chance:0.50,qty:1}],skinningLoot:[],killReputation:durotarRep,currencyDrop:{min:15,max:45},xpValue:85,tags:["demon","zone_durotar"]});
+  DS.write("templates/enemies/surf_crawler",{id:"surf_crawler",name:"Surf Crawler",_version:1,type:"beast",baseStats:{str:15,agi:16,sta:12,int:4,spi:5},abilities:["melee_attack"],aiProfile:"aggressive",loot:[{itemId:"severed_pincer",chance:0.55,qty:1}],skinningLoot:[],killReputation:echoRep,xpValue:65,tags:["beast","zone_echo_isles"]});
+  DS.write("templates/enemies/tiger",{id:"tiger",name:"Tiger",_version:1,type:"beast",baseStats:{str:20,agi:24,sta:16,int:4,spi:7},abilities:["melee_attack"],aiProfile:"aggressive",loot:[{itemId:"tiger_fur",chance:0.60,qty:1}],skinningLoot:[{itemId:"ruined_leather_scraps",chance:0.9,minQty:1,maxQty:2}],killReputation:echoRep,xpValue:80,tags:["beast","zone_echo_isles"]});
+  DS.write("templates/enemies/raptor",{id:"raptor",name:"Raptor",_version:1,type:"beast",baseStats:{str:18,agi:22,sta:15,int:5,spi:6},abilities:["melee_attack"],aiProfile:"aggressive",loot:[{itemId:"raptor_meat",chance:0.65,qty:1}],skinningLoot:[{itemId:"ruined_leather_scraps",chance:0.9,minQty:1,maxQty:2}],killReputation:echoRep,xpValue:80,tags:["beast","zone_echo_isles"]});
+  DS.write("templates/enemies/makura",{id:"makura",name:"Makura",_version:1,type:"beast",baseStats:{str:16,agi:15,sta:14,int:5,spi:6},abilities:["melee_attack"],aiProfile:"aggressive",loot:[{itemId:"intact_makura_eye",chance:0.25,qty:1}],skinningLoot:[],killReputation:echoRep,xpValue:70,tags:["beast","zone_echo_isles"]});
+  const kolkarRep=[{faction:"darkspear_trolls",amount:1}];
+  DS.write("templates/enemies/kolkar_centaur",{id:"kolkar_centaur",name:"Kolkar Centaur",_version:1,type:"humanoid",baseStats:{str:22,agi:16,sta:18,int:8,spi:10},abilities:["strike_basic","power_smash","melee_attack"],aiProfile:"aggressive",loot:[{itemId:"linen_cloth",chance:0.55,minQty:1,maxQty:2},{itemId:"torn_clothing",chance:0.45,qty:1},{itemId:"worn_shortsword",chance:0.12,qty:1}],skinningLoot:[],killReputation:kolkarRep,currencyDrop:{min:30,max:80},xpValue:100,tags:["humanoid","centaur","zone_barrens"]});
+  DS.write("templates/enemies/kolkar_outrunner",{id:"kolkar_outrunner",name:"Kolkar Outrunner",_version:1,type:"humanoid",baseStats:{str:18,agi:22,sta:16,int:10,spi:10},abilities:["melee_attack"],aiProfile:"aggressive",loot:[{itemId:"linen_cloth",chance:0.55,qty:1}],skinningLoot:[],killReputation:kolkarRep,currencyDrop:{min:25,max:70},xpValue:95,tags:["humanoid","centaur","zone_barrens"]});
+
+  // ── items (subset needed for tests)
+  const ibase={_version:1,statBonuses:{},onUse:null,itemLevel:null,minDamage:null,maxDamage:null,weaponType:null,allowedClasses:[],unlockRepFaction:null,unlockRepRequired:null,value:5,quality:"poor",tags:[]};
+  DS.write("templates/items/ruined_leather_scraps",{...ibase,id:"ruined_leather_scraps",name:"Ruined Leather Scraps",type:"material",slot:"none",tags:["material","leather","skinning"],description:"Barely salvageable leather scraps."});
+  DS.write("templates/items/venom_sack",{...ibase,id:"venom_sack",name:"Venom Sack",type:"material",slot:"none",value:18,quality:"common",tags:["material","reagent"],description:"Scorpid venom sack."});
+  DS.write("templates/items/worn_shortsword",{...ibase,id:"worn_shortsword",name:"Worn Shortsword",type:"weapon",slot:"mainhand",weaponType:"sword_1h",itemLevel:5,minDamage:4,maxDamage:9,statBonuses:{attackPower:4},value:60,quality:"poor",tags:["weapon"],description:"A notched short sword."});
+  DS.write("templates/items/linen_cloth",{...ibase,id:"linen_cloth",name:"Linen Cloth",type:"material",slot:"none",value:10,quality:"common",tags:["material","cloth"],description:"Basic woven cloth."});
+  DS.write("templates/items/cracked_leather_vest",{...ibase,id:"cracked_leather_vest",name:"Cracked Leather Vest",type:"armor",slot:"chest",itemLevel:5,statBonuses:{armor:18,sta:1},value:45,quality:"poor",tags:["armor","armor_type:leather"],description:"Cracked leather."});
+  DS.write("templates/items/minor_health_potion",{...ibase,id:"minor_health_potion",name:"Minor Health Potion",type:"consumable",slot:"none",onUse:{type:"heal",flat:50},value:100,quality:"common",tags:["potion"],description:"Restores HP."});
+  DS.write("templates/items/rough_bandage",{...ibase,id:"rough_bandage",name:"Rough Bandage",type:"consumable",slot:"none",onUse:{type:"heal",flat:25},value:40,tags:["bandage"],description:"A crude bandage."});
+  DS.write("templates/items/copper_ore",{...ibase,id:"copper_ore",name:"Copper Ore",type:"material",slot:"none",value:60,quality:"common",tags:["material","ore","mining"],description:"Raw copper ore."});
+  DS.write("templates/items/peacebloom",{...ibase,id:"peacebloom",name:"Peacebloom",type:"material",slot:"none",value:40,quality:"common",tags:["material","herb"],description:"A white flower."});
+  DS.write("templates/items/silverleaf",{...ibase,id:"silverleaf",name:"Silverleaf",type:"material",slot:"none",value:40,quality:"common",tags:["material","herb"],description:"Silver-green leaves."});
+  DS.write("templates/items/earthroot",{...ibase,id:"earthroot",name:"Earthroot",type:"material",slot:"none",value:55,quality:"common",tags:["material","herb"],description:"Tough root."});
+  DS.write("templates/items/mageroyal",{...ibase,id:"mageroyal",name:"Mageroyal",type:"material",slot:"none",value:70,quality:"uncommon",tags:["material","herb"],description:"Sharp herb."});
+
+  // ── companions
+  const gearBlank={head:null,neck:null,shoulders:null,back:null,chest:null,waist:null,tabard:null,wrist:null,hands:null,feet:null,legs:null,ring:null,trinket:null,mainhand:null,offhand:null,ranged:null,ammo:null,relic:null};
+  const mkComp=(id,name,race,cls,prof,jl,skills,dialogue,lore,tags)=>({id,name,_version:1,raceId:race,classId:cls,profession:prof,joinLevel:jl,unlockZone:"durotar",unlockQuest:null,unlockRepFaction:null,unlockRepRequired:null,baseStats:getStats(race,cls,jl),startingSkills:skills,abilities:["melee_attack"],traits:[],quirks:[],gear:{...gearBlank},joinDialogue:dialogue,lore,tags});
+  const comps=[
+    mkComp("thazzril","Thazz'ril","orc","warrior","mining",1,{mining:1},["You fight well, stranger.","I have been working these mines alone for too long.","Let me join you."],"Former grunt turned miner.",["orc","warrior","mining","zone_durotar"]),
+    mkComp("taijin","Tai'Jin","troll","priest","herbalism",2,{herbalism:1},["Da spirits, dey been whisperin' your name.","Stay alive long enough."],"Troll shadow priest.",["troll","priest","herbalism","zone_durotar"]),
+    mkComp("ulaelek","Ula'Elek","troll","rogue","blacksmithing",3,{lockpicking:1},["You almost didn't see me.","I forge my own blades."],"Troll rogue.",["troll","rogue","blacksmithing","zone_durotar"]),
+    mkComp("zevrost","Zevrost","orc","warlock","alchemy",4,{},["Power is just a substance."],"Orc warlock alchemist.",["orc","warlock","alchemy","zone_durotar"]),
+    mkComp("mukdrak","Mukdrak","orc","shaman","skinning",5,{skinning:1},["The elements brought you to me.","I skin what I kill."],"Orc shaman skinner.",["orc","shaman","skinning","zone_durotar"]),
+    mkComp("larprowltusk","Lar Prowltusk","troll","hunter","leatherworking",6,{},["You're noisier than a kodo."],"Troll hunter.",["troll","hunter","leatherworking","zone_durotar"]),
+    mkComp("zureethafargazee","Zureetha Fargaze","troll","mage","tailoring",7,{},["My robes? I made them."],"Troll mage tailor.",["troll","mage","tailoring","zone_durotar"]),
+    mkComp("nartok","Nartok","troll","warrior","engineering",8,{},["That device on my belt? Don't touch it."],"Troll warrior engineer.",["troll","warrior","engineering","zone_durotar"]),
+    mkComp("zargh","Zargh","orc","hunter","cooking",9,{},["I hunt it. I cook it."],"Orc hunter cook.",["orc","hunter","cooking","zone_durotar"]),
+    mkComp("gadrin","Gadrin","troll","shaman","enchanting",10,{},["Every weapon has a voice."],"Troll shaman enchanter.",["troll","shaman","enchanting","zone_durotar"]),
+  ];
+  for(const c of comps)DS.write(`templates/companions/${c.id}`,c);
+
+  // ── encounter tables
+  DS.write("templates/encounter_tables/enc_durotar",{id:"enc_durotar",_version:1,slots:[{type:"companion",chance:0.25,rerollIf:"no_eligible_companions"},{type:"quest",chance:0.15,rerollIf:"no_eligible_quests"},{type:"gather_node",chance:0.075,nodeId:"copper_ore",qty:1,rerollIf:"no_party_profession:mining"},{type:"gather_node",chance:0.0225,nodeId:"peacebloom",qty:1,rerollIf:"no_party_profession:herbalism"},{type:"gather_node",chance:0.0225,nodeId:"silverleaf",qty:1,rerollIf:"no_party_profession:herbalism"},{type:"gather_node",chance:0.0125,nodeId:"earthroot",qty:1,rerollIf:"no_party_skill_min:herbalism:15"},{type:"gather_node",chance:0.005,nodeId:"mageroyal",qty:1,rerollIf:"no_party_skill_min:herbalism:50"},{type:"locked_chest",chance:0.10,rerollIf:"no_party_skill:lockpicking"},{type:"fishing_spot",chance:0.05,rerollIf:"no_party_skill:fishing"}],combatPool:[{enemyId:"boar",weight:35},{enemyId:"scorpid",weight:30},{enemyId:"imp",weight:20},{enemyId:"felstalker",weight:15}],exclusiveGroups:[],recruitPool:["thazzril","taijin","ulaelek","zevrost","mukdrak","larprowltusk","zureethafargazee","nartok","zargh","gadrin"]});
+  DS.write("templates/encounter_tables/enc_echo_isles",{id:"enc_echo_isles",_version:1,slots:[{type:"companion",chance:0.20,rerollIf:"no_eligible_companions"},{type:"quest",chance:0.15,rerollIf:"no_eligible_quests"},{type:"gather_node",chance:0.06,nodeId:"peacebloom",qty:1,rerollIf:"no_party_profession:herbalism"},{type:"fishing_spot",chance:0.10,rerollIf:"no_party_skill:fishing"}],combatPool:[{enemyId:"surf_crawler",weight:30},{enemyId:"makura",weight:25},{enemyId:"tiger",weight:25},{enemyId:"raptor",weight:20}],exclusiveGroups:[],recruitPool:["taijin","ulaelek","mukdrak","larprowltusk","zargh","gadrin"]});
+  DS.write("templates/encounter_tables/enc_barrens",{id:"enc_barrens",_version:1,slots:[{type:"companion",chance:0.10,rerollIf:"no_eligible_companions"},{type:"quest",chance:0.15,rerollIf:"no_eligible_quests"},{type:"gather_node",chance:0.075,nodeId:"copper_ore",qty:1,rerollIf:"no_party_profession:mining"},{type:"gather_node",chance:0.05,nodeId:"earthroot",qty:1,rerollIf:"no_party_skill_min:herbalism:15"},{type:"locked_chest",chance:0.08,rerollIf:"no_party_skill:lockpicking"}],combatPool:[{enemyId:"kolkar_centaur",weight:45},{enemyId:"kolkar_outrunner",weight:35},{enemyId:"raptor",weight:20}],exclusiveGroups:[],recruitPool:[]});
+
+  // ── zones
+  DS.write("templates/zones/durotar",{id:"durotar",name:"Durotar",_version:1,encounterTableId:"enc_durotar",minPartyLevel:1,maxPartyLevel:10,ambientBuffs:[],connectedZones:["barrens","echo_isles"],shopInventory:[{itemId:"minor_health_potion",buyPrice:100,stock:-1},{itemId:"rough_bandage",buyPrice:40,stock:-1}],sellMultiplier:0.25,tags:["outdoor","arid"],lore:"A harsh rocky land.",forcedOnly:false,forcedEncounterQueue:[]});
+  DS.write("templates/zones/echo_isles",{id:"echo_isles",name:"Echo Isles",_version:1,encounterTableId:"enc_echo_isles",minPartyLevel:1,maxPartyLevel:10,ambientBuffs:[],connectedZones:["durotar"],shopInventory:[{itemId:"minor_health_potion",buyPrice:100,stock:-1}],sellMultiplier:0.25,tags:["outdoor","jungle"],lore:"Island home of Darkspear trolls.",forcedOnly:false,forcedEncounterQueue:[]});
+  DS.write("templates/zones/barrens",{id:"barrens",name:"The Barrens",_version:1,encounterTableId:"enc_barrens",minPartyLevel:10,maxPartyLevel:25,ambientBuffs:[],connectedZones:["durotar"],shopInventory:[{itemId:"minor_health_potion",buyPrice:100,stock:-1}],sellMultiplier:0.25,tags:["outdoor","plains"],lore:"A vast windswept expanse.",forcedOnly:false,forcedEncounterQueue:[]});
+
+  // ── quests
+  DS.write("templates/quests/q_first_blood",{id:"q_first_blood",name:"First Blood",_version:1,description:"Prove your worth.",objectives:[{id:"obj_kill_3",type:"kill",targetTags:["zone_durotar"],count:3,description:"Defeat 3 enemies in Durotar"}],rewards:{xp:200,currency:500,items:[{itemId:"minor_health_potion",qty:2}]},prerequisites:[],zoneId:"durotar",autoAssign:true,tags:["starter"]});
+  DS.write("templates/quests/q_boar_hunt",{id:"q_boar_hunt",name:"Boar Hunt",_version:1,description:"Thin the boars.",objectives:[{id:"obj_kill_boars",type:"kill",targetTags:["beast","zone_durotar"],count:5,description:"Kill 5 Boars"}],rewards:{xp:350,currency:750,items:[{itemId:"rough_bandage",qty:3}]},prerequisites:["q_first_blood"],zoneId:"durotar",autoAssign:false,tags:["durotar","beast"]});
+  DS.write("templates/quests/q_fel_threat",{id:"q_fel_threat",name:"Fel Threat",_version:1,description:"Destroy demons.",objectives:[{id:"obj_kill_demons",type:"kill",targetTags:["demon","zone_durotar"],count:6,description:"Slay 6 demons"}],rewards:{xp:500,currency:1200,items:[{itemId:"minor_health_potion",qty:2}]},prerequisites:["q_first_blood"],zoneId:"durotar",autoAssign:false,tags:["durotar","demon"]});
+  DS.write("templates/quests/q_echo_isles_defense",{id:"q_echo_isles_defense",name:"Defending the Isles",_version:1,description:"Clear creatures.",objectives:[{id:"obj_kill_echo",type:"kill",targetTags:["beast","zone_echo_isles"],count:6,description:"Defeat 6 creatures"}],rewards:{xp:450,currency:800,items:[{itemId:"minor_health_potion",qty:2}]},prerequisites:[],zoneId:"echo_isles",autoAssign:false,tags:["echo_isles"]});
+  DS.write("templates/quests/q_kolkar_threat",{id:"q_kolkar_threat",name:"Kolkar Aggression",_version:1,description:"Fight the Kolkar.",objectives:[{id:"obj_kill_kolkar",type:"kill",targetTags:["centaur","zone_barrens"],count:8,description:"Slay 8 Kolkar"}],rewards:{xp:900,currency:2000,items:[{itemId:"minor_health_potion",qty:3}]},prerequisites:[],zoneId:"barrens",autoAssign:false,tags:["barrens","centaur"]});
+
+  // ── player instance + save
+  const pStats=getStats("orc","warrior",1);
+  const pHp=pStats.sta*10+CLASS_BASE_HP.warrior;
+  DS.write("instances/companions/player_main",{instanceId:"player_main",templateId:"thazzril",_version:1,name:"Thazz'ril",raceId:"orc",classId:"warrior",profession:"mining",level:1,xp:0,currentHp:pHp,currentMp:0,maxHp:pHp,maxMp:0,deathState:"alive",permadead:false,downedAt:null,rezCost:0,learnedAbilities:["strike_basic","power_smash","melee_attack"],acquiredQuirks:[],activeBuffs:[],relationship:100,skills:{mining:1},stats:{raw:pStats},gear:{head:null,neck:null,shoulders:null,back:null,chest:null,waist:null,tabard:null,wrist:null,hands:null,feet:null,legs:null,ring:null,trinket:null,mainhand:null,offhand:null,ranged:null,ammo:null,relic:null}});
+  DS.write("saves/save_slot_start",{saveId:"slot_start",_version:1,timestamp:new Date().toISOString(),mode:"normal",currentZone:"durotar",party:[{instanceId:"player_main",templateId:"thazzril"}],quests:{q_first_blood:{objectives:{obj_kill_3:0},completed:false}},inventory:[{itemId:"minor_health_potion",qty:2},{itemId:"rough_bandage",qty:3}],currency:1500,reputation:{orgrimmar:0,darkspear_trolls:0},talentSchools:{weaponskill_sword:0},flags:{},playtime:0,shopStocks:{}});
+};
+
+doSeed();
+updateStatus();
+
+// ─── Output helpers ───────────────────────────────────────────────────────────
+const out = document.getElementById("out");
+const append = (html) => { out.innerHTML += html + "\n"; document.getElementById("output").scrollTop=99999; };
+const line  = (cls,txt) => append(`<span class="${cls}">${esc(txt)}</span>`);
+const hr    = () => append(`<span class="sep-line">${"─".repeat(70)}</span>`);
+const esc   = (s) => String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+const tag   = (ok,txt) => `<span class="${ok?"tag-ok":"tag-fail"}">${esc(txt)}</span>`;
+const clearOut = () => { out.innerHTML=""; };
+
+function updateStatus(){
+  const all=DS.list(""),enemies=DS.list("templates/enemies/"),items=DS.list("templates/items/"),saves=DS.list("saves/");
+  document.getElementById("st_keys").textContent=`keys: ${all.length}`;
+  document.getElementById("st_enemies").textContent=`enemies: ${enemies.length}`;
+  document.getElementById("st_items").textContent=`items: ${items.length}`;
+  document.getElementById("st_saves").textContent=`saves: ${saves.length}`;
+  document.getElementById("st_last").textContent=`last: ${new Date().toLocaleTimeString()}`;
+}
+
+// ─── Debug actions ─────────────────────────────────────────────────────────────
+const ACTIONS = {
+
+  ds_list: () => {
+    const all = DS.list("");
+    line("info", `DataStore — ${all.length} keys:`);
+    const grouped={};
+    for(const k of all.sort()){const pfx=k.split("/").slice(0,2).join("/");(grouped[pfx]=grouped[pfx]||[]).push(k);}
+    for(const[pfx,keys]of Object.entries(grouped)){line("warn",`  [${pfx}/] — ${keys.length} entries`);for(const k of keys)line("dim",`    ${k}`);}
+  },
+
+  ds_enemies: () => {
+    const paths = DS.list("templates/enemies/");
+    line("info",`Enemies in DataStore: ${paths.length}`);
+    for(const p of paths.sort()){
+      const d=DS.read(p);
+      if(!d){line("fail",`  ✗ ${p} — null`);continue;}
+      const hasSkn=Array.isArray(d.skinningLoot)&&d.skinningLoot.length>0;
+      const hasRep=Array.isArray(d.killReputation)&&d.killReputation.length>0;
+      const hasCur=!!d.currencyDrop;
+      append(`<span class="ok">  ✓</span> <span class="warn">${esc(p)}</span>  ${tag(true,d.type||"?")}  abilities:[${esc((d.abilities||[]).join(","))}]  skin:${tag(hasSkn,hasSkn?"yes":"no")}  rep:${tag(hasRep,hasRep?"yes":"no")}  cur:${tag(hasCur,hasCur?"yes":"no")}`);
+    }
+  },
+
+  ds_companions: () => {
+    const paths=DS.list("templates/companions/");
+    line("info",`Companions: ${paths.length}`);
+    for(const p of paths.sort()){const d=DS.read(p);if(!d){line("fail",`  ✗ ${p}`);continue;}line("ok",`  ✓ ${d.name} (${d.raceId} ${d.classId}) lv${d.joinLevel} — ${d.profession||"no prof"} — skills:${JSON.stringify(d.startingSkills||{})}`);}
+  },
+
+  ds_items: () => {
+    const paths=DS.list("templates/items/");
+    line("info",`Items: ${paths.length}`);
+    for(const p of paths.sort()){const d=DS.read(p);if(!d){line("fail",`  ✗ ${p}`);continue;}line("dim",`  ${d.id} [${d.type}/${d.slot}] q:${d.quality} v:${d.value}`);}
+  },
+
+  ds_zones: () => {
+    const paths=DS.list("templates/zones/");
+    line("info",`Zones: ${paths.length}`);
+    for(const p of paths.sort()){const d=DS.read(p);if(!d){line("fail",`  ✗ ${p}`);continue;}line("ok",`  ✓ ${d.id} → table:${d.encounterTableId}  lv${d.minPartyLevel}-${d.maxPartyLevel}  connected:[${(d.connectedZones||[]).join(",")}]`);}
+  },
+
+  ds_tables: () => {
+    const paths=DS.list("templates/encounter_tables/");
+    line("info",`Encounter Tables: ${paths.length}`);
+    for(const p of paths.sort()){
+      const d=DS.read(p);if(!d){line("fail",`  ✗ ${p}`);continue;}
+      line("ok",`  ✓ ${d.id}  combatPool:${(d.combatPool||[]).length}  slots:${(d.slots||[]).length}  recruitPool:${(d.recruitPool||[]).length}`);
+      for(const e of(d.combatPool||[])){const exists=DS.exists(`templates/enemies/${e.enemyId}`);append(`    ${tag(exists,"enemy:"+e.enemyId)}  w:${e.weight}  ${exists?"":"<span class='fail'>MISSING</span>"}`);}
+    }
+  },
+
+  ds_quests: () => {
+    const paths=DS.list("templates/quests/");
+    line("info",`Quests: ${paths.length}`);
+    for(const p of paths.sort()){const d=DS.read(p);if(!d){line("fail",`  ✗ ${p}`);continue;}line("ok",`  ✓ ${d.id}  "${d.name}"  zone:${d.zoneId}  objectives:${(d.objectives||[]).length}`);}
+  },
+
+  ds_saves: () => {
+    const paths=DS.list("saves/");
+    line("info",`Saves: ${paths.length}`);
+    for(const p of paths){const d=DS.read(p);if(!d){line("fail",`  ✗ ${p}`);continue;}line("ok",`  ✓ [${d.saveId}] zone:${d.currentZone} party:${(d.party||[]).length} currency:${d.currency} mode:${d.mode}`);}
+  },
+
+  ds_instances: () => {
+    const paths=DS.list("instances/companions/");
+    line("info",`Companion Instances: ${paths.length}`);
+    for(const p of paths){const d=DS.read(p);if(!d){line("fail",`  ✗ ${p}`);continue;}line("ok",`  ✓ ${d.instanceId}  ${d.name} (${d.raceId} ${d.classId}) lv${d.level}  hp:${d.currentHp}/${d.maxHp}  ${d.deathState}  prof:${d.profession||"—"}  skills:${JSON.stringify(d.skills||{})}`);}
+  },
+
+  val_all_enemies: () => {
+    line("info","Validating all enemies against schema...");
+    let ok=0,fail=0;
+    for(const p of DS.list("templates/enemies/").sort()){
+      const r=LDR.load(p,"enemy");
+      if(r.ok){ok++;append(`<span class="ok">  ✓ ${esc(p)}</span>`);}
+      else{fail++;append(`<span class="fail">  ✗ ${esc(p)}</span>`);for(const e of r.errors)line("fail",`      ${e}`);}
+    }
+    hr();line(fail>0?"fail":"ok",`Result: ${ok} valid, ${fail} invalid`);
+  },
+
+  val_all_items: () => {
+    line("info","Validating all items...");
+    let ok=0,fail=0;
+    for(const p of DS.list("templates/items/").sort()){
+      const r=LDR.load(p,"item");
+      if(r.ok){ok++;}
+      else{fail++;append(`<span class="fail">  ✗ ${esc(p)}</span>`);for(const e of r.errors)line("fail",`      ${e}`);}
+    }
+    if(ok>0)line("ok",`  ✓ ${ok} items valid`);
+    hr();line(fail>0?"fail":"ok",`Result: ${ok} valid, ${fail} invalid`);
+  },
+
+  val_all_companions: () => {
+    line("info","Validating all companion templates...");
+    let ok=0,fail=0;
+    for(const p of DS.list("templates/companions/").sort()){
+      const r=LDR.load(p,"companion");
+      if(r.ok){ok++;}
+      else{fail++;append(`<span class="fail">  ✗ ${esc(p)}</span>`);for(const e of r.errors)line("fail",`      ${e}`);}
+    }
+    if(ok>0)line("ok",`  ✓ ${ok} companions valid`);
+    hr();line(fail>0?"fail":"ok",`Result: ${ok} valid, ${fail} invalid`);
+  },
+
+  val_all_instances: () => {
+    line("info","Validating all instances...");
+    let ok=0,fail=0;
+    for(const p of DS.list("instances/").sort()){
+      const r=LDR.load(p,"companionInstance");
+      if(r.ok){ok++;}
+      else{fail++;append(`<span class="fail">  ✗ ${esc(p)}</span>`);for(const e of r.errors)line("fail",`      ${e}`);}
+    }
+    if(ok>0)line("ok",`  ✓ ${ok} instances valid`);
+    line(fail>0?"fail":"ok",`Result: ${ok} valid, ${fail} invalid`);
+  },
+
+  val_all_zones: () => {
+    line("info","Validating zones...");
+    let ok=0,fail=0;
+    for(const p of DS.list("templates/zones/").sort()){
+      const r=LDR.load(p,"zone");
+      if(r.ok){ok++;}
+      else{fail++;append(`<span class="fail">  ✗ ${esc(p)}</span>`);for(const e of r.errors)line("fail",`      ${e}`);}
+    }
+    if(ok>0)line("ok",`  ✓ ${ok} zones valid`);
+    line(fail>0?"fail":"ok",`Result: ${ok} valid, ${fail} invalid`);
+  },
+
+  val_all_tables: () => {
+    line("info","Validating encounter tables...");
+    let ok=0,fail=0;
+    for(const p of DS.list("templates/encounter_tables/").sort()){
+      const r=LDR.load(p,"encounterTable");
+      if(r.ok){ok++;}
+      else{fail++;append(`<span class="fail">  ✗ ${esc(p)}</span>`);for(const e of r.errors)line("fail",`      ${e}`);}
+    }
+    if(ok>0)line("ok",`  ✓ ${ok} tables valid`);
+    line(fail>0?"fail":"ok",`Result: ${ok} valid, ${fail} invalid`);
+  },
+
+  val_save: () => {
+    line("info","Validating save...");
+    const r=LDR.load("saves/save_slot_start","save");
+    if(r.ok){line("ok","  ✓ save_slot_start valid");line("dim",`    party:${r.data.party.length}  currency:${r.data.currency}  zone:${r.data.currentZone}`);}
+    else{for(const e of r.errors)line("fail",`  ✗ ${e}`);}
+  },
+
+  fail_boar: () => {
+    line("info","=== DIAGNOSING: boar ===");
+    hr();
+    // Step 1: check DataStore
+    line("warn","1. DataStore.exists(templates/enemies/boar):");
+    const exists=DS.exists("templates/enemies/boar");
+    line(exists?"ok":"fail",`   ${exists?"✓ exists":"✗ NOT IN DATASTORE — seed didn't write it or it was overwritten"}`);
+    if(!exists){line("fail","   → Fix: check that seed() runs before tests and nothing clears templates/enemies/ afterward.");return;}
+
+    // Step 2: raw read
+    line("warn","2. Raw DataStore.read:");
+    const raw=DS.read("templates/enemies/boar");
+    if(!raw){line("fail","   ✗ read returned null");return;}
+    line("ok","   ✓ raw data present");
+    line("dim",`   keys: ${Object.keys(raw).join(", ")}`);
+
+    // Step 3: check required fields
+    line("warn","3. Required fields [id, name, baseStats, aiProfile, abilities]:");
+    const req=["id","name","baseStats","aiProfile","abilities"];
+    for(const f of req){const has=f in raw;append(`   ${has?'<span class="ok">✓</span>':'<span class="fail">✗ MISSING</span>'} ${esc(f)}: ${esc(JSON.stringify(raw[f])?.slice(0,60))}`);}
+
+    // Step 4: check interesting extra fields
+    line("warn","4. Extra fields (skinningLoot, killReputation, currencyDrop):");
+    for(const f of["skinningLoot","killReputation","currencyDrop"]){const has=f in raw;append(`   ${has?'<span class="ok">✓</span>':'<span class="warn">— absent</span>'} ${esc(f)}: ${esc(JSON.stringify(raw[f])?.slice(0,80))}`);}
+
+    // Step 5: validate
+    line("warn","5. Schema validation (additionalProperties:true should allow extras):");
+    const {valid,errors}=validateNamed(raw,"enemy");
+    if(valid){line("ok","   ✓ Validation PASSED — schema accepts the document");}
+    else{line("fail","   ✗ Validation FAILED:");for(const e of errors)line("fail",`     ${e}`);}
+
+    // Step 6: Loader.load
+    line("warn","6. Loader.load result:");
+    const lr=LDR.load("templates/enemies/boar","enemy");
+    if(lr.ok){line("ok","   ✓ Loader.load returned ok:true");line("dim",`   abilities: [${(lr.data.abilities||[]).join(",")}]`);line("dim",`   skinningLoot entries: ${(lr.data.skinningLoot||[]).length}  killReputation entries: ${(lr.data.killReputation||[]).length}`);}
+    else{line("fail","   ✗ Loader.load failed:");for(const e of lr.errors)line("fail",`     ${e}`);}
+
+    // Step 7: enc_durotar combatPool reference
+    line("warn","7. enc_durotar combatPool references boar?");
+    const etR=LDR.load("templates/encounter_tables/enc_durotar","encounterTable");
+    if(!etR.ok){line("fail","   ✗ enc_durotar failed to load");return;}
+    const boarEntry=etR.data.combatPool.find(e=>e.enemyId==="boar");
+    if(boarEntry){line("ok",`   ✓ boar in combatPool with weight:${boarEntry.weight}`);}
+    else{line("fail","   ✗ boar NOT in enc_durotar combatPool");}
+
+    hr();
+    line(lr.ok&&valid?"ok":"fail", lr.ok&&valid?"CONCLUSION: boar loads correctly in this debug env. The failure is in the game artifact — seed order issue.":"CONCLUSION: boar has issues — see failures above.");
+  },
+
+  fail_scorpid: () => {
+    line("info","=== DIAGNOSING: scorpid ===");
+    hr();
+    const steps=[
+      ["DataStore.exists", ()=>DS.exists("templates/enemies/scorpid")],
+    ];
+    const exists=DS.exists("templates/enemies/scorpid");
+    line(exists?"ok":"fail",`1. Exists in DataStore: ${exists?"yes":"NO — not seeded or overwritten"}`);
+    if(!exists)return;
+
+    const raw=DS.read("templates/enemies/scorpid");
+    line("ok",`2. Raw keys: ${Object.keys(raw).join(", ")}`);
+    line("dim",`   abilities: ${JSON.stringify(raw.abilities)}`);
+    line("dim",`   skinningLoot: ${JSON.stringify(raw.skinningLoot)}`);
+    line("dim",`   killReputation: ${JSON.stringify(raw.killReputation)}`);
+
+    const {valid,errors}=validateNamed(raw,"enemy");
+    line(valid?"ok":"fail",`3. Schema validation: ${valid?"PASSED":"FAILED"}`);
+    if(!valid)for(const e of errors)line("fail",`   ${e}`);
+
+    const lr=LDR.load("templates/enemies/scorpid","enemy");
+    line(lr.ok?"ok":"fail",`4. Loader.load: ${lr.ok?"ok:true":"FAILED"}`);
+    if(lr.ok){
+      line("ok",`   ✓ abilities: [${(lr.data.abilities||[]).join(",")}]`);
+      line(lr.data.abilities?.includes("scorpid_sting")?"ok":"fail",`   scorpid_sting in abilities: ${lr.data.abilities?.includes("scorpid_sting")?"YES":"NO"}`);
+      line(Array.isArray(lr.data.skinningLoot)&&lr.data.skinningLoot.length>0?"ok":"fail",`   skinningLoot present: ${Array.isArray(lr.data.skinningLoot)&&lr.data.skinningLoot.length>0?"YES":"NO"}`);
+      line(Array.isArray(lr.data.killReputation)&&lr.data.killReputation.length>0?"ok":"fail",`   killReputation present: ${Array.isArray(lr.data.killReputation)&&lr.data.killReputation.length>0?"YES":"NO"}`);
+    } else {for(const e of lr.errors)line("fail",`   ${e}`);}
+  },
+
+  fail_enc: () => {
+    line("info","=== DIAGNOSING: EncounterGenerator.generate ===");
+    hr();
+    // Simulate the encounter generator's first steps
+    const zoneId="durotar";
+    line("warn",`1. Load zone: templates/zones/${zoneId}`);
+    const zr=LDR.load(`templates/zones/${zoneId}`,"zone");
+    line(zr.ok?"ok":"fail",`   ${zr.ok?"✓":"✗"} zone load: ${zr.ok?"ok":zr.errors.join(", ")}`);
+    if(!zr.ok)return;
+    line("dim",`   encounterTableId: ${zr.data.encounterTableId}`);
+
+    line("warn",`2. Load encounter table: templates/encounter_tables/${zr.data.encounterTableId}`);
+    const tr=LDR.load(`templates/encounter_tables/${zr.data.encounterTableId}`,"encounterTable");
+    line(tr.ok?"ok":"fail",`   ${tr.ok?"✓":"✗"} table load: ${tr.ok?"ok":tr.errors.join(", ")}`);
+    if(!tr.ok)return;
+    line("dim",`   combatPool: ${tr.data.combatPool.map(e=>e.enemyId).join(", ")}`);
+
+    line("warn","3. Checking each combatPool enemy loads:");
+    let allLoaded=true;
+    for(const entry of tr.data.combatPool){
+      const er=LDR.load(`templates/enemies/${entry.enemyId}`,"enemy");
+      if(er.ok){append(`   <span class="ok">✓</span> ${esc(entry.enemyId)}  w:${entry.weight}`);}
+      else{append(`   <span class="fail">✗ ${esc(entry.enemyId)} FAILED: ${esc(er.errors.join(", "))}</span>`);allLoaded=false;}
+    }
+
+    line("warn","4. Load save and check party instances:");
+    const sr=LDR.load("saves/save_slot_start","save");
+    line(sr.ok?"ok":"fail",`   save load: ${sr.ok?"ok":sr.errors.join(", ")}`);
+    if(!sr.ok)return;
+    const save0=sr.data;
+    line("dim",`   party: ${(save0.party||[]).map(p=>p.instanceId).join(", ")}`);
+    for(const m of save0.party){
+      const ir=LDR.load(`instances/companions/${m.instanceId}`,"companionInstance");
+      append(`   <span class="${ir.ok?"ok":"fail"}">${ir.ok?"✓":"✗"}</span> instance:${esc(m.instanceId)}  ${ir.ok?`lv${ir.data.level} ${ir.data.deathState}`:ir.errors.join(", ")}`);
+    }
+
+    hr();
+    line(allLoaded&&sr.ok?"ok":"fail",allLoaded&&sr.ok?"All encounter prerequisites loaded — generator should work":"One or more prerequisites missing — see failures above");
+  },
+
+  fail_s0: () => {
+    line("info","=== DIAGNOSING: s0 (SaveManager.load) ===");
+    hr();
+    line("warn","1. save_slot_start exists?");
+    line(DS.exists("saves/save_slot_start")?"ok":"fail",DS.exists("saves/save_slot_start")?"   ✓ exists":"   ✗ NOT IN DATASTORE");
+    const r=LDR.load("saves/save_slot_start","save");
+    line(r.ok?"ok":"fail",`2. Loader.load result: ${r.ok?"ok":r.errors.join(", ")}`);
+    if(!r.ok)return;
+    const s=r.data;
+    line("ok",`   ✓ saveId:${s.saveId}  mode:${s.mode}  zone:${s.currentZone}  currency:${s.currency}`);
+    line("ok",`   party entries: ${s.party.length}`);
+    line(("orgrimmar" in (s.reputation||{}))?"ok":"fail",`   orgrimmar in reputation: ${"orgrimmar" in (s.reputation||{})}`);
+    line(("darkspear_trolls" in (s.reputation||{}))?"ok":"fail",`   darkspear_trolls in reputation: ${"darkspear_trolls" in (s.reputation||{})}`);
+    line(("q_first_blood" in (s.quests||{}))?"ok":"fail",`   q_first_blood in quests: ${"q_first_blood" in (s.quests||{})}`);
+  },
+
+  enc_probe: () => {
+    line("info","=== enc_durotar deep probe ===");
+    const tr=LDR.load("templates/encounter_tables/enc_durotar","encounterTable");
+    if(!tr.ok){line("fail","Failed: "+tr.errors.join(", "));return;}
+    const t=tr.data;
+    line("ok",`combatPool: ${t.combatPool.length} entries, slots: ${t.slots.length}, recruitPool: ${t.recruitPool.length}`);
+    line("warn","CombatPool:");
+    for(const e of t.combatPool){const ok=DS.exists(`templates/enemies/${e.enemyId}`);append(`  ${tag(ok,e.enemyId)}  weight:${e.weight}  ${ok?"":"<span class='fail'>MISSING</span>"}`);}
+    line("warn","Slots:");
+    for(const s of t.slots){line("dim",`  type:${s.type}  chance:${s.chance}  ${s.nodeId?"nodeId:"+s.nodeId:""}  ${s.rerollIf?"rerollIf:"+s.rerollIf:""}`);}
+    line("warn","RecruitPool:");
+    for(const id of t.recruitPool){const ok=DS.exists(`templates/companions/${id}`);append(`  ${tag(ok,id)}  ${ok?"":"<span class='fail'>MISSING</span>"}`);}
+  },
+
+  enc_combatpool: () => {
+    line("info","=== All combat pools — enemy existence check ===");
+    for(const tp of DS.list("templates/encounter_tables/").sort()){
+      const tr=LDR.load(tp,"encounterTable");
+      if(!tr.ok){line("fail",`${tp}: load failed`);continue;}
+      line("warn",`${tr.data.id}:`);
+      for(const e of tr.data.combatPool){
+        const ok=DS.exists(`templates/enemies/${e.enemyId}`);
+        append(`  ${tag(ok,e.enemyId)}  w:${e.weight}  ${ok?"":"<span class='fail'>NOT FOUND — will crash rollCombatGroup</span>"}`);
+      }
+    }
+  },
+
+  enc_generate_100: () => {
+    line("info","Simulating 100 encounter rolls (durotar, mining party, no herbalism)...");
+    // Simple simulation of slot rolling
+    const tr=LDR.load("templates/encounter_tables/enc_durotar","encounterTable");
+    if(!tr.ok){line("fail","enc_durotar load failed");return;}
+    const slots=tr.data.slots||[];
+    const slotTotal=slots.reduce((s,sl)=>s+sl.chance,0);
+    const combatChance=Math.max(0,1-slotTotal);
+
+    // Simulate with gate checks (party has mining, no herbalism/lockpicking/fishing)
+    const partyProfs=new Set(["mining"]);
+    const partySkills={mining:1};
+    const shouldReroll=(slot)=>{
+      const c=slot.rerollIf||"";
+      if(c==="no_eligible_companions")return false; // has eligibles
+      if(c==="no_eligible_quests")return false;
+      if(c.startsWith("no_party_profession:")){const p=c.split(":")[1];return!partyProfs.has(p);}
+      if(c.startsWith("no_party_skill:")){const s=c.split(":")[1];return!(partySkills[s]>0);}
+      if(c.startsWith("no_party_skill_min:")){const[,s,m]=c.split(":");return(partySkills[s]||0)<parseInt(m);}
+      return false;
+    };
+
+    const counts={};
+    for(let i=0;i<100;i++){
+      let r=Math.random();
+      let rolled="combat";
+      for(const sl of slots){r-=sl.chance;if(r<=0){if(shouldReroll(sl)){rolled="combat";}else{rolled=sl.type+(sl.nodeId?":"+sl.nodeId:"");}break;}}
+      counts[rolled]=(counts[rolled]||0)+1;
+    }
+    line("ok","Type distribution (100 rolls):");
+    for(const[k,v]of Object.entries(counts).sort((a,b)=>b[1]-a[1]))line("dim",`  ${k.padEnd(30)} ${v}x  (${"█".repeat(Math.round(v/3))})`);
+    line("warn","Note: combat absorbs all rerolled slot chances");
+  },
+
+  enc_echo: ()=>{ ACTIONS.enc_probe_zone("echo_isles"); },
+  enc_barrens: ()=>{ ACTIONS.enc_probe_zone("barrens"); },
+  enc_probe_zone: (zoneId) => {
+    line("info",`=== ${zoneId} probe ===`);
+    const zr=LDR.load(`templates/zones/${zoneId}`,"zone");
+    if(!zr.ok){line("fail","Zone load failed: "+zr.errors.join(", "));return;}
+    line("ok",`Zone: ${zr.data.name}  table:${zr.data.encounterTableId}`);
+    const tr=LDR.load(`templates/encounter_tables/${zr.data.encounterTableId}`,"encounterTable");
+    if(!tr.ok){line("fail","Table load failed: "+tr.errors.join(", "));return;}
+    for(const e of tr.data.combatPool){const ok=DS.exists(`templates/enemies/${e.enemyId}`);append(`  ${tag(ok,e.enemyId)}  w:${e.weight}  ${ok?"":"<span class='fail'>MISSING</span>"}`);}
+  },
+
+  party_skills: () => {
+    line("info","=== Party Skills & Professions ===");
+    const sr=LDR.load("saves/save_slot_start","save");
+    if(!sr.ok){line("fail","Save load failed");return;}
+    const profs=new Set(),skills={};
+    for(const m of sr.data.party){
+      const ir=LDR.load(`instances/companions/${m.instanceId}`,"companionInstance");
+      if(!ir.ok){line("fail",`  ✗ ${m.instanceId}`);continue;}
+      const inst=ir.data;
+      line("ok",`  ${inst.name}  prof:${inst.profession||"—"}  skills:${JSON.stringify(inst.skills||{})}`);
+      if(inst.profession)profs.add(inst.profession);
+      for(const[k,v]of Object.entries(inst.skills||{}))skills[k]=Math.max(skills[k]||0,v);
+    }
+    hr();
+    line("warn","Active professions: "+([...profs].join(", ")||"none"));
+    line("warn","Skill levels: "+Object.entries(skills).map(([k,v])=>`${k}:${v}`).join(", ")||"none");
+    line(profs.has("mining")?"ok":"fail",`mining prof: ${profs.has("mining")?"✓ YES":"✗ NO"}`);
+    line(profs.has("herbalism")?"ok":"fail",`herbalism prof: ${profs.has("herbalism")?"✓ YES":"✗ NO"}`);
+    line((skills.lockpicking>0)?"ok":"fail",`lockpicking skill: ${skills.lockpicking||0}`);
+    line((skills.fishing>0)?"ok":"fail",`fishing skill: ${skills.fishing||0}`);
+  },
+
+  inst_player: () => {
+    line("info","=== Player Instance (player_main) ===");
+    const r=LDR.load("instances/companions/player_main","companionInstance");
+    if(!r.ok){line("fail","Load failed: "+r.errors.join(", "));return;}
+    const d=r.data;
+    line("ok",`Name: ${d.name}  (${d.raceId} ${d.classId})  Lv${d.level}`);
+    line("ok",`HP: ${d.currentHp}/${d.maxHp}  MP: ${d.currentMp}/${d.maxMp}`);
+    line("ok",`State: ${d.deathState}  permadead:${d.permadead}`);
+    line("ok",`Abilities: [${(d.learnedAbilities||[]).join(", ")}]`);
+    line("ok",`Profession: ${d.profession||"—"}  Skills: ${JSON.stringify(d.skills||{})}`);
+    line("ok",`Stats: ${JSON.stringify(d.stats?.raw||{})}`);
+  },
+
+  seed_status: () => {
+    line("info","=== Seed Status ===");
+    const checks=[
+      ["enemies/boar","templates/enemies/boar"],
+      ["enemies/scorpid","templates/enemies/scorpid"],
+      ["enemies/imp","templates/enemies/imp"],
+      ["enemies/kolkar_centaur","templates/enemies/kolkar_centaur"],
+      ["zones/durotar","templates/zones/durotar"],
+      ["zones/echo_isles","templates/zones/echo_isles"],
+      ["zones/barrens","templates/zones/barrens"],
+      ["enc_durotar","templates/encounter_tables/enc_durotar"],
+      ["enc_echo_isles","templates/encounter_tables/enc_echo_isles"],
+      ["enc_barrens","templates/encounter_tables/enc_barrens"],
+      ["companion/thazzril","templates/companions/thazzril"],
+      ["companion/mukdrak","templates/companions/mukdrak"],
+      ["item/ruined_leather_scraps","templates/items/ruined_leather_scraps"],
+      ["item/venom_sack","templates/items/venom_sack"],
+      ["save_slot_start","saves/save_slot_start"],
+      ["player_main","instances/companions/player_main"],
+    ];
+    let ok=0,fail=0;
+    for(const[label,path]of checks){const e=DS.exists(path);e?ok++:fail++;append(`  ${e?'<span class="ok">✓</span>':'<span class="fail">✗</span>'} ${esc(label)}`);}
+    hr();
+    line(fail>0?"fail":"ok",`${ok}/${ok+fail} seed entries present`);
+  },
+
+  reseed: () => {
+    line("warn","Re-seeding DataStore...");
+    doSeed();
+    line("ok","✓ Seed complete");
+    updateStatus();
+    ACTIONS.seed_status();
+  },
+
+  full_diag: () => {
+    clearOut();
+    line("info","╔══════════════════════════════════════════════════════════════════╗");
+    line("info","║            KALIMDOR RPG — FULL DIAGNOSTIC REPORT                ║");
+    line("info","╚══════════════════════════════════════════════════════════════════╝");
+    hr();
+    line("warn","[1] SEED STATUS");    ACTIONS.seed_status(); hr();
+    line("warn","[2] ENEMY DETAILS");  ACTIONS.ds_enemies();  hr();
+    line("warn","[3] COMBAT POOLS");   ACTIONS.enc_combatpool(); hr();
+    line("warn","[4] SCHEMA VALIDATION — ENEMIES"); ACTIONS.val_all_enemies(); hr();
+    line("warn","[5] SCHEMA VALIDATION — ITEMS");   ACTIONS.val_all_items();   hr();
+    line("warn","[6] SCHEMA VALIDATION — ZONES");   ACTIONS.val_all_zones();   hr();
+    line("warn","[7] SCHEMA VALIDATION — TABLES");  ACTIONS.val_all_tables();  hr();
+    line("warn","[8] SAVE VALIDATION"); ACTIONS.val_save(); hr();
+    line("warn","[9] PARTY SKILLS");   ACTIONS.party_skills(); hr();
+    line("warn","[10] BOAR DEBUG");    ACTIONS.fail_boar(); hr();
+    line("warn","[11] ENCOUNTER GEN"); ACTIONS.fail_enc(); hr();
+    line("info","═══════════════════ END OF REPORT ═══════════════════");
+  },
+
+  ds_read: () => {
+    const p=document.getElementById("path_input").value.trim();
+    if(!p){line("warn","Enter a path first.");return;}
+    line("info",`Reading: ${p}`);
+    const d=DS.read(p);
+    if(!d){line("fail","Not found.");return;}
+    line("ok",`Found (${Object.keys(d).length} keys):`);
+    for(const[k,v]of Object.entries(d)){
+      const vs=JSON.stringify(v);
+      line("dim",`  ${k}: ${vs.length>120?vs.slice(0,120)+"…":vs}`);
+    }
+  },
+
+  ds_read_raw: () => {
+    const p=document.getElementById("path_input").value.trim();
+    if(!p){line("warn","Enter a path first.");return;}
+    line("info",`Raw JSON: ${p}`);
+    const d=DS.read(p);
+    if(!d){line("fail","Not found.");return;}
+    line("dim",JSON.stringify(d,null,2));
+  },
+};
+
+function run(action) {
+  hr();
+  document.querySelectorAll(".btn").forEach(b=>b.classList.remove("active"));
+  event?.target?.classList.add("active");
+  const fn=ACTIONS[action];
+  if(fn){try{fn();}catch(e){line("fail","Error: "+e.message);console.error(e);}}
+  else{line("fail","Unknown action: "+action);}
+  updateStatus();
+}
+
+// Kick off the boar debug immediately since that's the key failure
+run("fail_boar");
+</script>
+</body></html>

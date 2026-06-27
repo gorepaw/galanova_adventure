@@ -1,0 +1,35 @@
+{
+  "_comment": "Classic WoW 'random enchantment' system. Base items tagged 'randomEnchant' in items.json can drop plain, or — per rollChance — be looted with one of these suffix groups rolled at random, which renames the item ('<Base Name> of the Bear'), upgrades its quality, and adds stat bonuses computed from the base item's itemLevel and slot. See Engine/itemsuffixes.js for the generator. This is modeled on Blizzard's published itemization budget economy (base-budget-by-quality × slot multiplier, stat cost weights), not a byte-exact reproduction of the internal RandPropPoints/ScalingStatDistribution tables.",
+
+  "suffixGroups": {
+    "tiger":     { "suffix": "of the Tiger",   "stats": ["str", "agi"] },
+    "bear":      { "suffix": "of the Bear",    "stats": ["str", "sta"] },
+    "gorilla":   { "suffix": "of the Gorilla", "stats": ["str", "int"] },
+    "boar":      { "suffix": "of the Boar",    "stats": ["str", "spi"] },
+    "monkey":    { "suffix": "of the Monkey",  "stats": ["agi", "sta"] },
+    "falcon":    { "suffix": "of the Falcon",  "stats": ["agi", "int"] },
+    "wolf":      { "suffix": "of the Wolf",    "stats": ["agi", "spi"] },
+    "eagle":     { "suffix": "of the Eagle",   "stats": ["sta", "int"] },
+    "whale":     { "suffix": "of the Whale",   "stats": ["sta", "spi"] },
+    "owl":       { "suffix": "of the Owl",     "stats": ["int", "spi"] },
+    "strength":  { "suffix": "of Strength",    "stats": ["str"] },
+    "agility":   { "suffix": "of Agility",     "stats": ["agi"] },
+    "stamina":   { "suffix": "of Stamina",     "stats": ["sta"] },
+    "intellect": { "suffix": "of Intellect",   "stats": ["int"] },
+    "spirit":    { "suffix": "of Spirit",      "stats": ["spi"] }
+  },
+
+  "statCost": { "str": 1, "agi": 1, "int": 1, "spi": 1, "sta": 0.67 },
+
+  "slotMultipliers": {
+    "weapon_2h": 1.00, "weapon_1h": 0.42, "weapon_ranged": 0.30,
+    "head": 1.00, "chest": 1.00, "legs": 1.00,
+    "hands": 0.77, "feet": 0.77, "waist": 0.77, "shoulders": 0.77,
+    "trinket": 0.70,
+    "wrist": 0.55, "back": 0.55, "ring": 0.55, "neck": 0.55, "offhand": 0.55
+  },
+
+  "rollChance": 1.0,
+  "valueMultiplier": 1.5,
+  "upgradedQuality": "uncommon"
+}

@@ -1,0 +1,2176 @@
+{
+  "abilities": {
+
+    "melee_attack": {
+      "id": "melee_attack",
+      "name": "Melee Attack",
+      "resourceCost": {},
+      "cooldown": 0,
+      "castTime": 0,
+      "targeting": "single_enemy",
+      "effects": [
+        { "type": "damage", "damageType": "physical", "scaling": "ap", "multiplier": 1.0 },
+        { "type": "rage_gain", "flat": 5, "amount": 5 }
+      ]
+    },
+    "ranged_attack": {
+      "id": "ranged_attack",
+      "name": "Ranged Attack",
+      "resourceCost": {},
+      "cooldown": 0,
+      "castTime": 0,
+      "targeting": "single_enemy",
+      "effects": [{ "type": "damage", "damageType": "physical", "scaling": "rap", "multiplier": 1.0 }],
+      "tags": ["physical", "ranged"],
+      "description": "Attacks with your equipped ranged weapon."
+    },
+
+    "spiritual_guidance": {
+      "id": "spiritual_guidance",
+      "name": "Spiritual Guidance",
+      "targeting": "self",
+      "passive": true,
+      "trigger": "always",
+      "effects": [{ "type": "stat_mod", "stat": "spellPower", "source": "spi", "multiplier": 0.25 }]
+    },
+    "inspiration": {
+      "id": "inspiration",
+      "name": "Inspiration",
+      "targeting": "self",
+      "passive": true,
+      "trigger": "on_crit_heal",
+      "effects": [{ "type": "proc", "trigger": "on_crit_heal", "buffId": "inspiration_buff", "chance": 1.0 }]
+    },
+
+    "heroic_strike": {
+      "id": "heroic_strike",
+      "name": "Heroic Strike",
+      "resourceCost": { "rage": 15 },
+      "cooldown": 0,
+      "castTime": 0,
+      "targeting": "single_enemy",
+      "effects": [
+        { "type": "damage", "damageType": "physical", "scaling": "ap", "multiplier": 1.2 },
+        { "type": "threat", "amount": 100 }
+      ],
+      "tags": ["physical", "melee"],
+      "description": "A powerful melee strike that deals increased damage and generates additional threat."
+    },
+    "battle_shout": {
+      "id": "battle_shout",
+      "name": "Battle Shout",
+      "resourceCost": { "rage": 10 },
+      "cooldown": 0,
+      "castTime": 0,
+      "targeting": "all_allies",
+      "effects": [{ "type": "buff", "buffId": "battle_shout_buff" }],
+      "tags": ["shout"],
+      "description": "Increases the attack power of all party members for 12 turns."
+    },
+    "charge": {
+      "id": "charge",
+      "name": "Charge",
+      "resourceCost": {},
+      "cooldown": 0,
+      "castTime": 0,
+      "targeting": "single_enemy",
+      "requiresOpener": true,
+      "effects": [
+        { "type": "damage", "damageType": "physical", "scaling": "ap", "multiplier": 0.8 },
+        { "type": "debuff", "buffId": "stun", "chance": 1.0 },
+        { "type": "rage_gain", "amount": 15 }
+      ],
+      "tags": ["physical", "melee"],
+      "description": "Charges an enemy, dealing damage, stunning them, and generating rage. Only usable on the first turn of combat."
+    },
+    "rend": {
+      "id": "rend",
+      "name": "Rend",
+      "resourceCost": { "rage": 10 },
+      "cooldown": 0,
+      "castTime": 0,
+      "targeting": "single_enemy",
+      "effects": [{ "type": "debuff", "buffId": "rend_dot" }],
+      "tags": ["physical", "bleed", "dot"],
+      "description": "Inflicts a bleeding wound dealing physical damage over 3 turns."
+    },
+    "thunder_clap": {
+      "id": "thunder_clap",
+      "name": "Thunder Clap",
+      "resourceCost": { "rage": 20 },
+      "cooldown": 2,
+      "castTime": 0,
+      "targeting": "all_enemies",
+      "effects": [
+        { "type": "damage", "damageType": "physical", "scaling": "ap", "multiplier": 0.5 },
+        { "type": "debuff", "buffId": "thunder_clap_slow" }
+      ],
+      "tags": ["physical", "aoe"],
+      "description": "Strikes all nearby enemies, dealing damage and reducing their attack power for 3 turns."
+    },
+    "victory_rush": {
+      "id": "victory_rush",
+      "name": "Victory Rush",
+      "resourceCost": {},
+      "cooldown": 0,
+      "castTime": 0,
+      "targeting": "single_enemy",
+      "requiresCondition": "prior_encounter_victory",
+      "requiresMaxCombatTurn": 2,
+      "effects": [{ "type": "damage", "damageType": "physical", "scaling": "ap", "multiplier": 1.1 }],
+      "tags": ["physical", "melee"],
+      "description": "Deals damage. Only usable in the first two turns of combat following a victorious battle."
+    },
+    "hamstring": {
+      "id": "hamstring",
+      "name": "Hamstring",
+      "resourceCost": { "rage": 10 },
+      "cooldown": 0,
+      "castTime": 0,
+      "targeting": "single_enemy",
+      "effects": [{ "type": "debuff", "buffId": "hamstring_debuff" }],
+      "tags": ["physical", "melee"],
+      "description": "Hamstrings the target, greatly increasing your chance to escape this encounter."
+    },
+    "taunt": {
+      "id": "taunt",
+      "name": "Taunt",
+      "resourceCost": {},
+      "cooldown": 3,
+      "castTime": 0,
+      "targeting": "single_enemy",
+      "effects": [{ "type": "threat", "amount": 800 }],
+      "tags": [],
+      "description": "Taunts the target, greatly increasing your threat and forcing their attention."
+    },
+    "bloodrage": {
+      "id": "bloodrage",
+      "name": "Bloodrage",
+      "resourceCost": {},
+      "cooldown": 5,
+      "castTime": 0,
+      "targeting": "self",
+      "effects": [
+        { "type": "health_cost", "amount": 16 },
+        { "type": "rage_gain", "amount": 10 },
+        { "type": "buff", "buffId": "bloodrage_buff" }
+      ],
+      "tags": [],
+      "description": "Drains 16 health to generate 10 rage immediately, then generates additional rage over 3 turns."
+    },
+    "sunder_armor": {
+      "id": "sunder_armor",
+      "name": "Sunder Armor",
+      "resourceCost": { "rage": 15 },
+      "cooldown": 0,
+      "castTime": 0,
+      "targeting": "single_enemy",
+      "effects": [
+        { "type": "debuff", "buffId": "sunder_armor_debuff" },
+        { "type": "threat", "amount": 300 }
+      ],
+      "tags": [],
+      "description": "Reduces the target's armor. Stacks up to 5 times. Generates high threat."
+    },
+    "overpower": {
+      "id": "overpower",
+      "name": "Overpower",
+      "resourceCost": { "rage": 5 },
+      "cooldown": 0,
+      "castTime": 0,
+      "targeting": "single_enemy",
+      "requiresCondition": "enemy_no_damage_last_turn",
+      "requiresMinCombatTurn": 2,
+      "effects": [{ "type": "damage", "damageType": "physical", "scaling": "ap", "multiplier": 1.35 }],
+      "tags": ["physical", "melee"],
+      "description": "Exploits an opening to deal increased damage. Only usable if the target dealt no damage last turn."
+    },
+    "shield_bash": {
+      "id": "shield_bash",
+      "name": "Shield Bash",
+      "resourceCost": { "rage": 10 },
+      "cooldown": 3,
+      "castTime": 0,
+      "targeting": "single_enemy",
+      "requiresOffhandType": "shield",
+      "effects": [
+        { "type": "damage", "damageType": "physical", "scaling": "ap", "multiplier": 0.5 },
+        { "type": "debuff", "buffId": "stun", "chance": 1.0 },
+        { "type": "interrupt" }
+      ],
+      "tags": ["physical", "melee"],
+      "description": "Bashes the target with your shield, dealing damage, stunning them, and interrupting any ongoing cast. Requires a shield."
+    },
+    "revenge": {
+      "id": "revenge",
+      "name": "Revenge",
+      "resourceCost": { "rage": 5 },
+      "cooldown": 0,
+      "castTime": 0,
+      "targeting": "single_enemy",
+      "requiresCondition": "self_no_damage_last_turn",
+      "requiresMinCombatTurn": 2,
+      "effects": [{ "type": "damage", "damageType": "physical", "scaling": "ap", "multiplier": 1.2 }],
+      "tags": ["physical", "melee"],
+      "description": "Retaliates after successfully avoiding all incoming damage last turn."
+    },
+    "demoralizing_shout": {
+      "id": "demoralizing_shout",
+      "name": "Demoralizing Shout",
+      "resourceCost": { "rage": 10 },
+      "cooldown": 0,
+      "castTime": 0,
+      "targeting": "all_enemies",
+      "effects": [{ "type": "debuff", "buffId": "demoralizing_shout_debuff" }],
+      "tags": ["shout"],
+      "description": "Reduces the melee attack power of all nearby enemies for 4 turns."
+    },
+    "mocking_blow": {
+      "id": "mocking_blow",
+      "name": "Mocking Blow",
+      "resourceCost": { "rage": 10 },
+      "cooldown": 5,
+      "castTime": 0,
+      "targeting": "single_enemy",
+      "effects": [
+        { "type": "damage", "damageType": "physical", "scaling": "ap", "multiplier": 1.1 },
+        { "type": "threat", "amount": 350 }
+      ],
+      "tags": ["physical", "melee"],
+      "description": "A taunting strike that deals damage and generates very high threat."
+    },
+    "disarm": {
+      "id": "disarm",
+      "name": "Disarm",
+      "resourceCost": {},
+      "cooldown": 5,
+      "castTime": 0,
+      "targeting": "single_enemy",
+      "effects": [{ "type": "debuff", "buffId": "disarm_debuff" }],
+      "tags": [],
+      "description": "Disarms the target, preventing them from making melee attacks for 2 turns."
+    },
+    "cleave": {
+      "id": "cleave",
+      "name": "Cleave",
+      "resourceCost": { "rage": 20 },
+      "cooldown": 0,
+      "castTime": 0,
+      "targeting": "cleave",
+      "effects": [{ "type": "damage", "damageType": "physical", "scaling": "ap", "multiplier": 0.85 }],
+      "tags": ["physical", "melee", "aoe"],
+      "description": "A sweeping attack that strikes your target and 1-2 additional nearby enemies."
+    },
+    "retaliation": {
+      "id": "retaliation",
+      "name": "Retaliation",
+      "resourceCost": {},
+      "cooldown": 10,
+      "castTime": 0,
+      "targeting": "self",
+      "effects": [{ "type": "buff", "buffId": "retaliation_buff" }],
+      "tags": [],
+      "description": "For the next 2 turns, automatically counter-attack every time you are struck."
+    },
+    "intimidating_shout": {
+      "id": "intimidating_shout",
+      "name": "Intimidating Shout",
+      "resourceCost": {},
+      "cooldown": 5,
+      "castTime": 0,
+      "targeting": "all_enemies",
+      "effects": [{ "type": "debuff", "buffId": "feared_debuff" }],
+      "tags": ["shout"],
+      "description": "Causes all enemies to flee in terror, preventing them from acting for 2 turns."
+    },
+    "execute": {
+      "id": "execute",
+      "name": "Execute",
+      "resourceCost": { "rage": 15 },
+      "cooldown": 0,
+      "castTime": 0,
+      "targeting": "single_enemy",
+      "requiresTargetHpBelow": 0.20,
+      "executeRageBurn": true,
+      "effects": [{ "type": "damage", "damageType": "physical", "scaling": "ap", "multiplier": 2.5 }],
+      "tags": ["physical", "melee"],
+      "description": "Executes a weakened enemy for massive damage. Only usable below 20% health. Consumes all remaining rage for bonus damage."
+    },
+    "challenging_shout": {
+      "id": "challenging_shout",
+      "name": "Challenging Shout",
+      "resourceCost": { "rage": 5 },
+      "cooldown": 10,
+      "castTime": 0,
+      "targeting": "all_enemies",
+      "effects": [{ "type": "threat", "amount": 600 }],
+      "tags": ["shout"],
+      "description": "Forces all nearby enemies to focus on you, generating high threat against all of them."
+    },
+    "shield_wall": {
+      "id": "shield_wall",
+      "name": "Shield Wall",
+      "resourceCost": {},
+      "cooldown": 15,
+      "castTime": 0,
+      "targeting": "self",
+      "requiresOffhandType": "shield",
+      "effects": [{ "type": "buff", "buffId": "shield_wall_buff" }],
+      "description": "Reduces all damage taken by 60% for 3 turns. Requires a shield."
+    },
+    "slam": {
+      "id": "slam",
+      "name": "Slam",
+      "resourceCost": { "rage": 15 },
+      "cooldown": 0,
+      "castTime": 1,
+      "targeting": "single_enemy",
+      "effects": [{ "type": "damage", "damageType": "physical", "scaling": "ap", "multiplier": 1.8 }],
+      "tags": ["physical", "melee"],
+      "description": "A powerful melee strike that requires one turn to wind up."
+    },
+    "intercept": {
+      "id": "intercept",
+      "name": "Intercept",
+      "resourceCost": { "rage": 10 },
+      "cooldown": 3,
+      "castTime": 0,
+      "targeting": "single_enemy",
+      "effects": [
+        { "type": "damage", "damageType": "physical", "scaling": "ap", "multiplier": 0.8 },
+        { "type": "debuff", "buffId": "stun", "chance": 1.0 },
+        { "type": "rage_gain", "amount": 5 }
+      ],
+      "tags": ["physical", "melee"],
+      "description": "Charges an enemy mid-combat, dealing damage, stunning them, and generating rage."
+    },
+    "berserker_rage": {
+      "id": "berserker_rage",
+      "name": "Berserker Rage",
+      "resourceCost": {},
+      "cooldown": 5,
+      "castTime": 0,
+      "targeting": "self",
+      "effects": [
+        { "type": "cleanse" },
+        { "type": "buff", "buffId": "berserker_rage_buff" }
+      ],
+      "tags": [],
+      "description": "Removes all debuffs and generates bonus rage when struck for 2 turns."
+    },
+    "whirlwind": {
+      "id": "whirlwind",
+      "name": "Whirlwind",
+      "resourceCost": { "rage": 25 },
+      "cooldown": 2,
+      "castTime": 0,
+      "targeting": "all_enemies",
+      "effects": [{ "type": "damage", "damageType": "physical", "scaling": "ap", "multiplier": 0.85 }],
+      "tags": ["physical", "melee", "aoe"],
+      "description": "Unleashes a whirlwind of steel, striking all nearby enemies."
+    },
+    "pummel": {
+      "id": "pummel",
+      "name": "Pummel",
+      "resourceCost": { "rage": 10 },
+      "cooldown": 3,
+      "castTime": 0,
+      "targeting": "single_enemy",
+      "effects": [
+        { "type": "damage", "damageType": "physical", "scaling": "ap", "multiplier": 0.3 },
+        { "type": "interrupt" }
+      ],
+      "tags": ["physical", "melee"],
+      "description": "Strikes the target for minor damage and interrupts any ongoing cast."
+    },
+    "shield_slam": {
+      "id": "shield_slam",
+      "name": "Shield Slam",
+      "resourceCost": { "rage": 20 },
+      "cooldown": 2,
+      "castTime": 0,
+      "targeting": "single_enemy",
+      "requiresOffhandType": "shield",
+      "effects": [
+        { "type": "damage", "damageType": "physical", "scaling": "ap", "multiplier": 1.8 },
+        { "type": "threat", "amount": 350 },
+        { "type": "dispel_buff", "count": 1 }
+      ],
+      "tags": ["physical", "melee"],
+      "description": "Slams the target with your shield for high damage and threat, removing one of their buffs. Requires a shield."
+    },
+    "recklessness": {
+      "id": "recklessness",
+      "name": "Recklessness",
+      "resourceCost": {},
+      "cooldown": 10,
+      "castTime": 0,
+      "targeting": "self",
+      "effects": [{ "type": "buff", "buffId": "recklessness_buff" }],
+      "tags": [],
+      "description": "Your next 3 attacks are guaranteed critical strikes, but you take 20% more damage for 3 turns."
+    },
+    "spell_reflection": {
+      "id": "spell_reflection",
+      "name": "Spell Reflection",
+      "resourceCost": {},
+      "cooldown": 3,
+      "castTime": 0,
+      "targeting": "self",
+      "requiresOffhandType": "shield",
+      "effects": [{ "type": "buff", "buffId": "spell_reflection_buff" }],
+      "tags": [],
+      "description": "The next spell cast against you is reflected back at the caster. Requires a shield."
+    },
+    "commanding_shout": {
+      "id": "commanding_shout",
+      "name": "Commanding Shout",
+      "resourceCost": { "rage": 10 },
+      "cooldown": 0,
+      "castTime": 0,
+      "targeting": "all_allies",
+      "effects": [{ "type": "buff", "buffId": "commanding_shout_buff" }],
+      "tags": ["shout"],
+      "description": "Increases the maximum health of all party members by 80 for 10 turns."
+    },
+    "intervene": {
+      "id": "intervene",
+      "name": "Intervene",
+      "resourceCost": {},
+      "cooldown": 3,
+      "castTime": 0,
+      "targeting": "single_ally",
+      "effects": [{ "type": "buff", "buffId": "intervene_buff" }],
+      "tags": [],
+      "description": "Intercedes for a party member, absorbing the next hit they would receive onto yourself."
+    },
+    "shattering_throw": {
+      "id": "shattering_throw",
+      "name": "Shattering Throw",
+      "resourceCost": { "rage": 25 },
+      "cooldown": 3,
+      "castTime": 1,
+      "targeting": "single_enemy",
+      "effects": [
+        { "type": "damage", "damageType": "physical", "scaling": "rap", "multiplier": 1.2 },
+        { "type": "debuff", "buffId": "sunder_armor_debuff" },
+        { "type": "dispel_buff", "count": 1, "prioritizeInvulnerability": true }
+      ],
+      "tags": ["physical", "ranged"],
+      "description": "Hurls your weapon at the target, dealing damage, reducing their armor, and stripping a buff — prioritizing any invulnerability effects."
+    },
+    "enraged_regeneration": {
+      "id": "enraged_regeneration",
+      "name": "Enraged Regeneration",
+      "resourceCost": { "rage": 15 },
+      "cooldown": 10,
+      "castTime": 0,
+      "targeting": "self",
+      "effects": [{ "type": "buff", "buffId": "enraged_regen_buff" }],
+      "tags": [],
+      "description": "Regenerates 30% of maximum health over 2 turns."
+    },
+    "heroic_throw": {
+      "id": "heroic_throw",
+      "name": "Heroic Throw",
+      "resourceCost": {},
+      "cooldown": 3,
+      "castTime": 0,
+      "targeting": "single_enemy",
+      "effects": [
+        { "type": "damage", "damageType": "physical", "scaling": "rap", "multiplier": 1.2 },
+        { "type": "threat", "amount": 200 }
+      ],
+      "tags": ["physical", "ranged"],
+      "description": "Hurls your weapon at the target for solid damage and high threat."
+    },
+
+    "strike_basic": {
+      "id": "strike_basic",
+      "name": "Basic Strike",
+      "resourceCost": { "rage": 10 },
+      "cooldown": 0,
+      "castTime": 0,
+      "targeting": "single_enemy",
+      "effects": [{ "type": "damage", "damageType": "physical", "scaling": "ap", "multiplier": 1.0 }],
+      "tags": ["physical", "melee"],
+      "description": "A simple melee strike."
+    },
+    "power_smash": {
+      "id": "power_smash",
+      "name": "Power Smash",
+      "resourceCost": { "rage": 25 },
+      "cooldown": 3,
+      "castTime": 0,
+      "targeting": "single_enemy",
+      "effects": [{ "type": "damage", "damageType": "physical", "scaling": "ap", "multiplier": 1.6 }],
+      "tags": ["physical"],
+      "description": "A heavy smash that deals increased damage."
+    },
+
+
+
+    "minor_heal": {
+      "id": "minor_heal",
+      "name": "Minor Heal",
+      "resourceCost": { "mana": 15 },
+      "cooldown": 0,
+      "castTime": 2,
+      "targeting": "single_ally",
+      "effects": [{ "type": "heal", "scaling": "sp", "multiplier": 1.2, "flatBonus": 30 }],
+      "tags": ["holy"],
+      "description": "A small heal."
+    },
+    "heal": {
+      "id": "heal",
+      "name": "Heal",
+      "resourceCost": { "mana": 30 },
+      "cooldown": 0,
+      "castTime": 3,
+      "targeting": "single_ally",
+      "effects": [{ "type": "heal", "scaling": "sp", "multiplier": 1.5, "flatBonus": 50 }]
+    },
+
+    "moonfire": {
+      "id": "moonfire",
+      "name": "Moonfire",
+      "resourceCost": { "mana": 25 },
+      "cooldown": 0,
+      "castTime": 0,
+      "targeting": "single_enemy",
+      "effects": [
+        { "type": "damage", "damageType": "nature", "scaling": "sp", "multiplier": 0.4, "flatBonus": 20 },
+        { "type": "debuff", "buffId": "moonfire_dot" }
+      ],
+      "tags": ["balance", "nature", "dot", "spell"], "description": "Calls down a burst of energy, dealing nature damage and leaving a nature DoT."
+    },
+
+    "shadow_bolt": {
+      "id": "shadow_bolt",
+      "name": "Shadow Bolt",
+      "resourceCost": { "mana": 25 },
+      "cooldown": 0,
+      "castTime": 1,
+      "targeting": "single_enemy",
+      "effects": [{ "type": "damage", "damageType": "shadow", "scaling": "sp", "multiplier": 1.2, "flatBonus": 20 }],
+      "tags": ["shadow", "spell"],
+      "description": "Hurls a bolt of dark magic at the target."
+    },
+    "immolate": {
+      "id": "immolate",
+      "name": "Immolate",
+      "resourceCost": { "mana": 20 },
+      "cooldown": 0,
+      "castTime": 1,
+      "targeting": "single_enemy",
+      "effects": [
+        { "type": "damage", "damageType": "fire", "scaling": "sp", "multiplier": 0.5, "flatBonus": 15 },
+        { "type": "debuff", "buffId": "immolate_dot" }
+      ],
+      "tags": ["fire", "spell", "dot"],
+      "description": "Causes the target to burn, dealing fire damage instantly and over time."
+    },
+
+    "lesser_heal": {
+      "id": "lesser_heal",
+      "name": "Lesser Heal",
+      "resourceCost": { "mana": 20 },
+      "cooldown": 0,
+      "castTime": 1,
+      "targeting": "single_ally",
+      "effects": [{ "type": "heal", "scaling": "sp", "multiplier": 0.8, "flatBonus": 40 }],
+      "tags": ["holy", "heal"],
+      "description": "A slow but efficient heal on a friendly target."
+    },
+    "smite": {
+      "id": "smite",
+      "name": "Smite",
+      "resourceCost": { "mana": 25 },
+      "cooldown": 0,
+      "castTime": 1,
+      "targeting": "single_enemy",
+      "effects": [{ "type": "damage", "damageType": "holy", "scaling": "sp", "multiplier": 0.65, "flatBonus": 20 }],
+      "tags": ["holy", "spell"],
+      "description": "Smites an enemy with holy energy."
+    },
+    "power_word_fortitude": {
+      "id": "power_word_fortitude",
+      "name": "Power Word: Fortitude",
+      "resourceCost": { "mana": 30 },
+      "cooldown": 0,
+      "castTime": 0,
+      "targeting": "single_ally",
+      "effects": [{ "type": "buff", "buffId": "fortitude_buff" }],
+      "tags": ["discipline", "buff"],
+      "description": "Fortifies a friendly target, increasing their maximum health for 30 turns."
+    },
+    "shadow_word_pain": {
+      "id": "shadow_word_pain",
+      "name": "Shadow Word: Pain",
+      "resourceCost": { "mana": 20 },
+      "cooldown": 0,
+      "castTime": 0,
+      "targeting": "single_enemy",
+      "effects": [{ "type": "debuff", "buffId": "shadow_word_pain_dot" }],
+      "tags": ["shadow", "dot", "spell"],
+      "description": "A painful shadow curse that deals damage over time."
+    },
+    "power_word_shield": {
+      "id": "power_word_shield",
+      "name": "Power Word: Shield",
+      "resourceCost": { "mana": 25 },
+      "cooldown": 3,
+      "castTime": 0,
+      "targeting": "single_ally",
+      "effects": [{ "type": "buff", "buffId": "power_word_shield_buff" }],
+      "tags": ["discipline", "buff", "absorb"],
+      "description": "Shields a friendly target, absorbing the next 80+ damage taken."
+    },
+    "fade": {
+      "id": "fade",
+      "name": "Fade",
+      "resourceCost": { "mana": 20 },
+      "cooldown": 4,
+      "castTime": 0,
+      "targeting": "self",
+      "effects": [{ "type": "buff", "buffId": "fade_buff" }],
+      "tags": ["shadow", "utility"],
+      "description": "Temporarily removes the priest from enemy threat tables for 2 turns."
+    },
+    "renew": {
+      "id": "renew",
+      "name": "Renew",
+      "resourceCost": { "mana": 20 },
+      "cooldown": 0,
+      "castTime": 0,
+      "targeting": "single_ally",
+      "effects": [{ "type": "buff", "buffId": "renew_hot" }],
+      "tags": ["holy", "hot", "heal"],
+      "description": "Renews a friendly target, healing them over 5 turns."
+    },
+    "mind_blast": {
+      "id": "mind_blast",
+      "name": "Mind Blast",
+      "resourceCost": { "mana": 35 },
+      "cooldown": 4,
+      "castTime": 0,
+      "targeting": "single_enemy",
+      "effects": [{ "type": "damage", "damageType": "shadow", "scaling": "sp", "multiplier": 0.9, "flatBonus": 35 }],
+      "tags": ["shadow", "spell"],
+      "description": "Blasts the target's mind with shadow energy, dealing high damage."
+    },
+    "resurrection": {
+      "id": "resurrection",
+      "name": "Resurrection",
+      "resourceCost": { "mana": 0 },
+      "manaCostPercent": 1.0,
+      "cooldown": 0,
+      "castTime": 3,
+      "targeting": "single_ally_dead",
+      "outOfCombatOnly": true,
+      "effects": [{ "type": "revive", "hpPercent": 0.5, "mpPercent": 0.0 }],
+      "tags": ["holy", "revive"],
+      "description": "Resurrects a fallen ally to half health. Cannot be cast during combat."
+    },
+    "inner_fire": {
+      "id": "inner_fire",
+      "name": "Inner Fire",
+      "resourceCost": { "mana": 15 },
+      "cooldown": 0,
+      "castTime": 0,
+      "targeting": "self",
+      "effects": [{ "type": "buff", "buffId": "inner_fire_buff" }],
+      "tags": ["discipline", "buff"],
+      "description": "Infuses the priest with holy power, greatly increasing armor for 20 turns."
+    },
+    "psychic_scream": {
+      "id": "psychic_scream",
+      "name": "Psychic Scream",
+      "resourceCost": { "mana": 35 },
+      "cooldown": 5,
+      "castTime": 0,
+      "targeting": "front_2_enemies",
+      "effects": [{ "type": "debuff", "buffId": "feared_debuff" }],
+      "tags": ["shadow", "fear", "cc"],
+      "description": "Lets out a psychic scream, causing the two nearest enemies to flee in terror."
+    },
+    "cure_disease": {
+      "id": "cure_disease",
+      "name": "Cure Disease",
+      "resourceCost": { "mana": 20 },
+      "cooldown": 0,
+      "castTime": 0,
+      "targeting": "single_ally",
+      "effects": [{ "type": "cleanse", "debuffType": "disease" }],
+      "tags": ["holy", "utility"],
+      "description": "Removes a disease effect from a friendly target."
+    },
+    "dispel_magic": {
+      "id": "dispel_magic",
+      "name": "Dispel Magic",
+      "resourceCost": { "mana": 25 },
+      "cooldown": 0,
+      "castTime": 0,
+      "targeting": "single_any",
+      "effects": [{ "type": "dispel", "count": 1 }],
+      "tags": ["discipline", "utility"],
+      "description": "Removes a magical buff from an enemy or a magical debuff from an ally."
+    },
+    "fear_ward": {
+      "id": "fear_ward",
+      "name": "Fear Ward",
+      "resourceCost": { "mana": 20 },
+      "cooldown": 0,
+      "castTime": 0,
+      "targeting": "single_ally",
+      "effects": [{ "type": "buff", "buffId": "fear_ward_buff" }],
+      "tags": ["discipline", "buff"],
+      "description": "Wards a friendly target against the next fear effect for 20 turns."
+    },
+    "holy_nova": {
+      "id": "holy_nova",
+      "name": "Holy Nova",
+      "resourceCost": { "mana": 50 },
+      "cooldown": 0,
+      "castTime": 0,
+      "targeting": "aoe_both",
+      "effects": [
+        { "type": "damage", "damageType": "holy", "scaling": "sp", "multiplier": 0.2, "flatBonus": 15, "effectTargeting": "all_enemies" },
+        { "type": "heal",   "scaling": "sp", "multiplier": 0.15, "flatBonus": 12,                       "effectTargeting": "all_allies" }
+      ],
+      "tags": ["holy", "aoe", "spell"],
+      "description": "Emits a burst of holy energy, damaging all enemies and healing all allies."
+    },
+    "shackle_undead": {
+      "id": "shackle_undead",
+      "name": "Shackle Undead",
+      "resourceCost": { "mana": 20 },
+      "cooldown": 3,
+      "castTime": 1,
+      "targeting": "single_enemy",
+      "requiresTargetTag": "undead",
+      "effects": [{ "type": "debuff", "buffId": "shackle_undead_debuff" }],
+      "tags": ["discipline", "cc"],
+      "description": "Shackles an undead target, stunning it for 3 turns."
+    },
+    "devouring_plague": {
+      "id": "devouring_plague",
+      "name": "Devouring Plague",
+      "resourceCost": { "mana": 30 },
+      "cooldown": 0,
+      "castTime": 0,
+      "targeting": "single_enemy",
+      "effects": [{ "type": "debuff", "buffId": "devouring_plague_dot" }],
+      "tags": ["shadow", "dot", "drain", "spell"],
+      "description": "Afflicts the target with a shadow plague that deals damage and heals the caster per tick."
+    },
+    "flash_heal": {
+      "id": "flash_heal",
+      "name": "Flash Heal",
+      "resourceCost": { "mana": 20 },
+      "cooldown": 0,
+      "castTime": 0,
+      "targeting": "single_ally",
+      "effects": [{ "type": "heal", "scaling": "sp", "multiplier": 0.75, "flatBonus": 45 }],
+      "tags": ["holy", "heal"],
+      "description": "A quick and cheap heal."
+    },
+    "holy_fire": {
+      "id": "holy_fire",
+      "name": "Holy Fire",
+      "resourceCost": { "mana": 35 },
+      "cooldown": 0,
+      "castTime": 1,
+      "targeting": "single_enemy",
+      "effects": [
+        { "type": "damage", "damageType": "holy", "scaling": "sp", "multiplier": 0.6, "flatBonus": 30 },
+        { "type": "debuff", "buffId": "holy_fire_dot" }
+      ],
+      "tags": ["holy", "dot", "spell"],
+      "description": "Consumes the enemy in holy flames, dealing holy damage and leaving a burn."
+    },
+
+    "healing_wave": {
+      "id": "healing_wave", "name": "Healing Wave",
+      "resourceCost": { "mana": 25 }, "cooldown": 0, "castTime": 1, "targeting": "single_ally",
+      "effects": [{ "type": "heal", "scaling": "sp", "multiplier": 0.85, "flatBonus": 50 }],
+      "tags": ["restoration", "spell"], "description": "A slow but powerful single-target heal."
+    },
+
+    "lightning_bolt": {
+      "id": "lightning_bolt", "name": "Lightning Bolt",
+      "resourceCost": { "mana": 25 }, "cooldown": 0, "castTime": 1, "targeting": "single_enemy",
+      "effects": [{ "type": "damage", "damageType": "nature", "scaling": "sp", "multiplier": 0.75, "flatBonus": 25 }],
+      "tags": ["nature", "elemental", "spell"], "description": "Hurls a bolt of lightning at the target."
+    },
+
+    "rockbiter_weapon": {
+      "id": "rockbiter_weapon", "name": "Rockbiter Weapon",
+      "resourceCost": { "mana": 10 }, "cooldown": 0, "castTime": 0, "targeting": "self",
+      "effects": [{ "type": "buff", "buffId": "rockbiter_weapon_buff" }],
+      "tags": ["enhancement", "weapon"], "description": "Imbues the weapon with stone, increasing attack power for 30 turns. Only one weapon enchant at a time."
+    },
+
+    "earth_shock": {
+      "id": "earth_shock", "name": "Earth Shock",
+      "resourceCost": { "mana": 20 }, "cooldown": 4, "castTime": 0, "targeting": "single_enemy",
+      "effects": [
+        { "type": "damage", "damageType": "nature", "scaling": "sp", "multiplier": 0.6, "flatBonus": 20 },
+        { "type": "debuff", "buffId": "earth_shock_debuff" }
+      ],
+      "tags": ["nature", "elemental", "spell"], "description": "Strikes with earth energy, dealing nature damage and reducing the target's attack power for 2 turns."
+    },
+
+    "stoneskin_totem": {
+      "id": "stoneskin_totem", "name": "Stoneskin Totem",
+      "resourceCost": { "mana": 20 }, "cooldown": 0, "castTime": 0, "targeting": "all_allies",
+      "removesTotemGroup": "earth",
+      "effects": [{ "type": "buff", "buffId": "stoneskin_totem_buff" }],
+      "tags": ["enhancement", "totem", "earth"], "description": "Earth totem. Increases armor of all party members for the encounter. Replaces other earth totems."
+    },
+
+    "earthbind_totem": {
+      "id": "earthbind_totem", "name": "Earthbind Totem",
+      "resourceCost": { "mana": 20 }, "cooldown": 0, "castTime": 0, "targeting": "all_allies",
+      "removesTotemGroup": "earth",
+      "effects": [{ "type": "buff", "buffId": "earthbind_totem_buff" }],
+      "tags": ["elemental", "totem", "earth"], "description": "Earth totem. Improves the party's chance to successfully flee. Replaces other earth totems."
+    },
+
+    "lightning_shield": {
+      "id": "lightning_shield", "name": "Lightning Shield",
+      "resourceCost": { "mana": 25 }, "cooldown": 0, "castTime": 0, "targeting": "self",
+      "effects": [{ "type": "buff", "buffId": "lightning_shield_buff" }],
+      "tags": ["enhancement", "elemental_shield"], "description": "Surrounds the shaman in lightning. When struck, zaps the attacker for nature damage. 3 charges, 10 turns."
+    },
+
+    "stoneclaw_totem": {
+      "id": "stoneclaw_totem", "name": "Stoneclaw Totem",
+      "resourceCost": { "mana": 25 }, "cooldown": 3, "castTime": 0, "targeting": "self",
+      "removesTotemGroup": "earth",
+      "effects": [{ "type": "buff", "buffId": "stoneclaw_totem_buff" }],
+      "tags": ["enhancement", "totem", "earth"], "description": "Earth totem. Absorbs the next small amount of damage the shaman takes. Replaces other earth totems."
+    },
+
+    "flametongue_weapon": {
+      "id": "flametongue_weapon", "name": "Flametongue Weapon",
+      "resourceCost": { "mana": 10 }, "cooldown": 0, "castTime": 0, "targeting": "self",
+      "effects": [{ "type": "buff", "buffId": "flametongue_weapon_buff" }],
+      "tags": ["enhancement", "weapon"], "description": "Imbues the weapon with flame, increasing spell and ability damage for 30 turns. Only one weapon enchant at a time."
+    },
+
+    "searing_totem": {
+      "id": "searing_totem", "name": "Searing Totem",
+      "resourceCost": { "mana": 25 }, "cooldown": 0, "castTime": 0, "targeting": "single_enemy",
+      "removesTotemGroup": "fire",
+      "effects": [{ "type": "debuff", "buffId": "searing_totem_dot" }],
+      "tags": ["elemental", "totem", "fire"], "description": "Fire totem. Deals periodic fire damage to the target until the encounter ends. Replaces other fire totems."
+    },
+
+    "strength_of_earth_totem": {
+      "id": "strength_of_earth_totem", "name": "Strength of Earth Totem",
+      "resourceCost": { "mana": 20 }, "cooldown": 0, "castTime": 0, "targeting": "all_allies",
+      "removesTotemGroup": "earth",
+      "effects": [{ "type": "buff", "buffId": "strength_of_earth_buff" }],
+      "tags": ["enhancement", "totem", "earth"], "description": "Earth totem. Increases attack power of all party members for the encounter. Replaces other earth totems."
+    },
+
+    "flame_shock": {
+      "id": "flame_shock", "name": "Flame Shock",
+      "resourceCost": { "mana": 25 }, "cooldown": 3, "castTime": 0, "targeting": "single_enemy",
+      "effects": [
+        { "type": "damage", "damageType": "fire", "scaling": "sp", "multiplier": 0.5, "flatBonus": 20 },
+        { "type": "debuff", "buffId": "flame_shock_dot" }
+      ],
+      "tags": ["fire", "elemental", "dot", "spell"], "description": "Sends a flame shock at the target, dealing fire damage and leaving a fire DoT."
+    },
+
+    "raptor_strike": {
+      "id": "raptor_strike", "name": "Raptor Strike",
+      "resourceCost": { "mana": 15 }, "cooldown": 0, "castTime": 0, "targeting": "single_enemy",
+      "effects": [{ "type": "damage", "damageType": "physical", "scaling": "ap", "multiplier": 1.5, "flatBonus": 15 }],
+      "tags": ["physical", "melee", "survival"], "description": "A powerful melee strike that deals increased physical damage."
+    },
+
+    "track_beasts": {
+      "id": "track_beasts", "name": "Track Beasts",
+      "resourceCost": {}, "cooldown": 0, "castTime": 0, "targeting": "self",
+      "outOfCombatOnly": true,
+      "effects": [{ "type": "set_track", "trackType": "beast" }],
+      "tags": ["survival", "utility"], "description": "Track beasts. The next encounter will be with a skinnable beast."
+    },
+
+    "serpent_sting": {
+      "id": "serpent_sting", "name": "Serpent Sting",
+      "resourceCost": { "mana": 20 }, "cooldown": 0, "castTime": 0, "targeting": "single_enemy",
+      "effects": [{ "type": "debuff", "buffId": "serpent_sting_dot" }],
+      "tags": ["nature", "dot", "marksmanship"], "description": "Poisons the target, dealing nature damage each turn."
+    },
+
+    "aspect_of_the_monkey": {
+      "id": "aspect_of_the_monkey", "name": "Aspect of the Monkey",
+      "resourceCost": {}, "cooldown": 0, "castTime": 0, "targeting": "self",
+      "effects": [{ "type": "buff", "buffId": "aspect_of_the_monkey_buff" }],
+      "tags": ["beast_mastery", "aspect", "buff"], "description": "The hunter mimics the monkey, increasing dodge chance for 30 turns. Only one aspect may be active at a time."
+    },
+
+    "hunters_mark": {
+      "id": "hunters_mark", "name": "Hunter's Mark",
+      "resourceCost": { "mana": 15 }, "cooldown": 0, "castTime": 0, "targeting": "single_enemy",
+      "effects": [{ "type": "debuff", "buffId": "hunters_mark_debuff" }],
+      "tags": ["marksmanship", "debuff"], "description": "Marks the target, causing them to take increased damage."
+    },
+
+    "arcane_shot": {
+      "id": "arcane_shot", "name": "Arcane Shot",
+      "resourceCost": { "mana": 20 }, "cooldown": 1, "castTime": 0, "targeting": "single_enemy",
+      "effects": [{ "type": "damage", "damageType": "arcane", "scaling": "ap", "multiplier": 0.8, "flatBonus": 25 }],
+      "tags": ["arcane", "ranged", "marksmanship"], "description": "Fires an arcane-charged shot at the target."
+    },
+
+    "concussive_shot": {
+      "id": "concussive_shot", "name": "Concussive Shot",
+      "resourceCost": { "mana": 20 }, "cooldown": 0, "castTime": 0, "targeting": "single_enemy",
+      "effects": [{ "type": "debuff", "buffId": "concussive_shot_debuff" }],
+      "tags": ["ranged", "marksmanship", "utility"], "description": "Stuns the target momentarily, increasing the hunter's chance to escape."
+    },
+
+    "aspect_of_the_hawk": {
+      "id": "aspect_of_the_hawk", "name": "Aspect of the Hawk",
+      "resourceCost": {}, "cooldown": 0, "castTime": 0, "targeting": "self",
+      "effects": [{ "type": "buff", "buffId": "aspect_of_the_hawk_buff" }],
+      "tags": ["beast_mastery", "aspect", "buff"], "description": "The hunter takes on the aspect of the hawk, increasing attack power for 30 turns. Only one aspect may be active at a time."
+    },
+
+    "track_humanoids": {
+      "id": "track_humanoids", "name": "Track Humanoids",
+      "resourceCost": {}, "cooldown": 0, "castTime": 0, "targeting": "self",
+      "outOfCombatOnly": true,
+      "effects": [{ "type": "set_track", "trackType": "humanoid" }],
+      "tags": ["survival", "utility"], "description": "Track humanoids. The next encounter will be with a humanoid enemy."
+    },
+
+    "distracting_shot": {
+      "id": "distracting_shot", "name": "Distracting Shot",
+      "resourceCost": { "mana": 15 }, "cooldown": 0, "castTime": 0, "targeting": "single_enemy",
+      "effects": [
+        { "type": "damage", "damageType": "physical", "scaling": "ap", "multiplier": 0.4, "flatBonus": 8 },
+        { "type": "threat", "flat": 250 }
+      ],
+      "tags": ["ranged", "marksmanship", "threat"], "description": "A distracting shot that draws heavy enemy attention onto the hunter."
+    },
+
+    "wing_clip": {
+      "id": "wing_clip", "name": "Wing Clip",
+      "resourceCost": { "mana": 20 }, "cooldown": 0, "castTime": 0, "targeting": "single_enemy",
+      "effects": [
+        { "type": "damage", "damageType": "physical", "scaling": "ap", "multiplier": 0.7, "flatBonus": 10 },
+        { "type": "debuff", "buffId": "wing_clip_debuff" }
+      ],
+      "tags": ["physical", "melee", "survival", "utility"], "description": "Clips the target's wings, dealing damage and increasing the hunter's chance to escape."
+    },
+
+    "scare_beast": {
+      "id": "scare_beast", "name": "Scare Beast",
+      "resourceCost": { "mana": 25 }, "cooldown": 3, "castTime": 0, "targeting": "single_enemy",
+      "requiresTargetTag": "beast",
+      "effects": [{ "type": "debuff", "buffId": "scare_beast_debuff" }],
+      "tags": ["beast_mastery", "cc"], "description": "Frightens a beast, preventing it from acting for 2 turns."
+    },
+
+    "immolation_trap": {
+      "id": "immolation_trap", "name": "Immolation Trap",
+      "resourceCost": {}, "cooldown": 0, "castTime": 0, "targeting": "single_enemy",
+      "effects": [{ "type": "debuff", "buffId": "immolation_trap_dot" }],
+      "tags": ["fire", "survival", "dot", "trap"], "description": "Plants a trap that burns the first enemy to trigger it."
+    },
+
+    "mongoose_bite": {
+      "id": "mongoose_bite", "name": "Mongoose Bite",
+      "resourceCost": { "mana": 20 }, "cooldown": 1, "castTime": 0, "targeting": "single_enemy",
+      "effects": [{ "type": "damage", "damageType": "physical", "scaling": "ap", "multiplier": 1.6, "flatBonus": 20 }],
+      "tags": ["physical", "melee", "survival"], "description": "A swift melee counterattack dealing heavy physical damage."
+    },
+
+    "seal_of_righteousness": {
+      "id": "seal_of_righteousness", "name": "Seal of Righteousness",
+      "resourceCost": { "mana": 15 }, "cooldown": 0, "castTime": 0, "targeting": "self",
+      "effects": [{ "type": "buff", "buffId": "seal_of_righteousness_buff" }],
+      "tags": ["holy", "seal", "buff"], "description": "Fills the paladin with holy power, adding holy damage to each melee attack for 5 turns."
+    },
+    "holy_light": {
+      "id": "holy_light", "name": "Holy Light",
+      "resourceCost": { "mana": 30 }, "cooldown": 0, "castTime": 1, "targeting": "single_ally",
+      "effects": [{ "type": "heal", "scaling": "sp", "multiplier": 1.0, "flatBonus": 80 }],
+      "tags": ["holy", "heal"], "description": "Calls upon holy power to heal a friendly target."
+    },
+    "devotion_aura": {
+      "id": "devotion_aura", "name": "Devotion Aura",
+      "resourceCost": { "mana": 15 }, "cooldown": 0, "castTime": 0, "targeting": "all_allies",
+      "removesTotemGroup": "aura",
+      "effects": [{ "type": "buff", "buffId": "devotion_aura_buff" }],
+      "tags": ["protection", "aura", "buff"], "description": "Gives armor to all party members. Only one aura can be active per paladin at a time."
+    },
+    "judgement": {
+      "id": "judgement", "name": "Judgement",
+      "resourceCost": { "mana": 20 }, "cooldown": 0, "castTime": 0, "targeting": "single_enemy",
+      "effects": [
+        { "type": "damage", "damageType": "holy", "scaling": "sp", "multiplier": 0.7, "flatBonus": 30 },
+        { "type": "consume_seal" }
+      ],
+      "tags": ["holy", "retribution"], "description": "Unleashes the energy of a Seal to judge an enemy, dealing holy damage and consuming the active seal."
+    },
+    "blessing_of_might": {
+      "id": "blessing_of_might", "name": "Blessing of Might",
+      "resourceCost": { "mana": 20 }, "cooldown": 0, "castTime": 0, "targeting": "single_ally",
+      "effects": [{ "type": "buff", "buffId": "blessing_of_might_buff" }],
+      "tags": ["retribution", "blessing", "buff"], "description": "Blesses a party member, increasing their attack power. Only one blessing per target."
+    },
+    "divine_protection": {
+      "id": "divine_protection", "name": "Divine Protection",
+      "resourceCost": {}, "cooldown": 10, "castTime": 0, "targeting": "self",
+      "effects": [{ "type": "buff", "buffId": "divine_protection_buff" }],
+      "tags": ["protection", "buff"], "description": "Reduces damage taken by 50% for 3 turns."
+    },
+    "purify": {
+      "id": "purify", "name": "Purify",
+      "resourceCost": { "mana": 15 }, "cooldown": 0, "castTime": 0, "targeting": "single_ally",
+      "effects": [{ "type": "purify", "removes": ["disease", "poison"] }],
+      "tags": ["holy", "utility"], "description": "Removes a disease or poison effect from a friendly target."
+    },
+    "hammer_of_justice": {
+      "id": "hammer_of_justice", "name": "Hammer of Justice",
+      "resourceCost": { "mana": 20 }, "cooldown": 5, "castTime": 0, "targeting": "single_enemy",
+      "effects": [{ "type": "debuff", "buffId": "hammer_of_justice_stun" }],
+      "tags": ["protection", "cc"], "description": "Stuns an enemy for 2 turns."
+    },
+    "hand_of_protection": {
+      "id": "hand_of_protection", "name": "Hand of Protection",
+      "resourceCost": {}, "cooldown": 10, "castTime": 0, "targeting": "single_ally",
+      "effects": [{ "type": "buff", "buffId": "hand_of_protection_buff" }],
+      "tags": ["protection", "buff"], "description": "Makes a party member invulnerable for 2 turns, but they cannot act."
+    },
+    "lay_on_hands": {
+      "id": "lay_on_hands", "name": "Lay on Hands",
+      "resourceCost": {}, "cooldown": 20, "castTime": 0, "targeting": "single_ally",
+      "effects": [{ "type": "heal", "flatBonus": 9999 }],
+      "tags": ["holy", "heal"], "description": "Channels holy power to fully heal a friendly target. 20 turn cooldown."
+    },
+    "redemption": {
+      "id": "redemption", "name": "Redemption",
+      "resourceCost": { "mana": 200 }, "cooldown": 0, "castTime": 0, "targeting": "single_ally_dead",
+      "outOfCombatOnly": true,
+      "effects": [{ "type": "revive", "hpPct": 0.5, "clearMana": true }],
+      "tags": ["holy", "revive"], "description": "Revives a fallen party member to 50% health. Costs all of the caster's mana."
+    },
+
+    "pick_lock": {
+      "id": "pick_lock", "name": "Pick Lock",
+      "resourceCost": {}, "cooldown": 0, "castTime": 0, "targeting": "self",
+      "outOfCombatOnly": true,
+      "effects": [{ "type": "pick_lock" }],
+      "tags": ["subtlety", "utility"], "description": "Grants the Lockpicking skill, enabling you to open locked chests."
+    },
+    "sinister_strike": {
+      "id": "sinister_strike", "name": "Sinister Strike",
+      "resourceCost": { "energy": 40 }, "cooldown": 0, "castTime": 0, "targeting": "single_enemy",
+      "effects": [
+        { "type": "damage", "damageType": "physical", "scaling": "ap", "multiplier": 1.3, "flatBonus": 15 },
+        { "type": "gain_combo_point", "count": 1 }
+      ],
+      "tags": ["combat", "physical", "melee"], "description": "A vicious strike dealing increased damage and generating 1 combo point."
+    },
+    "stealth": {
+      "id": "stealth", "name": "Stealth",
+      "resourceCost": {}, "cooldown": 0, "castTime": 0, "targeting": "self",
+      "effects": [{ "type": "buff", "buffId": "stealth_buff" }],
+      "tags": ["subtlety", "buff"], "description": "Enter stealth, becoming untargetable by enemies. Breaks when you use an ability."
+    },
+    "eviscerate": {
+      "id": "eviscerate", "name": "Eviscerate",
+      "resourceCost": { "energy": 35 }, "cooldown": 0, "castTime": 0, "targeting": "single_enemy",
+      "spendComboPoints": true,
+      "effects": [
+        { "type": "damage", "damageType": "physical", "scaling": "ap", "multiplier": 1.0, "flatBonus": 10, "comboFinisher": true, "bonusPerComboPoint": 25 }
+      ],
+      "tags": ["assassination", "physical", "melee"], "description": "Deals heavy damage that scales with and spends all combo points."
+    },
+    "pick_pocket": {
+      "id": "pick_pocket", "name": "Pick Pocket",
+      "resourceCost": {}, "cooldown": 0, "castTime": 0, "targeting": "single_enemy",
+      "requiresCondition": "in_stealth",
+      "effects": [{ "type": "pick_pocket", "flat": 200 }],
+      "tags": ["subtlety", "utility"], "description": "Steal gold from an enemy while in stealth."
+    },
+    "backstab": {
+      "id": "backstab", "name": "Backstab",
+      "resourceCost": { "energy": 60 }, "cooldown": 4, "castTime": 0, "targeting": "single_enemy",
+      "requiresCondition": "in_stealth",
+      "effects": [
+        { "type": "damage", "damageType": "physical", "scaling": "ap", "multiplier": 2.0, "flatBonus": 25 }
+      ],
+      "tags": ["combat", "physical", "melee"], "description": "A massive strike from stealth. Requires stealth. 4 turn cooldown."
+    },
+    "gouge": {
+      "id": "gouge", "name": "Gouge",
+      "resourceCost": { "energy": 40 }, "cooldown": 3, "castTime": 0, "targeting": "single_enemy",
+      "effects": [
+        { "type": "damage", "damageType": "physical", "scaling": "ap", "multiplier": 0.5, "flatBonus": 5 },
+        { "type": "debuff", "buffId": "gouge_stun" }
+      ],
+      "tags": ["combat", "physical", "melee"], "description": "Deals small damage and stuns the target for 1 turn. 3 turn cooldown."
+    },
+    "evasion": {
+      "id": "evasion", "name": "Evasion",
+      "resourceCost": {}, "cooldown": 10, "castTime": 0, "targeting": "self",
+      "effects": [{ "type": "buff", "buffId": "evasion_buff" }],
+      "tags": ["combat", "buff"], "description": "Greatly increases dodge chance for 3 turns. 10 turn cooldown."
+    },
+    "sap": {
+      "id": "sap", "name": "Sap",
+      "resourceCost": {}, "cooldown": 0, "castTime": 0, "targeting": "single_enemy",
+      "requiresOpener": true,
+      "requiresCondition": "in_stealth",
+      "requiresTargetTag": "humanoid",
+      "effects": [{ "type": "debuff", "buffId": "sap_debuff" }],
+      "tags": ["subtlety", "cc"], "description": "Stuns a humanoid for 4 turns. Opener only, requires stealth. Breaks on damage."
+    },
+    "sprint": {
+      "id": "sprint", "name": "Sprint",
+      "resourceCost": {}, "cooldown": 5, "castTime": 0, "targeting": "self",
+      "effects": [{ "type": "buff", "buffId": "sprint_buff" }],
+      "tags": ["combat", "buff"], "description": "Increases escape chance by 10% for 1 turn. 5 turn cooldown."
+    },
+    "slice_and_dice": {
+      "id": "slice_and_dice", "name": "Slice and Dice",
+      "resourceCost": { "energy": 25 }, "cooldown": 0, "castTime": 0, "targeting": "self",
+      "spendComboPoints": true,
+      "effects": [
+        { "type": "buff", "buffId": "slice_and_dice_buff", "comboFinisher": true, "durationPerComboPoint": 1 }
+      ],
+      "tags": ["assassination", "buff"], "description": "Grants 2 actions per turn for X turns, where X equals combo points spent."
+    },
+
+    "fireball": {
+      "id": "fireball", "name": "Fireball",
+      "resourceCost": { "mana": 35 }, "cooldown": 0, "castTime": 1, "targeting": "single_enemy",
+      "effects": [{ "type": "damage", "damageType": "fire", "scaling": "sp", "multiplier": 1.2, "flatBonus": 40 }],
+      "tags": ["fire", "spell"], "description": "Hurls a ball of fire at the target. 1 turn cast time."
+    },
+    "arcane_intellect": {
+      "id": "arcane_intellect", "name": "Arcane Intellect",
+      "resourceCost": { "mana": 30 }, "cooldown": 0, "castTime": 0, "targeting": "single_ally",
+      "effects": [{ "type": "buff", "buffId": "arcane_intellect_buff" }],
+      "tags": ["arcane", "buff"], "description": "Increases the target's Intellect, boosting spell power. Lasts 30 turns."
+    },
+    "frost_armor": {
+      "id": "frost_armor", "name": "Frost Armor",
+      "resourceCost": { "mana": 20 }, "cooldown": 0, "castTime": 0, "targeting": "self",
+      "effects": [{ "type": "buff", "buffId": "frost_armor_buff" }],
+      "tags": ["frost", "buff", "armor"], "description": "Encases the mage in frost, increasing armor and chilling melee attackers. Only one armor spell at a time."
+    },
+    "frostbolt": {
+      "id": "frostbolt", "name": "Frostbolt",
+      "resourceCost": { "mana": 25 }, "cooldown": 0, "castTime": 0, "targeting": "single_enemy",
+      "effects": [
+        { "type": "damage", "damageType": "frost", "scaling": "sp", "multiplier": 0.9, "flatBonus": 30 },
+        { "type": "self_buff", "buffId": "frostbolt_flee_buff" }
+      ],
+      "tags": ["frost", "spell"], "description": "Launches a shard of frost at the enemy. Increases escape chance by 10%."
+    },
+    "conjure_water": {
+      "id": "conjure_water", "name": "Conjure Water",
+      "resourceCost": { "mana": 20 }, "cooldown": 0, "castTime": 0, "targeting": "self",
+      "outOfCombatOnly": true,
+      "effects": [{ "type": "restore_party_mana", "percent": 0.4 }],
+      "tags": ["arcane", "utility"], "description": "Conjures water that restores 40% mana to all living party members."
+    },
+    "fire_blast": {
+      "id": "fire_blast", "name": "Fire Blast",
+      "resourceCost": { "mana": 30 }, "cooldown": 2, "castTime": 0, "targeting": "single_enemy",
+      "effects": [{ "type": "damage", "damageType": "fire", "scaling": "sp", "multiplier": 1.0, "flatBonus": 35 }],
+      "tags": ["fire", "spell"], "description": "An instant blast of fire. 2 turn cooldown."
+    },
+    "conjure_food": {
+      "id": "conjure_food", "name": "Conjure Food",
+      "resourceCost": { "mana": 20 }, "cooldown": 0, "castTime": 0, "targeting": "self",
+      "outOfCombatOnly": true,
+      "effects": [{ "type": "restore_party_hp", "percent": 0.4 }],
+      "tags": ["arcane", "utility"], "description": "Conjures food that restores 40% HP to all living party members."
+    },
+    "polymorph": {
+      "id": "polymorph", "name": "Polymorph",
+      "resourceCost": { "mana": 30 }, "cooldown": 3, "castTime": 0, "targeting": "single_enemy",
+      "requiresTargetTag": ["humanoid", "beast", "critter"],
+      "effects": [{ "type": "debuff", "buffId": "polymorph_stun" }],
+      "tags": ["arcane", "cc"], "description": "Transforms an enemy into a harmless critter for 2 turns. Only affects beasts, humanoids, and critters. 3 turn cooldown."
+    },
+    "arcane_missiles": {
+      "id": "arcane_missiles", "name": "Arcane Missiles",
+      "resourceCost": { "mana": 30 }, "cooldown": 0, "castTime": 0, "targeting": "single_enemy",
+      "effects": [{ "type": "damage", "damageType": "arcane", "scaling": "sp", "multiplier": 1.1, "flatBonus": 35 }],
+      "tags": ["arcane", "spell"], "description": "Launches a volley of arcane missiles at the target."
+    },
+    "frost_nova": {
+      "id": "frost_nova", "name": "Frost Nova",
+      "resourceCost": { "mana": 40 }, "cooldown": 5, "castTime": 0, "targeting": "all_enemies",
+      "effects": [
+        { "type": "damage", "damageType": "frost", "scaling": "sp", "multiplier": 0.5, "flatBonus": 20 },
+        { "type": "debuff", "buffId": "frost_nova_stun" },
+        { "type": "self_buff", "buffId": "frost_nova_flee_buff" }
+      ],
+      "tags": ["frost", "spell", "aoe"], "description": "Erupts in frost, damaging and stunning all enemies for 1 turn. Increases escape chance by 20%. 5 turn cooldown."
+    },
+
+    "demon_skin": {
+      "id": "demon_skin", "name": "Demon Skin",
+      "resourceCost": { "mana": 20 }, "cooldown": 0, "castTime": 0, "targeting": "self",
+      "effects": [{ "type": "buff", "buffId": "demon_skin_buff" }],
+      "tags": ["demonology", "buff", "armor"], "description": "Armor spell. Increases armor and healing received."
+    },
+    "corruption": {
+      "id": "corruption", "name": "Corruption",
+      "resourceCost": { "mana": 25 }, "cooldown": 0, "castTime": 0, "targeting": "single_enemy",
+      "effects": [{ "type": "debuff", "buffId": "corruption_dot" }],
+      "tags": ["affliction", "shadow", "dot", "spell"], "description": "Corrupts the target, dealing shadow damage over 6 turns."
+    },
+    "curse_of_weakness": {
+      "id": "curse_of_weakness", "name": "Curse of Weakness",
+      "resourceCost": { "mana": 20 }, "cooldown": 0, "castTime": 0, "targeting": "single_enemy",
+      "effects": [{ "type": "debuff", "buffId": "curse_of_weakness_debuff" }],
+      "tags": ["affliction", "curse", "debuff"], "description": "Curses the target, reducing melee attack power and armor. Only one curse per target."
+    },
+    "curse_of_agony": {
+      "id": "curse_of_agony", "name": "Curse of Agony",
+      "resourceCost": { "mana": 25 }, "cooldown": 0, "castTime": 0, "targeting": "single_enemy",
+      "effects": [{ "type": "debuff", "buffId": "curse_of_agony_dot" }],
+      "tags": ["affliction", "curse", "shadow", "dot", "spell"], "description": "Curses the target with increasing shadow pain over 12 turns. Only one curse per target."
+    },
+    "warlock_fear": {
+      "id": "warlock_fear", "name": "Fear",
+      "resourceCost": { "mana": 20 }, "cooldown": 3, "castTime": 0, "targeting": "single_enemy",
+      "effects": [{ "type": "debuff", "buffId": "warlock_fear_debuff" }],
+      "tags": ["affliction", "fear", "cc"], "description": "Sends the enemy fleeing in terror for 2 turns. 3 turn cooldown."
+    },
+    "drain_soul": {
+      "id": "drain_soul", "name": "Drain Soul",
+      "resourceCost": { "mana": 30 }, "cooldown": 0, "castTime": 0, "targeting": "single_enemy",
+      "effects": [{ "type": "damage", "damageType": "shadow", "scaling": "sp", "multiplier": 0.8, "flatBonus": 25,
+                    "drainSoul": true, "bonusIfHpBelow": { "threshold": 0.25, "extraMultiplier": 2.0 } }],
+      "tags": ["affliction", "shadow", "spell"], "description": "Drains the target's soul, dealing shadow damage. Deals double damage at or below 25% HP. Awards a Soul Shard on kill."
+    },
+    "create_healthstone": {
+      "id": "create_healthstone", "name": "Create Healthstone",
+      "resourceCost": { "mana": 30 }, "cooldown": 0, "castTime": 0, "targeting": "self",
+      "outOfCombatOnly": true,
+      "effects": [{ "type": "create_healthstone" }],
+      "tags": ["demonology", "utility"], "description": "Creates a Healthstone consumable. Only one can be held at a time. Disappears if the warlock dies."
+    },
+
+    "healing_touch": {
+      "id": "healing_touch", "name": "Healing Touch",
+      "resourceCost": { "mana": 35 }, "cooldown": 0, "castTime": 1, "targeting": "single_ally",
+      "effects": [{ "type": "heal", "scaling": "sp", "multiplier": 1.4, "flatBonus": 55 }],
+      "tags": ["restoration", "heal", "spell"], "description": "A slow but potent heal on a friendly target."
+    },
+    "mark_of_the_wild": {
+      "id": "mark_of_the_wild", "name": "Mark of the Wild",
+      "resourceCost": { "mana": 30 }, "cooldown": 0, "castTime": 0, "targeting": "single_ally",
+      "effects": [{ "type": "buff", "buffId": "mark_of_the_wild_buff" }],
+      "tags": ["balance", "buff"], "description": "Increases the target's stats and armor for 30 turns."
+    },
+    "wrath": {
+      "id": "wrath", "name": "Wrath",
+      "resourceCost": { "mana": 25 }, "cooldown": 0, "castTime": 1, "targeting": "single_enemy",
+      "effects": [{ "type": "damage", "damageType": "nature", "scaling": "sp", "multiplier": 1.0, "flatBonus": 30 }],
+      "tags": ["balance", "nature", "spell"], "description": "Hurls a ball of nature energy at the target."
+    },
+    "thorns": {
+      "id": "thorns", "name": "Thorns",
+      "resourceCost": { "mana": 20 }, "cooldown": 0, "castTime": 0, "targeting": "single_ally",
+      "effects": [{ "type": "buff", "buffId": "thorns_buff" }],
+      "tags": ["balance", "buff"], "description": "Causes nature damage to attackers who strike the target with melee attacks."
+    },
+    "entangling_roots": {
+      "id": "entangling_roots", "name": "Entangling Roots",
+      "resourceCost": { "mana": 25 }, "cooldown": 0, "castTime": 1, "targeting": "single_enemy",
+      "effects": [{ "type": "debuff", "buffId": "entangling_roots_dot" }],
+      "tags": ["balance", "nature", "dot", "cc", "spell"], "description": "Roots the target, dealing nature damage over 4 turns. Increases escape chance by 10%."
+    },
+    "bear_form": {
+      "id": "bear_form", "name": "Bear Form",
+      "resourceCost": {}, "cooldown": 0, "castTime": -1, "targeting": "self",
+      "effects": [{ "type": "buff", "buffId": "bear_form_buff" }],
+      "tags": ["feral", "shapeshift", "buff"], "description": "Shapeshift into bear form, greatly increasing armor, health, and attack power. Breaks movement impairing effects. Instant — you may act again this turn."
+    },
+    "maul": {
+      "id": "maul", "name": "Maul",
+      "resourceCost": { "rage": 15 }, "cooldown": 0, "castTime": 0, "targeting": "single_enemy",
+      "requiresCondition": "in_bear_form",
+      "effects": [
+        { "type": "damage", "damageType": "physical", "scaling": "ap", "multiplier": 1.6, "flatBonus": 15 },
+        { "type": "threat", "flat": 150 }
+      ],
+      "tags": ["feral", "physical", "melee"], "description": "A heavy blow dealing increased damage and generating high threat. Requires bear form."
+    },
+    "growl": {
+      "id": "growl", "name": "Growl",
+      "resourceCost": { "rage": 10 }, "cooldown": 8, "castTime": 0, "targeting": "single_enemy",
+      "requiresCondition": "in_bear_form",
+      "effects": [{ "type": "threat", "flat": 800 }],
+      "tags": ["feral", "taunt"], "description": "Taunts the target to attack you. Requires bear form. 8 turn cooldown."
+    },
+    "demoralizing_roar": {
+      "id": "demoralizing_roar", "name": "Demoralizing Roar",
+      "resourceCost": { "rage": 10 }, "cooldown": 0, "castTime": 0, "targeting": "all_enemies",
+      "requiresCondition": "in_bear_form",
+      "effects": [{ "type": "debuff", "buffId": "demoralizing_roar_debuff" }],
+      "tags": ["feral", "shout"], "description": "Reduces the melee attack power of all enemies. Requires bear form."
+    },
+
+    "dust_cloud": {
+      "id": "dust_cloud",
+      "name": "Dust Cloud",
+      "resourceCost": {},
+      "cooldown": 5,
+      "castTime": 0,
+      "targeting": "all_enemies",
+      "effects": [{ "type": "debuff", "buffId": "dust_cloud_debuff" }],
+      "tags": ["physical", "aoe"],
+      "description": "Kicks up a blinding cloud of dust, reducing all opponents' chance to hit by 30% for 5 turns."
+    },
+
+    "boar_charge": {
+      "id": "boar_charge",
+      "name": "Charge",
+      "resourceCost": {},
+      "cooldown": 15,
+      "castTime": 0,
+      "targeting": "single_enemy",
+      "effects": [{ "type": "damage", "damageType": "physical", "scaling": "ap", "multiplier": 1.3 }],
+      "tags": ["physical", "melee"],
+      "description": "Charges the target, dealing bonus physical damage."
+    },
+    "rushing_charge": {
+      "id": "rushing_charge",
+      "name": "Rushing Charge",
+      "resourceCost": {},
+      "cooldown": 15,
+      "castTime": 0,
+      "targeting": "single_enemy",
+      "effects": [{ "type": "damage", "damageType": "physical", "scaling": "ap", "multiplier": 1.3 }],
+      "tags": ["physical", "melee"],
+      "description": "Charges the target, dealing bonus physical damage."
+    },
+    "scorpid_poison": {
+      "id": "scorpid_poison",
+      "name": "Scorpid Poison",
+      "resourceCost": {},
+      "cooldown": 10,
+      "castTime": 0,
+      "targeting": "single_enemy",
+      "effects": [{ "type": "debuff", "buffId": "scorpid_poison_dot" }],
+      "tags": ["nature", "poison", "dot"],
+      "description": "Injects venom that eats away at the target over time."
+    },
+    "scorpid_sting": {
+      "id": "scorpid_sting",
+      "name": "Scorpid Sting",
+      "resourceCost": {},
+      "cooldown": 8,
+      "castTime": 0,
+      "targeting": "single_enemy",
+      "effects": [
+        { "type": "damage", "damageType": "nature", "scaling": "ap", "multiplier": 0.5, "flatBonus": 5 },
+        { "type": "debuff", "buffId": "scorpid_sting_dot" }
+      ],
+      "tags": ["nature", "poison", "dot"],
+      "description": "A painful sting that deals nature damage and poisons the target."
+    },
+    "venom_sting": {
+      "id": "venom_sting",
+      "name": "Venom Sting",
+      "resourceCost": {},
+      "cooldown": 10,
+      "castTime": 0,
+      "targeting": "single_enemy",
+      "effects": [
+        { "type": "damage", "damageType": "nature", "scaling": "ap", "multiplier": 0.7, "flatBonus": 12 },
+        { "type": "debuff", "buffId": "venom_sting_dot" }
+      ],
+      "tags": ["nature", "poison", "dot"],
+      "description": "Drives a venom-slicked stinger deep into the target, dealing nature damage and leaving a potent toxin that continues to burn through the target's veins."
+    },
+    "shadow_bolt_minor": {
+      "id": "shadow_bolt_minor",
+      "name": "Shadow Bolt",
+      "resourceCost": {},
+      "cooldown": 3,
+      "castTime": 1,
+      "targeting": "single_enemy",
+      "effects": [{ "type": "damage", "damageType": "shadow", "scaling": "sp", "multiplier": 0.8, "flatBonus": 10 }],
+      "tags": ["shadow", "spell"],
+      "description": "A small bolt of shadow energy hurled at the target."
+    },
+    "felstalker_bite": {
+      "id": "felstalker_bite",
+      "name": "Felstalker Bite",
+      "resourceCost": {},
+      "cooldown": 5,
+      "castTime": 0,
+      "targeting": "single_enemy",
+      "effects": [{ "type": "damage", "damageType": "physical", "scaling": "ap", "multiplier": 1.4 }],
+      "tags": ["physical", "melee"],
+      "description": "A vicious fel-infused bite."
+    },
+    "razormane_quills": {
+      "id": "razormane_quills",
+      "name": "Razor Mane",
+      "resourceCost": {},
+      "cooldown": 3,
+      "castTime": 0,
+      "targeting": "self",
+      "effects": [{ "type": "buff", "buffId": "razormane_quills_buff" }],
+      "tags": ["nature", "buff"],
+      "description": "The quilboar's razor-sharp quills bristle with natural energy, dealing nature damage to any attacker that strikes them in melee."
+    },
+    "faerie_fire": {
+      "id": "faerie_fire",
+      "name": "Faerie Fire",
+      "resourceCost": {},
+      "cooldown": 6,
+      "castTime": 0,
+      "targeting": "single_enemy",
+      "effects": [{ "type": "debuff", "buffId": "faerie_fire_debuff" }],
+      "tags": ["nature", "debuff"],
+      "description": "Surrounds the target with a faint aura of nature energy, reducing armor and preventing stealth for 8 turns."
+    }
+
+  },
+  "buffs": {
+
+    "shield_wall_buff": {
+      "id": "shield_wall_buff",
+      "name": "Shield Wall",
+      "duration": 3,
+      "modifiers": { "damageTakenMultiplier": 0.4 },
+      "ccFlags": {}
+    },
+
+    "battle_shout_buff": {
+      "id": "battle_shout_buff",
+      "name": "Battle Shout",
+      "duration": 12,
+      "modifiers": { "attackPower": 75 },
+      "ccFlags": {}
+    },
+    "rough_sharpening_stone_buff": {
+      "id": "rough_sharpening_stone_buff",
+      "name": "Rough Sharpening Stone",
+      "duration": 30,
+      "modifiers": { "flatDamage": 2 },
+      "ccFlags": {}
+    },
+    "bloodrage_buff": {
+      "id": "bloodrage_buff",
+      "name": "Bloodrage",
+      "duration": 3,
+      "tickRage": 3,
+      "modifiers": {},
+      "ccFlags": {}
+    },
+    "berserker_rage_buff": {
+      "id": "berserker_rage_buff",
+      "name": "Berserker Rage",
+      "duration": 2,
+      "modifiers": { "bonusRageOnHit": 5 },
+      "ccFlags": {}
+    },
+    "recklessness_buff": {
+      "id": "recklessness_buff",
+      "name": "Recklessness",
+      "duration": 3,
+      "modifiers": { "guaranteedMeleeCrit": true, "damageTakenMultiplier": 1.2 },
+      "ccFlags": {}
+    },
+    "retaliation_buff": {
+      "id": "retaliation_buff",
+      "name": "Retaliation",
+      "duration": 2,
+      "modifiers": { "retaliation": true },
+      "ccFlags": {}
+    },
+    "spell_reflection_buff": {
+      "id": "spell_reflection_buff",
+      "name": "Spell Reflection",
+      "duration": 3,
+      "charges": 1,
+      "modifiers": { "reflectNextSpell": true },
+      "ccFlags": {}
+    },
+    "commanding_shout_buff": {
+      "id": "commanding_shout_buff",
+      "name": "Commanding Shout",
+      "duration": 10,
+      "modifiers": { "maxHpBonus": 80 },
+      "ccFlags": {}
+    },
+    "intervene_buff": {
+      "id": "intervene_buff",
+      "name": "Intervene",
+      "duration": 3,
+      "charges": 1,
+      "modifiers": { "intervene": true },
+      "ccFlags": {}
+    },
+    "enraged_regen_buff": {
+      "id": "enraged_regen_buff",
+      "name": "Enraged Regeneration",
+      "duration": 2,
+      "tickHeal": { "scaling": "maxHp", "multiplier": 0.15 },
+      "modifiers": {},
+      "ccFlags": {}
+    },
+
+    "rend_dot": {
+      "id": "rend_dot",
+      "name": "Rend",
+      "duration": 3,
+      "isDebuff": true,
+      "tickDamage": { "damageType": "physical", "flat": 8, "scaling": "ap", "multiplier": 0.12 },
+      "modifiers": {},
+      "ccFlags": {}
+    },
+    "thunder_clap_slow": {
+      "id": "thunder_clap_slow",
+      "name": "Thunder Clap",
+      "duration": 3,
+      "isDebuff": true,
+      "modifiers": { "damageDoneMultiplier": 0.85 },
+      "ccFlags": {}
+    },
+    "demoralizing_shout_debuff": {
+      "id": "demoralizing_shout_debuff",
+      "name": "Demoralized",
+      "duration": 4,
+      "isDebuff": true,
+      "modifiers": { "attackPower": -45 },
+      "ccFlags": {}
+    },
+    "sunder_armor_debuff": {
+      "id": "sunder_armor_debuff",
+      "name": "Sunder Armor",
+      "duration": 8,
+      "isDebuff": true,
+      "stacks": true,
+      "maxStacks": 5,
+      "modifiers": { "armor": -450 },
+      "ccFlags": {}
+    },
+    "hamstring_debuff": {
+      "id": "hamstring_debuff",
+      "name": "Hamstring",
+      "duration": 4,
+      "isDebuff": true,
+      "modifiers": { "reducedFleeChance": true },
+      "ccFlags": {}
+    },
+    "disarm_debuff": {
+      "id": "disarm_debuff",
+      "name": "Disarmed",
+      "duration": 2,
+      "modifiers": {},
+      "ccFlags": { "disarmed": true }
+    },
+    "feared_debuff": {
+      "id": "feared_debuff",
+      "name": "Feared",
+      "duration": 2,
+      "modifiers": {},
+      "ccFlags": { "feared": true }
+    },
+
+    "ignite": {
+      "id": "ignite",
+      "name": "Ignite",
+      "duration": 4,
+      "tickDamage": { "damageType": "fire", "flat": 8, "scaling": "sp", "multiplier": 0.1 },
+      "modifiers": {},
+      "ccFlags": {}
+    },
+    "moonfire_dot": {
+      "id": "moonfire_dot",
+      "name": "Moonfire",
+      "duration": 6, "isDebuff": true,
+      "tickDamage": { "damageType": "nature", "flat": 8, "scaling": "sp", "multiplier": 0.10 },
+      "modifiers": {},
+      "ccFlags": {}
+    },
+    "burning_ember": {
+      "id": "burning_ember",
+      "name": "Burning Ember",
+      "duration": 3,
+      "tickDamage": { "damageType": "fire", "flat": 6, "scaling": "sp", "multiplier": 0.05 },
+      "modifiers": {},
+      "ccFlags": {},
+      "stacks": true,
+      "maxStacks": 3,
+      "tags": ["fire", "dot"],
+      "description": "Burns the target for fire damage each turn."
+    },
+    "immolate_dot": {
+      "id": "immolate_dot",
+      "name": "Immolate",
+      "duration": 5,
+      "tickDamage": { "damageType": "fire", "flat": 10, "scaling": "sp", "multiplier": 0.12 },
+      "modifiers": {},
+      "ccFlags": {},
+      "tags": ["fire", "dot"]
+    },
+    "scorpid_poison_dot": {
+      "id": "scorpid_poison_dot",
+      "name": "Scorpid Poison",
+      "duration": 4,
+      "tickDamage": { "damageType": "nature", "flat": 5, "scaling": "sp", "multiplier": 0.02 },
+      "modifiers": {},
+      "ccFlags": {},
+      "tags": ["nature", "poison", "dot"]
+    },
+    "scorpid_sting_dot": {
+      "id": "scorpid_sting_dot",
+      "name": "Scorpid Sting",
+      "duration": 3,
+      "tickDamage": { "damageType": "nature", "flat": 8, "scaling": "sp", "multiplier": 0.02 },
+      "modifiers": {},
+      "ccFlags": {}
+    },
+    "venom_sting_dot": {
+      "id": "venom_sting_dot",
+      "name": "Venom Sting",
+      "duration": 4,
+      "tickDamage": { "damageType": "nature", "flat": 14, "scaling": "sp", "multiplier": 0.03 },
+      "modifiers": {},
+      "ccFlags": {},
+      "tags": ["nature", "poison", "dot"]
+    },
+
+    "stun": {
+      "id": "stun",
+      "name": "Stun",
+      "duration": 2,
+      "modifiers": {},
+      "ccFlags": { "stunned": true }
+    },
+    "inspiration_buff": {
+      "id": "inspiration_buff",
+      "name": "Inspiration",
+      "duration": 15,
+      "modifiers": { "damageTakenMultiplier": 0.75 },
+      "ccFlags": {}
+    },
+
+    "fortitude_buff": {
+      "id": "fortitude_buff",
+      "name": "Power Word: Fortitude",
+      "duration": 30,
+      "maxHpBonus": 80,
+      "modifiers": {},
+      "ccFlags": {}
+    },
+    "power_word_shield_buff": {
+      "id": "power_word_shield_buff",
+      "name": "Power Word: Shield",
+      "duration": 3,
+      "absorbShield": 80,
+      "modifiers": {},
+      "ccFlags": {}
+    },
+    "fade_buff": {
+      "id": "fade_buff",
+      "name": "Fade",
+      "duration": 2,
+      "isFaded": true,
+      "modifiers": {},
+      "ccFlags": {}
+    },
+    "renew_hot": {
+      "id": "renew_hot",
+      "name": "Renew",
+      "duration": 5,
+      "tickHeal": { "flat": 20, "scaling": "sp", "multiplier": 0.06 },
+      "modifiers": {},
+      "ccFlags": {}
+    },
+    "inner_fire_buff": {
+      "id": "inner_fire_buff",
+      "name": "Inner Fire",
+      "duration": 20,
+      "modifiers": { "armor": 600 },
+      "ccFlags": {}
+    },
+    "fear_ward_buff": {
+      "id": "fear_ward_buff",
+      "name": "Fear Ward",
+      "duration": 20,
+      "charges": 1,
+      "negatesNextFear": true,
+      "modifiers": {},
+      "ccFlags": {}
+    },
+    "shackle_undead_debuff": {
+      "id": "shackle_undead_debuff",
+      "name": "Shackled",
+      "duration": 3,
+      "modifiers": {},
+      "ccFlags": { "stunned": true }
+    },
+    "devouring_plague_dot": {
+      "id": "devouring_plague_dot",
+      "name": "Devouring Plague",
+      "duration": 5,
+      "isDebuff": true,
+      "tickDamage": { "damageType": "shadow", "flat": 12, "scaling": "sp", "multiplier": 0.04 },
+      "tickDrain": true,
+      "modifiers": {},
+      "ccFlags": {}
+    },
+    "shadow_word_pain_dot": {
+      "id": "shadow_word_pain_dot",
+      "name": "Shadow Word: Pain",
+      "duration": 5,
+      "isDebuff": true,
+      "tickDamage": { "damageType": "shadow", "flat": 10, "scaling": "sp", "multiplier": 0.03 },
+      "modifiers": {},
+      "ccFlags": {}
+    },
+    "holy_fire_dot": {
+      "id": "holy_fire_dot",
+      "name": "Holy Fire",
+      "duration": 4,
+      "isDebuff": true,
+      "tickDamage": { "damageType": "holy", "flat": 8, "scaling": "sp", "multiplier": 0.02 },
+      "modifiers": {},
+      "ccFlags": {}
+    },
+
+    "rockbiter_weapon_buff": {
+      "id": "rockbiter_weapon_buff", "name": "Rockbiter Weapon",
+      "duration": 30, "isWeaponBuff": true,
+      "modifiers": { "attackPower": 50 }, "ccFlags": {}
+    },
+
+    "earth_shock_debuff": {
+      "id": "earth_shock_debuff", "name": "Earth Shock",
+      "duration": 2, "isDebuff": true,
+      "modifiers": { "attackPower": -40 }, "ccFlags": {}
+    },
+
+    "stoneskin_totem_buff": {
+      "id": "stoneskin_totem_buff", "name": "Stoneskin Totem",
+      "duration": 99, "totemGroup": "earth",
+      "modifiers": { "armor": 300 }, "ccFlags": {}
+    },
+
+    "earthbind_totem_buff": {
+      "id": "earthbind_totem_buff", "name": "Earthbind Totem",
+      "duration": 99, "totemGroup": "earth",
+      "fleeBonus": 0.3, "modifiers": {}, "ccFlags": {}
+    },
+
+    "lightning_shield_buff": {
+      "id": "lightning_shield_buff", "name": "Lightning Shield",
+      "duration": 10, "charges": 3, "isElementalShield": true,
+      "onHitRetaliation": { "damageType": "nature", "flat": 12, "scaling": "sp", "multiplier": 0.08 },
+      "retaliationLabel": "lightning shield zaps",
+      "modifiers": {}, "ccFlags": {}
+    },
+
+    "stoneclaw_totem_buff": {
+      "id": "stoneclaw_totem_buff", "name": "Stoneclaw Totem",
+      "duration": 10, "totemGroup": "earth",
+      "absorbShield": 40, "modifiers": {}, "ccFlags": {}
+    },
+
+    "flametongue_weapon_buff": {
+      "id": "flametongue_weapon_buff", "name": "Flametongue Weapon",
+      "duration": 30, "isWeaponBuff": true,
+      "modifiers": { "spellPower": 35 }, "ccFlags": {}
+    },
+
+    "searing_totem_dot": {
+      "id": "searing_totem_dot", "name": "Searing Flames",
+      "duration": 99, "isDebuff": true, "totemGroup": "fire",
+      "tickDamage": { "damageType": "fire", "flat": 8, "scaling": "sp", "multiplier": 0.02 },
+      "modifiers": {}, "ccFlags": {}
+    },
+
+    "strength_of_earth_buff": {
+      "id": "strength_of_earth_buff", "name": "Strength of Earth",
+      "duration": 99, "totemGroup": "earth",
+      "modifiers": { "attackPower": 60 }, "ccFlags": {}
+    },
+
+    "flame_shock_dot": {
+      "id": "flame_shock_dot", "name": "Flame Shock",
+      "duration": 4, "isDebuff": true,
+      "tickDamage": { "damageType": "fire", "flat": 10, "scaling": "sp", "multiplier": 0.03 },
+      "modifiers": {}, "ccFlags": {}
+    },
+
+    "serpent_sting_dot":         { "id": "serpent_sting_dot",         "name": "Serpent Sting",        "duration": 5,  "isDebuff": true, "debuffType": "poison", "tickDamage": { "damageType": "nature", "flat": 8,  "scaling": "ap", "multiplier": 0.05 }, "modifiers": {}, "ccFlags": {} },
+    "aspect_of_the_monkey_buff": { "id": "aspect_of_the_monkey_buff", "name": "Aspect of the Monkey", "duration": 30, "isAspect": true, "modifiers": { "dodgeChance": 0.15 }, "ccFlags": {} },
+    "hunters_mark_debuff":        { "id": "hunters_mark_debuff",       "name": "Hunter's Mark",        "duration": 99, "isDebuff": true, "modifiers": { "damageTakenMultiplier": 1.2 }, "ccFlags": {} },
+    "concussive_shot_debuff":     { "id": "concussive_shot_debuff",    "name": "Concussive Shot",      "duration": 2,  "isDebuff": true, "fleeBonus": 0.3, "modifiers": {}, "ccFlags": {} },
+    "aspect_of_the_hawk_buff":    { "id": "aspect_of_the_hawk_buff",   "name": "Aspect of the Hawk",   "duration": 30, "isAspect": true, "modifiers": { "attackPower": 60 }, "ccFlags": {} },
+    "wing_clip_debuff":           { "id": "wing_clip_debuff",          "name": "Wing Clip",            "duration": 2,  "isDebuff": true, "fleeBonus": 0.3, "modifiers": {}, "ccFlags": {} },
+    "scare_beast_debuff":         { "id": "scare_beast_debuff",        "name": "Scare Beast",          "duration": 2,  "isDebuff": true, "modifiers": {}, "ccFlags": { "stunned": true } },
+    "immolation_trap_dot":        { "id": "immolation_trap_dot",       "name": "Immolation Trap",      "duration": 4,  "isDebuff": true, "tickDamage": { "damageType": "fire",   "flat": 12, "scaling": "ap", "multiplier": 0.03 }, "modifiers": {}, "ccFlags": {} },
+
+    "seal_of_righteousness_buff": { "id": "seal_of_righteousness_buff", "name": "Seal of Righteousness", "duration": 5,  "isSeal": true, "procOnHit": { "damageType": "holy", "flat": 10, "scaling": "sp", "multiplier": 0.08 }, "modifiers": {}, "ccFlags": {} },
+    "devotion_aura_buff":         { "id": "devotion_aura_buff",         "name": "Devotion Aura",          "duration": 99, "isAura": true, "totemGroup": "aura", "modifiers": { "armor": 400 }, "ccFlags": {} },
+    "blessing_of_might_buff":     { "id": "blessing_of_might_buff",     "name": "Blessing of Might",      "duration": 20, "isBlessing": true, "modifiers": { "attackPower": 65 }, "ccFlags": {} },
+    "divine_protection_buff":     { "id": "divine_protection_buff",     "name": "Divine Protection",      "duration": 3,  "modifiers": { "damageTakenMultiplier": 0.5 }, "ccFlags": {} },
+    "hammer_of_justice_stun":     { "id": "hammer_of_justice_stun",     "name": "Hammer of Justice",      "duration": 2,  "isDebuff": true, "modifiers": {}, "ccFlags": { "stunned": true } },
+    "hand_of_protection_buff":    { "id": "hand_of_protection_buff",    "name": "Hand of Protection",     "duration": 2,  "invulnerable": true, "preventsActions": true, "modifiers": {}, "ccFlags": {} },
+
+    "stealth_buff":        { "id": "stealth_buff",        "name": "Stealth",        "duration": 99, "isStealth": true,    "modifiers": {}, "ccFlags": {} },
+    "evasion_buff":        { "id": "evasion_buff",        "name": "Evasion",        "duration": 3,  "modifiers": { "dodgeChance": 0.75 }, "ccFlags": {} },
+    "sprint_buff":         { "id": "sprint_buff",         "name": "Sprint",         "duration": 1,  "fleeBonus": 0.10,   "modifiers": {}, "ccFlags": {} },
+    "gouge_stun":          { "id": "gouge_stun",          "name": "Gouge",          "duration": 1,  "isDebuff": true,    "modifiers": {}, "ccFlags": { "stunned": true } },
+    "sap_debuff":          { "id": "sap_debuff",          "name": "Sap",            "duration": 4,  "isDebuff": true,    "removedOnDamage": true, "modifiers": {}, "ccFlags": { "stunned": true } },
+    "slice_and_dice_buff": { "id": "slice_and_dice_buff", "name": "Slice and Dice", "duration": 1,  "doubleAction": true, "modifiers": {}, "ccFlags": {} },
+
+    "arcane_intellect_buff": { "id": "arcane_intellect_buff", "name": "Arcane Intellect", "duration": 30, "modifiers": { "spellPower": 40 }, "ccFlags": {} },
+    "frost_armor_buff":      { "id": "frost_armor_buff",      "name": "Frost Armor",       "duration": 99, "isArmorSpell": true, "modifiers": { "armor": 350 }, "debuffOnHit": { "buffId": "chilled_debuff" }, "ccFlags": {} },
+    "chilled_debuff":        { "id": "chilled_debuff",        "name": "Chilled",            "duration": 2,  "isDebuff": true, "modifiers": { "attackPower": -20 }, "ccFlags": {} },
+    "frostbolt_flee_buff":   { "id": "frostbolt_flee_buff",   "name": "Frostbolt Chill",    "duration": 2,  "fleeBonus": 0.10, "modifiers": {}, "ccFlags": {} },
+    "frost_nova_stun":       { "id": "frost_nova_stun",       "name": "Frost Nova",         "duration": 1,  "isDebuff": true, "modifiers": {}, "ccFlags": { "stunned": true } },
+    "frost_nova_flee_buff":  { "id": "frost_nova_flee_buff",  "name": "Frost Nova Escape",  "duration": 1,  "fleeBonus": 0.20, "modifiers": {}, "ccFlags": {} },
+    "polymorph_stun":        { "id": "polymorph_stun",        "name": "Polymorph",          "duration": 2,  "isDebuff": true, "isPolymorph": true, "removedOnShapeshift": true, "modifiers": {}, "ccFlags": { "stunned": true } },
+
+    "demon_skin_buff":           { "id": "demon_skin_buff",           "name": "Demon Skin",         "duration": 99, "isArmorSpell": true, "healingTakenBonus": 0.15, "modifiers": { "armor": 300 }, "ccFlags": {} },
+    "corruption_dot":            { "id": "corruption_dot",            "name": "Corruption",         "duration": 6,  "isDebuff": true, "tickDamage": { "damageType": "shadow", "flat": 8, "scaling": "sp", "multiplier": 0.08 }, "modifiers": {}, "ccFlags": {} },
+    "curse_of_weakness_debuff":  { "id": "curse_of_weakness_debuff",  "name": "Curse of Weakness",  "duration": 10, "isDebuff": true, "isCurse": true, "modifiers": { "attackPower": -20, "armor": -100 }, "ccFlags": {} },
+    "curse_of_agony_dot":        { "id": "curse_of_agony_dot",        "name": "Curse of Agony",     "duration": 12, "isDebuff": true, "isCurse": true, "rampingTickDamage": true, "tickDamage": { "damageType": "shadow", "flat": 8, "scaling": "sp", "multiplier": 0.06 }, "modifiers": {}, "ccFlags": {} },
+    "warlock_fear_debuff":       { "id": "warlock_fear_debuff",       "name": "Fear",               "duration": 2,  "isDebuff": true, "modifiers": {}, "ccFlags": { "feared": true } },
+
+    "mark_of_the_wild_buff": { "id": "mark_of_the_wild_buff", "name": "Mark of the Wild", "duration": 30, "maxHpBonus": 60, "modifiers": { "attackPower": 12, "armor": 100, "spellPower": 15 }, "ccFlags": {} },
+    "thorns_buff":           { "id": "thorns_buff",           "name": "Thorns",            "duration": 10, "onHitRetaliation": { "damageType": "nature", "flat": 8, "scaling": "sp", "multiplier": 0.10 }, "retaliationLabel": "thorns retaliates on", "modifiers": {}, "ccFlags": {} },
+    "entangling_roots_dot":  { "id": "entangling_roots_dot",  "name": "Entangling Roots",  "duration": 4,  "isDebuff": true, "fleeBonus": 0.10, "tickDamage": { "damageType": "nature", "flat": 7, "scaling": "sp", "multiplier": 0.06 }, "modifiers": {}, "ccFlags": {} },
+    "bear_form_buff":        { "id": "bear_form_buff",        "name": "Bear Form",          "duration": 99, "isShapeshift": true, "isBearForm": true, "immuneToPolymorph": true, "maxHpBonus": 560, "modifiers": { "attackPower": 120, "armor": 400 }, "ccFlags": {} },
+    "demoralizing_roar_debuff": { "id": "demoralizing_roar_debuff", "name": "Demoralized", "duration": 5, "isDebuff": true, "modifiers": { "attackPower": -30 }, "ccFlags": {} },
+
+    "dust_cloud_debuff": {
+      "id": "dust_cloud_debuff",
+      "name": "Dust Cloud",
+      "duration": 5,
+      "isDebuff": true,
+      "modifiers": { "hitChancePenalty": 0.3 },
+      "ccFlags": {}
+    },
+    "razormane_quills_buff": { "id": "razormane_quills_buff", "name": "Razor Mane", "duration": 4, "onHitRetaliation": { "damageType": "nature", "flat": 6, "scaling": "sp", "multiplier": 0.05 }, "retaliationLabel": "razor mane retaliates on", "modifiers": {}, "ccFlags": {} },
+
+    "improved_blocking": {
+      "id": "improved_blocking",
+      "name": "Improved Blocking",
+      "resourceCost": {},
+      "cooldown": 4,
+      "castTime": 0,
+      "targeting": "self",
+      "effects": [{ "type": "buff", "buffId": "improved_blocking_buff" }],
+      "tags": ["physical", "buff"],
+      "description": "The battleguard raises its guard, greatly increasing its chance to dodge incoming attacks for 3 turns."
+    },
+
+    "improved_blocking_buff": { "id": "improved_blocking_buff", "name": "Improved Blocking", "duration": 3, "modifiers": { "dodgeChance": 0.55 }, "ccFlags": {} },
+    "faerie_fire_debuff": { "id": "faerie_fire_debuff", "name": "Faerie Fire", "duration": 8, "isDebuff": true, "blocksStealth": true, "modifiers": { "armor": -500 }, "ccFlags": {} },
+
+    "fanatic_blade": {
+      "id": "fanatic_blade",
+      "name": "Fanatic Blade",
+      "resourceCost": {},
+      "cooldown": 8,
+      "castTime": 0,
+      "targeting": "self",
+      "effects": [{ "type": "buff", "buffId": "fanatic_blade_buff" }],
+      "tags": ["fire", "melee", "weapon"],
+      "description": "The fanatic channels fire into their blade, causing melee attacks to deal bonus fire damage for 8 turns."
+    },
+
+    "fanatic_blade_buff": { "id": "fanatic_blade_buff", "name": "Fanatic Blade", "duration": 8, "procOnHit": { "damageType": "fire", "flat": 12, "scaling": "ap", "multiplier": 0.05 }, "modifiers": {}, "ccFlags": {} },
+
+    "quick_sidestep": {
+      "id": "quick_sidestep",
+      "name": "Quick Sidestep",
+      "resourceCost": {},
+      "cooldown": 5,
+      "castTime": 0,
+      "targeting": "self",
+      "effects": [{ "type": "buff", "buffId": "quick_sidestep_buff" }],
+      "tags": ["physical", "buff"],
+      "description": "The crawler deftly sidesteps incoming blows, greatly increasing its chance to dodge for 3 turns."
+    },
+
+    "quick_sidestep_buff": { "id": "quick_sidestep_buff", "name": "Quick Sidestep", "duration": 3, "modifiers": { "dodgeChance": 0.50 }, "ccFlags": {} },
+
+    "lizard_bolt": {
+      "id": "lizard_bolt",
+      "name": "Lizard Bolt",
+      "resourceCost": { "mana": 20 },
+      "cooldown": 0,
+      "castTime": 1,
+      "targeting": "single_enemy",
+      "effects": [{ "type": "damage", "damageType": "nature", "scaling": "sp", "multiplier": 1.0, "flatBonus": 22 }],
+      "tags": ["nature", "spell"],
+      "description": "Hurls a crackling bolt of nature energy at a single target."
+    },
+
+    "shrink": {
+      "id": "shrink",
+      "name": "Shrink",
+      "resourceCost": {},
+      "cooldown": 4,
+      "castTime": 0,
+      "targeting": "single_enemy",
+      "effects": [{ "type": "debuff", "buffId": "shrink_debuff" }],
+      "tags": ["shadow", "debuff", "voodoo"],
+      "description": "Zalazane channels dark voodoo to shrink his target, reducing their Strength and Stamina by 1 for 20 turns."
+    },
+
+    "shrink_debuff": { "id": "shrink_debuff", "name": "Shrink", "duration": 20, "isDebuff": true, "modifiers": { "str": -1, "sta": -1 }, "ccFlags": {} },
+
+    "noxious_catalyst": {
+      "id": "noxious_catalyst",
+      "name": "Noxious Catalyst",
+      "resourceCost": {},
+      "cooldown": 6,
+      "castTime": 0,
+      "targeting": "single_enemy",
+      "effects": [{ "type": "debuff", "buffId": "noxious_catalyst_debuff" }],
+      "tags": ["nature", "debuff"],
+      "description": "Saturates the target with corrosive venom, reducing their nature resistance by 45 for 20 turns."
+    },
+
+    "noxious_catalyst_debuff": { "id": "noxious_catalyst_debuff", "name": "Noxious Catalyst", "duration": 20, "isDebuff": true, "modifiers": { "natureResistance": -45 }, "ccFlags": {} },
+
+    "decayed_strength": {
+      "id": "decayed_strength",
+      "name": "Decayed Strength",
+      "resourceCost": {},
+      "cooldown": 6,
+      "castTime": 0,
+      "targeting": "single_enemy",
+      "effects": [{ "type": "debuff", "buffId": "decayed_strength_debuff" }],
+      "tags": ["nature", "debuff"],
+      "description": "The corrupted surf crawler secretes a corrosive toxin, reducing the target's Strength by 18 for 20 turns."
+    },
+
+    "decayed_strength_debuff": { "id": "decayed_strength_debuff", "name": "Decayed Strength", "duration": 20, "isDebuff": true, "modifiers": { "str": -18 }, "ccFlags": {} },
+
+    "decayed_agility": {
+      "id": "decayed_agility",
+      "name": "Decayed Agility",
+      "resourceCost": {},
+      "cooldown": 6,
+      "castTime": 0,
+      "targeting": "single_enemy",
+      "effects": [{ "type": "debuff", "buffId": "decayed_agility_debuff" }],
+      "tags": ["nature", "debuff"],
+      "description": "The corrupted crocolisk's festering bite seeps with decay, reducing the target's Agility by 18 for 20 turns."
+    },
+
+    "decayed_agility_debuff": { "id": "decayed_agility_debuff", "name": "Decayed Agility", "duration": 20, "isDebuff": true, "modifiers": { "agi": -18 }, "ccFlags": {} },
+
+    "soul_siphon": {
+      "id": "soul_siphon",
+      "name": "Soul Siphon",
+      "resourceCost": {},
+      "cooldown": 5,
+      "castTime": 1,
+      "targeting": "cleave",
+      "effects": [
+        { "type": "damage", "damageType": "shadow", "scaling": "sp", "multiplier": 0.9, "flatBonus": 18 },
+        { "type": "heal",   "scaling": "sp", "multiplier": 0.6, "flatBonus": 15, "effectTargeting": "self" }
+      ],
+      "tags": ["shadow", "spell", "drain"],
+      "description": "Siphons dark energy through two targets, dealing shadow damage to both and healing the caster."
+    },
+
+    "pet_bite": {
+      "id": "pet_bite",
+      "name": "Bite",
+      "resourceCost": {},
+      "cooldown": 0,
+      "castTime": 0,
+      "targeting": "single_enemy",
+      "effects": [
+        { "type": "damage", "damageType": "physical", "scaling": "ap", "multiplier": 1.1 }
+      ],
+      "tags": ["physical", "melee", "pet"],
+      "description": "Bites the enemy, dealing physical damage."
+    },
+
+    "pet_claw": {
+      "id": "pet_claw",
+      "name": "Claw",
+      "resourceCost": {},
+      "cooldown": 2,
+      "castTime": 0,
+      "targeting": "single_enemy",
+      "effects": [
+        { "type": "damage", "damageType": "physical", "scaling": "ap", "multiplier": 1.5 }
+      ],
+      "tags": ["physical", "melee", "pet"],
+      "description": "Slashes the enemy with sharp claws for heavy physical damage."
+    },
+
+    "pet_growl": {
+      "id": "pet_growl",
+      "name": "Growl",
+      "resourceCost": {},
+      "cooldown": 3,
+      "castTime": 0,
+      "targeting": "all_enemies",
+      "effects": [
+        { "type": "threat", "amount": 300 }
+      ],
+      "tags": ["pet", "taunt"],
+      "description": "Growls menacingly, drawing the attention of all enemies."
+    },
+
+    "pet_charge": {
+      "id": "pet_charge",
+      "name": "Charge",
+      "resourceCost": {},
+      "cooldown": 6,
+      "castTime": 0,
+      "targeting": "single_enemy",
+      "effects": [
+        { "type": "damage", "damageType": "physical", "scaling": "ap", "multiplier": 1.2 },
+        { "type": "debuff", "buffId": "pet_charge_stun", "chance": 1.0 }
+      ],
+      "tags": ["physical", "melee", "pet"],
+      "description": "Charges an enemy, dealing damage and stunning them briefly."
+    },
+
+    "pet_frenzy": {
+      "id": "pet_frenzy",
+      "name": "Frenzy",
+      "resourceCost": {},
+      "cooldown": 8,
+      "castTime": 0,
+      "targeting": "self",
+      "effects": [
+        { "type": "buff", "buffId": "pet_frenzy_buff" }
+      ],
+      "tags": ["pet", "buff"],
+      "description": "Enters a frenzy, greatly increasing attack power for 4 turns."
+    },
+
+    "pet_screech": {
+      "id": "pet_screech",
+      "name": "Screech",
+      "resourceCost": {},
+      "cooldown": 5,
+      "castTime": 0,
+      "targeting": "all_enemies",
+      "effects": [
+        { "type": "debuff", "buffId": "pet_screech_debuff" }
+      ],
+      "tags": ["pet", "debuff"],
+      "description": "Lets out a piercing screech that reduces all enemies' attack power."
+    },
+
+    "pet_firebolt": {
+      "id": "pet_firebolt",
+      "name": "Firebolt",
+      "resourceCost": {},
+      "cooldown": 0,
+      "castTime": 0,
+      "targeting": "single_enemy",
+      "effects": [
+        { "type": "damage", "damageType": "fire", "scaling": "sp", "multiplier": 1.0, "flatBonus": 10 }
+      ],
+      "tags": ["fire", "spell", "pet"],
+      "description": "Hurls a bolt of fire at the target."
+    },
+
+    "pet_torment": {
+      "id": "pet_torment",
+      "name": "Torment",
+      "resourceCost": {},
+      "cooldown": 4,
+      "castTime": 0,
+      "targeting": "all_enemies",
+      "effects": [
+        { "type": "damage", "damageType": "shadow", "scaling": "ap", "multiplier": 0.6 },
+        { "type": "threat", "amount": 250 }
+      ],
+      "tags": ["shadow", "pet", "taunt"],
+      "description": "Lashes all enemies with void energy, generating massive threat."
+    },
+
+    "pet_consume_shadows": {
+      "id": "pet_consume_shadows",
+      "name": "Consume Shadows",
+      "resourceCost": {},
+      "cooldown": 6,
+      "castTime": 0,
+      "targeting": "self",
+      "effects": [
+        { "type": "heal", "scaling": "sp", "multiplier": 0.8, "flatBonus": 40, "effectTargeting": "self" }
+      ],
+      "tags": ["shadow", "pet", "heal"],
+      "description": "Draws in void energy to regenerate health."
+    },
+
+    "pet_seethe": {
+      "id": "pet_seethe",
+      "name": "Seethe",
+      "resourceCost": {},
+      "cooldown": 3,
+      "castTime": 0,
+      "targeting": "single_enemy",
+      "effects": [
+        { "type": "damage", "damageType": "physical", "scaling": "ap", "multiplier": 1.7 }
+      ],
+      "tags": ["physical", "melee", "pet"],
+      "description": "A vicious strike fueled by demonic rage."
+    },
+
+    "pet_spell_lock": {
+      "id": "pet_spell_lock",
+      "name": "Spell Lock",
+      "resourceCost": {},
+      "cooldown": 8,
+      "castTime": 0,
+      "targeting": "single_enemy",
+      "effects": [
+        { "type": "interrupt" },
+        { "type": "debuff", "buffId": "pet_spell_lock_debuff" }
+      ],
+      "tags": ["shadow", "pet", "interrupt"],
+      "description": "Locks down an enemy's spellcasting and silences them."
+    },
+
+    "pet_lightning_breath": {
+      "id": "pet_lightning_breath",
+      "name": "Lightning Breath",
+      "resourceCost": {},
+      "cooldown": 4,
+      "castTime": 0,
+      "targeting": "cleave",
+      "effects": [
+        { "type": "damage", "damageType": "nature", "scaling": "ap", "multiplier": 0.9, "flatBonus": 15 }
+      ],
+      "tags": ["nature", "pet"],
+      "description": "Breathes arcs of lightning that strike two enemies."
+    },
+
+    "pet_frenzy_buff":       { "id": "pet_frenzy_buff",       "name": "Frenzy",       "duration": 4,  "modifiers": { "attackPower": 80 }, "ccFlags": {} },
+    "pet_screech_debuff":    { "id": "pet_screech_debuff",    "name": "Screech",       "duration": 4,  "isDebuff": true, "modifiers": { "attackPower": -40 }, "ccFlags": {} },
+    "pet_charge_stun":       { "id": "pet_charge_stun",       "name": "Stunned",       "duration": 1,  "isDebuff": true, "modifiers": {}, "ccFlags": { "stunned": true } },
+    "pet_spell_lock_debuff": { "id": "pet_spell_lock_debuff", "name": "Spell Locked",  "duration": 2,  "isDebuff": true, "modifiers": {}, "ccFlags": { "silenced": true } }
+
+  }
+}

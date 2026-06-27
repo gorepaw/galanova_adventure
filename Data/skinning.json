@@ -1,0 +1,17 @@
+{
+  "leatherTiers": [
+    { "itemId": "ruined_leather_scraps", "minLevel": 1,  "maxLevel": 17 },
+    { "itemId": "light_leather",         "minLevel": 1,  "maxLevel": 27 },
+    { "itemId": "medium_leather",        "minLevel": 15, "maxLevel": 36 },
+    { "itemId": "heavy_leather",         "minLevel": 25, "maxLevel": 46 },
+    { "itemId": "thick_leather",         "minLevel": 35, "maxLevel": 55 },
+    { "itemId": "rugged_leather",        "minLevel": 45, "maxLevel": 60 }
+  ],
+  "hideTiers": [
+    { "itemId": "light_hide",  "minLevel": 10, "maxLevel": 25, "peakMin": 12, "peakMax": 20, "chanceBase": 0.08, "chancePeak": 0.22 },
+    { "itemId": "medium_hide", "minLevel": 20, "maxLevel": 35, "peakMin": 25, "peakMax": 32, "chanceBase": 0.08, "chancePeak": 0.22 },
+    { "itemId": "heavy_hide",  "minLevel": 30, "maxLevel": 45, "peakMin": 35, "peakMax": 42, "chanceBase": 0.08, "chancePeak": 0.22 },
+    { "itemId": "thick_hide",  "minLevel": 40, "maxLevel": 55, "peakMin": 45, "peakMax": 52, "chanceBase": 0.08, "chancePeak": 0.22 },
+    { "itemId": "rugged_hide", "minLevel": 50, "maxLevel": 60, "peakMin": 52, "peakMax": 60, "chanceBase": 0.08, "chancePeak": 0.22 }
+  ]
+}

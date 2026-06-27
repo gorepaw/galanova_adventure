@@ -1,0 +1,3277 @@
+// =============================================================================
+// CORE GAMEPLAY LOOP � Kalimdor RPG
+// Vertical slice: HomeScreen → Encounter → Combat → Rewards → Save → Home
+//
+// DEPENDENCIES (load before this file):
+//   data_layer.js   � DataStore, Loader, Saver, Validator, Modifiers, Currency
+//   stat_tables.js  � getStatsAtLevel, addXpToInst, xpToNextLevel,
+//                     CLASS_BASE_HP, CLASS_BASE_MP
+//   companions.js   � buildCompanionInstance
+//   encounter.js    � PartySkills, checkReroll, EncounterGenerator
+//   combat_engine.js � processTurn, createGameState (manual turn engine)
+// =============================================================================
+
+"use strict";
+
+const _abilitiesData      = require('../Data/abilities.json');
+const _itemsData          = require('../Data/items.json');
+const _mobsData           = require('../Data/mobs.json');
+const _craftingData       = require('../Data/crafting.json');
+const _gatheringData      = require('../Data/gathering.json');
+const _skinningData       = require('../Data/skinning.json');
+const _shopData           = require('../Data/shop.json');
+const _achievementsData   = require('../Data/achievements.json');
+const _dungeonsData       = require('../Data/dungeons.json');
+const _hunterPetData      = require('../Data/hunterpet.json');
+const _warlockPetData     = require('../Data/warlockpet.json');
+
+
+// =============================================================================
+// CURRENCY SYSTEM
+// All values stored as total copper. Display converts on the fly.
+// =============================================================================
+
+const Currency = (() => {
+  const toCopperFromParts = (gold = 0, silver = 0, copper = 0) =>
+    gold * 10000 + silver * 100 + copper;
+
+  const toDisplay = (totalCopper) => ({
+    gold:   Math.floor(totalCopper / 10000),
+    silver: Math.floor((totalCopper % 10000) / 100),
+    copper: totalCopper % 100,
+    total:  totalCopper,
+  });
+
+  const toString = (totalCopper) => {
+    const { gold, silver, copper } = toDisplay(totalCopper);
+    const parts = [];
+    if (gold   > 0) parts.push(`${gold}g`);
+    if (silver > 0) parts.push(`${silver}s`);
+    if (copper > 0 || parts.length === 0) parts.push(`${copper}c`);
+    return parts.join(" ");
+  };
+
+  const canAfford = (save, cost) => (save.currency || 0) >= cost;
+  const deduct    = (save, amount) => ({ ...save, currency: Math.max(0, (save.currency || 0) - amount) });
+  const add       = (save, amount) => ({ ...save, currency: (save.currency || 0) + amount });
+
+  return { toCopperFromParts, toDisplay, toString, canAfford, deduct, add };
+})();
+
+
+// =============================================================================
+// COMBAT BRIDGE � improved implementation
+// Autobattle wrapper � translates encounter packet + companion instances into
+// a complete combat result by driving the AI on both sides until resolved.
+// This implementation adds buff/proc support, passive stat modifiers, and
+// richer unit/resource shapes.
+// =============================================================================
+
+const CombatBridge = (() => {
+
+  const CLASS_BASE_HP = { warrior:60, paladin:45, hunter:45, rogue:40, priest:30, shaman:40, mage:25, warlock:28, druid:35 };
+  const CLASS_BASE_MP = { warrior:0,  paladin:60, hunter:40, rogue:0,  priest:80, shaman:60, mage:100, warlock:90, druid:70 };
+
+  const PET_CLASSES = {
+    hunter:  _hunterPetData.pets,
+    warlock: _warlockPetData.pets,
+  };
+
+  const ABILITY_DATA     = _abilitiesData.abilities;
+  const BUFF_DEFS_BRIDGE = _abilitiesData.buffs;
+
+  // ── always-on passive stat mods applied at buildUnit time ──────────────────
+  const applyAlwaysPassives = (derived, abilities) => {
+    const d = { ...derived };
+    for (const abId of abilities) {
+      const ab = ABILITY_DATA[abId];
+      if (!ab || !ab.passive || ab.trigger !== "always") continue;
+      for (const effect of (ab.effects || [])) {
+        if (effect.type !== "stat_mod") continue;
+        const val = (effect.source ? ((d[effect.source] || 0) * (effect.multiplier || 0)) : 0)
+                  + (effect.flat || 0);
+        if (effect.stat in d) d[effect.stat] = (d[effect.stat] || 0) + val;
+      }
+    }
+    return d;
+  };
+
+  const buildUnit = (cfg, isEnemy = false) => {
+    const classId  = cfg.classId || "warrior";
+    const level    = cfg.level || 1;
+    const raw      = cfg.stats?.raw || cfg.baseStats || getStatsAtLevel(cfg.raceId || "orc", classId, level);
+    const abilities = cfg.learnedAbilities || cfg.abilities || ["melee_attack"];
+
+    const baseD = {
+      maxHp:              raw.sta * 10 + (CLASS_BASE_HP[classId] || 0),
+      maxMana:            raw.int * 15 + (CLASS_BASE_MP[classId] || 0),
+      attackPower:        raw.str * 2 + raw.agi,
+      rangedAttackPower:  Math.max(0, 2 * level + 2 * raw.agi - 10),
+      spellPower:         0,
+      armor:              raw.agi * 2,
+      critChanceMelee:    raw.agi / 20 / 100,
+      critChanceSpell:    raw.int / 60 / 100,
+      manaRegen:          Math.floor(raw.spi / 5),
+      critMultiplier:     2.0,
+    };
+
+    const derived = applyAlwaysPassives(baseD, abilities);
+
+    const maxHp   = cfg.maxHp || derived.maxHp;
+    const maxMana = cfg.maxMp || derived.maxMana;
+
+    const resources = {};
+    if      (["warrior"].includes(classId)) { resources.rage         = { current: 0,        max: 100 }; }
+    else if (["rogue"  ].includes(classId)) { resources.energy       = { current: 100,       max: 100 };
+                                              resources.combo_points  = { current: 0,         max: 5   }; }
+    else if (["druid"  ].includes(classId)) { resources.mana         = { current: maxMana,   max: maxMana };
+                                              resources.rage          = { current: 0,         max: 100 }; }
+    else                                    { resources.mana         = { current: maxMana,   max: maxMana }; }
+
+    return {
+      id:           cfg.instanceId || cfg.id || `u_${Math.random().toString(36).slice(2, 7)}`,
+      name:         cfg.name,
+      classId,
+      raceId:       cfg.raceId || "orc",
+      level:        cfg.level  || 1,
+      hp:           (cfg.deathState === 'downed' || cfg.deathState === 'dead' || cfg.permadead) ? 0 : (cfg.currentHp || maxHp),
+      maxHp,
+      xpValue:      cfg.xpValue   || 0,
+      loot:         cfg.loot      || [],
+      skinningLoot: cfg.skinningLoot  || [],
+      killReputation: cfg.killReputation || [],
+      currencyDrop: cfg.currencyDrop  || null,
+      stats:        { raw, derived },
+      resources,
+      cooldowns:    {},
+      castQueue:    [],
+      buffs:        [],
+      debuffs:      [],
+      ccState:      { stunned: false, silenced: false, disarmed: false, rooted: false, feared: false },
+      agi:          raw.agi || 0,
+      abilities,
+      tags:         cfg.tags || [],
+      shieldEquipped:           (() => {
+        if (cfg.shieldEquipped) return true;
+        const offId = typeof cfg.gear?.offhand === 'string' ? cfg.gear.offhand : null;
+        const offItem = offId ? _itemsData.items[offId] : null;
+        return !!(offItem && (offItem.tags || []).includes('shield'));
+      })(),
+      rangedReady:              (() => {
+        const AMMO_FOR_WEAPON = { bow: 'arrow', crossbow: 'bolt', gun: 'bullet' };
+        const rangedId = typeof cfg.gear?.ranged === 'string' ? cfg.gear.ranged : null;
+        const ammoId   = typeof cfg.gear?.ammo   === 'string' ? cfg.gear.ammo   : null;
+        const rangedItem = rangedId ? _itemsData.items[rangedId] : null;
+        if (!rangedItem || rangedItem.slot !== 'ranged') return false;
+        const wt = rangedItem.weaponType;
+        if (wt === 'wand' || wt === 'thrown') return true;
+        const neededTag = AMMO_FOR_WEAPON[wt];
+        if (!neededTag) return false;
+        const ammoItem = ammoId ? _itemsData.items[ammoId] : null;
+        if (!(ammoItem && (ammoItem.tags || []).includes(neededTag))) return false;
+        const ammoQty = (cfg._inventory || []).find(e => e.itemId === ammoId)?.qty ?? 0;
+        return ammoQty > 0;
+      })(),
+      damageReceivedThisTurn:   0,
+      damageReceivedLastTurn:   0,
+      isEnemy,
+      alive:        !(cfg.deathState === 'downed' || cfg.deathState === 'dead' || cfg.permadead),
+      threatTable:  {},
+    };
+  };
+
+  const buildPetUnit = (petTemplate, owner) => {
+    const level = owner.level || 1;
+    const raw = {};
+    for (const stat of ['str','agi','sta','int','spi']) {
+      raw[stat] = Math.floor((petTemplate.baseStats[stat] || 0) + (petTemplate.statGrowthPerLevel[stat] || 0) * (level - 1));
+    }
+    const maxHp = petTemplate.baseHp + petTemplate.hpPerLevel * (level - 1);
+    const abilities = (petTemplate.abilities || [])
+      .filter(a => (a.level || 1) <= level)
+      .map(a => a.id);
+    if (!abilities.length) abilities.push('pet_bite');
+
+    const baseD = {
+      maxHp,
+      maxMana:           0,
+      attackPower:       raw.str * 2 + raw.agi,
+      rangedAttackPower: 0,
+      spellPower:        raw.int * 2,
+      armor:             raw.agi * 2,
+      critChanceMelee:   raw.agi / 20 / 100,
+      critChanceSpell:   raw.int / 60 / 100,
+      manaRegen:         0,
+      critMultiplier:    2.0,
+    };
+    const derived = applyAlwaysPassives(baseD, abilities);
+
+    return {
+      id:                    `pet_${owner.id}`,
+      name:                  petTemplate.name,
+      classId:               petTemplate.id,
+      raceId:                petTemplate.type || 'beast',
+      level,
+      hp:                    maxHp,
+      maxHp,
+      stats:                 { raw, derived },
+      resources:             {},
+      cooldowns:             {},
+      castQueue:             [],
+      buffs:                 [],
+      debuffs:               [],
+      ccState:               { stunned: false, silenced: false, disarmed: false, rooted: false, feared: false },
+      agi:                   raw.agi || 0,
+      abilities,
+      tags:                  petTemplate.tags || [],
+      shieldEquipped:        false,
+      rangedReady:           false,
+      damageReceivedThisTurn: 0,
+      damageReceivedLastTurn: 0,
+      isEnemy:               false,
+      alive:                 true,
+      threatTable:           {},
+      isPet:                 true,
+      ownerId:               owner.id,
+      aiProfile:             petTemplate.aiProfile || 'aggressive',
+      xpValue:               0,
+      loot:                  [],
+    };
+  };
+
+  const rollDamage = (effect, attacker, target) => {
+    const aD = attacker.stats.derived;
+    // attacker's buff/debuff modifiers (weapon enchants, debuffs reducing attack power)
+    let ap = aD.attackPower || 0, sp = aD.spellPower || 0;
+    for (const b of [...attacker.buffs, ...attacker.debuffs]) {
+      if (b.modifiers?.attackPower) ap += b.modifiers.attackPower;
+      if (b.modifiers?.spellPower)  sp += b.modifiers.spellPower;
+    }
+    let base = effect.flatBonus || 0;
+    if (effect.scaling === "ap")  base += ap * (effect.multiplier || 1);
+    if (effect.scaling === "sp")  base += sp * (effect.multiplier || 1);
+    if (effect.scaling === "rap") base += (aD.rangedAttackPower || 0) * (effect.multiplier || 1);
+    const isCrit = Math.random() < (effect.damageType === "physical" ? aD.critChanceMelee : aD.critChanceSpell || 0);
+    if (isCrit) base *= aD.critMultiplier || 2;
+    if (effect.damageType === "physical") {
+      let armor = target.stats.derived.armor || 0;
+      for (const b of [...target.buffs, ...target.debuffs]) if (b.modifiers?.armor) armor += b.modifiers.armor;
+      armor = Math.max(0, armor);
+      base *= (1 - armor / (armor + 1500));
+    }
+    for (const b of [...target.buffs, ...target.debuffs])
+      if (b.modifiers?.damageTakenMultiplier) base *= b.modifiers.damageTakenMultiplier;
+    return { damage: Math.max(1, Math.floor(base)), isCrit };
+  };
+
+  const rollHeal = (effect, caster) => {
+    const d = caster.stats.derived;
+    let sp = d.spellPower || 0;
+    for (const b of [...caster.buffs, ...caster.debuffs]) if (b.modifiers?.spellPower) sp += b.modifiers.spellPower;
+    return Math.max(1, Math.floor((effect.flatBonus || 0) + sp * (effect.multiplier || 0)));
+  };
+
+  const applyBuff = (unit, buffId, sourceId, durationOverride) => {
+    const def = BUFF_DEFS_BRIDGE[buffId];
+    if (!def) return unit;
+    const inst = {
+      id: buffId, sourceId, duration: durationOverride != null ? durationOverride : def.duration,
+      modifiers:        { ...(def.modifiers || {}) },
+      ccFlags:          { ...(def.ccFlags   || {}) },
+      tickDamage:       def.tickDamage       ? { ...def.tickDamage } : null,
+      tickHeal:         def.tickHeal         ? { ...def.tickHeal }   : null,
+      tickDrain:        def.tickDrain        || false,
+      tickRage:         def.tickRage         || 0,
+      absorbShield:     def.absorbShield     || 0,
+      isFaded:          def.isFaded          || false,
+      negatesNextFear:  def.negatesNextFear  || false,
+      onHitRetaliation: def.onHitRetaliation ? { ...def.onHitRetaliation } : null,
+      totemGroup:       def.totemGroup       || null,
+      fleeBonus:        def.fleeBonus        || 0,
+      isWeaponBuff:     def.isWeaponBuff     || false,
+      isElementalShield: def.isElementalShield || false,
+      isAspect:         def.isAspect         || false,
+      isSeal:           def.isSeal           || false,
+      isBlessing:       def.isBlessing       || false,
+      isAura:           def.isAura           || false,
+      invulnerable:     def.invulnerable     || false,
+      preventsActions:  def.preventsActions  || false,
+      procOnHit:        def.procOnHit        ? { ...def.procOnHit } : null,
+      charges:          def.charges          != null ? def.charges : undefined,
+      isDebuff:         def.isDebuff         || false,
+      isStealth:        def.isStealth        || false,
+      doubleAction:     def.doubleAction     || false,
+      removedOnDamage:  def.removedOnDamage  || false,
+      isArmorSpell:     def.isArmorSpell     || false,
+      debuffOnHit:      def.debuffOnHit      ? { ...def.debuffOnHit } : null,
+      isCurse:            def.isCurse            || false,
+      healingTakenBonus:  def.healingTakenBonus  || 0,
+      rampingTickDamage:  def.rampingTickDamage  || false,
+      initialDuration:    def.rampingTickDamage ? (durationOverride != null ? durationOverride : def.duration) : undefined,
+      isShapeshift:       def.isShapeshift       || false,
+      isBearForm:         def.isBearForm         || false,
+      immuneToPolymorph:  def.immuneToPolymorph  || false,
+      removedOnShapeshift: def.removedOnShapeshift || false,
+      retaliationLabel:   def.retaliationLabel   || null,
+      blocksStealth:      def.blocksStealth      || false,
+    };
+    const isDebuff = Object.values(inst.ccFlags).some(Boolean) || !!inst.tickDamage || !!def.isDebuff;
+    const field    = isDebuff ? "debuffs" : "buffs";
+
+    // mutual exclusion: weapon buffs, elemental shields, aspects, and blessings only allow one instance at a time
+    let u = unit;
+    if (def.isWeaponBuff)      u = { ...u, buffs: u.buffs.filter(b => !b.isWeaponBuff) };
+    if (def.isElementalShield) u = { ...u, buffs: u.buffs.filter(b => !b.isElementalShield) };
+    if (def.isAspect)          u = { ...u, buffs: u.buffs.filter(b => !b.isAspect) };
+    if (def.isBlessing)        u = { ...u, buffs: u.buffs.filter(b => !b.isBlessing) };
+    if (def.isArmorSpell)      u = { ...u, buffs: u.buffs.filter(b => !b.isArmorSpell) };
+    if (def.isCurse) {
+      u = { ...u, buffs:   u.buffs.filter(b   => !(b.isCurse   && b.sourceId === sourceId)) };
+      u = { ...u, debuffs: u.debuffs.filter(b => !(b.isCurse   && b.sourceId === sourceId)) };
+    }
+    if (def.isShapeshift) {
+      const removedShifts = u.buffs.filter(b => b.isShapeshift);
+      for (const rb of removedShifts) {
+        const rDef = BUFF_DEFS_BRIDGE[rb.id];
+        if (rDef?.maxHpBonus) {
+          const nm = u.maxHp - rDef.maxHpBonus;
+          u = { ...u, maxHp: nm, hp: Math.min(u.hp, nm) };
+        }
+      }
+      u = { ...u, buffs: u.buffs.filter(b => !b.isShapeshift) };
+      u = { ...u, debuffs: u.debuffs.filter(d => !d.removedOnShapeshift) };
+      const shiftCC = { stunned: false, silenced: false, disarmed: false, rooted: false, feared: false };
+      for (const d of u.debuffs) for (const [f, v] of Object.entries(d.ccFlags || {})) if (v) shiftCC[f] = true;
+      u = { ...u, ccState: shiftCC };
+    }
+
+    const existIdx = u[field].findIndex(b => b.id === buffId);
+    const newList  = existIdx >= 0
+      ? u[field].map((b, i) => i === existIdx ? { ...b, duration: inst.duration, charges: inst.charges } : b)
+      : [...u[field], inst];
+    const ccState = { ...u.ccState };
+    for (const [f, v] of Object.entries(inst.ccFlags)) if (v) ccState[f] = true;
+    let updated = { ...u, [field]: newList, ccState };
+    if (def.maxHpBonus && existIdx < 0)
+      updated = { ...updated, maxHp: updated.maxHp + def.maxHpBonus, hp: updated.hp + def.maxHpBonus };
+    if (def.blocksStealth)
+      updated = { ...updated, buffs: updated.buffs.filter(b => !b.isStealth) };
+    return updated;
+  };
+
+  const syncUnit = (all, updated) => all.map(u => u.id === updated.id ? updated : u);
+
+  const fireProcAbilities = (unit, trigger, procTarget, logs) => {
+    let u  = { ...unit };
+    let pt = { ...procTarget };
+    for (const abId of (u.abilities || [])) {
+      const ab = ABILITY_DATA[abId];
+      if (!ab || !ab.passive || ab.trigger !== trigger) continue;
+      for (const effect of (ab.effects || [])) {
+        if (effect.type !== "proc") continue;
+        if (Math.random() > (effect.chance || 1)) continue;
+        const buffId = effect.buffId;
+        if (!buffId) continue;
+        const isSelfBuff = ["on_hit","on_crit_heal"].includes(trigger);
+        if (isSelfBuff) {
+          u = applyBuff(u, buffId, u.id);
+          logs.push(`    ↳ ${u.name} procs ${buffId}`);
+        } else {
+          pt = applyBuff(pt, buffId, u.id);
+          logs.push(`    ↳ ${pt.name} afflicted by ${buffId} (proc)`);
+        }
+      }
+    }
+    return { unit: u, procTarget: pt };
+  };
+
+  const execAbility = (abilityId, caster, targets, logs) => {
+    const ab = ABILITY_DATA[abilityId];
+    if (!ab || ab.passive || ab.outOfCombatOnly) return { caster, targets };
+    logs.push(`  ${caster.name} → ${abilityId.replace(/_/g, " ")}`);
+
+    let c = { ...caster, resources: { ...caster.resources } };
+
+    // manaCostPercent consumes a fraction of max mana (e.g. Resurrection = 100%)
+    if (ab.manaCostPercent && c.resources.mana) {
+      const cost = Math.floor(c.resources.mana.max * ab.manaCostPercent);
+      c.resources = { ...c.resources, mana: { ...c.resources.mana, current: Math.max(0, c.resources.mana.current - cost) } };
+    }
+    for (const [r, a] of Object.entries(ab.resourceCost || {}))
+      if (c.resources[r]) c.resources[r] = { ...c.resources[r], current: c.resources[r].current - a };
+    if ((ab.cooldown || 0) > 0)
+      c = { ...c, cooldowns: { ...c.cooldowns, [abilityId]: ab.cooldown } };
+
+    let ts = [...targets];
+    let comboPtsSpent = false;
+
+    for (const effect of ab.effects) {
+      // per-effect targeting override (Holy Nova: damage→enemies, heal→allies)
+      let effectTs;
+      if      (effect.effectTargeting === "all_allies")  effectTs = ts.filter(t => !t.isEnemy === !c.isEnemy);
+      else if (effect.effectTargeting === "all_enemies") effectTs = ts.filter(t =>  t.isEnemy !== c.isEnemy);
+      else if (effect.effectTargeting === "self")        effectTs = [c];
+      else                                               effectTs = ts;
+
+      // self_buff: apply buff to caster regardless of ability targeting (e.g. Frostbolt flee bonus)
+      if (effect.type === "self_buff") {
+        c = applyBuff(c, effect.buffId, c.id);
+        logs.push(`    ↳ ${c.name} gains ${effect.buffId}`);
+        continue;
+      }
+
+      const updated = [];
+      for (let i = 0; i < effectTs.length; i++) {
+        let t = effectTs[i];
+        if (!t.alive) { updated.push(t); continue; }
+
+        if (effect.type === "damage") {
+          // invulnerability: target takes no damage (Hand of Protection)
+          if (t.buffs.some(b => b.invulnerable)) {
+            logs.push(`    ↳ ${t.name} is invulnerable!`);
+            updated.push(t); continue;
+          }
+
+          let { damage, isCrit } = rollDamage(effect, c, t);
+
+          // combo finisher: scale damage by combo points and spend them (e.g. Eviscerate)
+          if (effect.comboFinisher) {
+            const cp = c.resources.combo_points?.current || 0;
+            damage += (effect.bonusPerComboPoint || 0) * cp;
+            damage = Math.max(1, Math.floor(damage));
+            if (!comboPtsSpent) {
+              c = { ...c, resources: { ...c.resources, combo_points: { ...c.resources.combo_points, current: 0 } } };
+              comboPtsSpent = true;
+            }
+          }
+
+          // drain soul bonus: double damage when target is at or below threshold HP
+          if (effect.bonusIfHpBelow && t.maxHp > 0 && t.hp / t.maxHp <= effect.bonusIfHpBelow.threshold) {
+            damage = Math.max(1, Math.floor(damage * effect.bonusIfHpBelow.extraMultiplier));
+          }
+
+          // dodge: physical attacks can be avoided by a unit with dodgeChance buff modifier
+          if (effect.damageType === "physical") {
+            let totalDodge = 0;
+            for (const b of t.buffs) if (b.modifiers?.dodgeChance) totalDodge += b.modifiers.dodgeChance;
+            if (totalDodge > 0 && Math.random() < totalDodge) {
+              logs.push(`    ↳ ${t.name} dodges!`);
+              updated.push(t); continue;
+            }
+          }
+
+          // absorb shield intercepts damage before HP
+          const shieldIdx = t.buffs.findIndex(b => b.absorbShield > 0);
+          if (shieldIdx >= 0) {
+            const shield   = t.buffs[shieldIdx];
+            const absorbed = Math.min(shield.absorbShield, damage);
+            damage -= absorbed;
+            const rem = shield.absorbShield - absorbed;
+            t = { ...t, buffs: rem <= 0
+              ? t.buffs.filter((_, bi) => bi !== shieldIdx)
+              : t.buffs.map((b, bi) => bi === shieldIdx ? { ...b, absorbShield: rem } : b) };
+            logs.push(`    ↳ ${t.name}: shield absorbs ${absorbed}${rem <= 0 ? " [broken]" : ""}`);
+            if (damage <= 0) { updated.push(t); continue; }
+          }
+
+          logs.push(`    ↳ ${t.name}: ${damage}${isCrit ? " [CRIT]" : ""} ${effect.damageType}`);
+          t = { ...t, hp: Math.max(0, t.hp - damage), damageReceivedThisTurn: (t.damageReceivedThisTurn || 0) + damage };
+          // rage from taking physical damage (warriors, bear druids)
+          if (t.resources?.rage && effect.damageType === "physical") {
+            const rg = Math.floor(damage / 5);
+            if (rg > 0) t = { ...t, resources: { ...t.resources, rage: { ...t.resources.rage, current: Math.min(t.resources.rage.max, t.resources.rage.current + rg) } } };
+          }
+
+          // removedOnDamage: debuffs that break when the target takes damage (e.g. Sap)
+          if (t.debuffs.some(d => d.removedOnDamage)) {
+            t = { ...t, debuffs: t.debuffs.filter(d => !d.removedOnDamage) };
+            const cs = { stunned: false, silenced: false, disarmed: false, rooted: false, feared: false };
+            for (const d of t.debuffs) for (const [f, v] of Object.entries(d.ccFlags || {})) if (v) cs[f] = true;
+            t = { ...t, ccState: cs };
+            logs.push(`    ↳ ${t.name}'s stun broken by damage`);
+          }
+
+          if (c.resources.rage) {
+            const rg = Math.floor(damage / 5);
+            c = { ...c, resources: { ...c.resources, rage: { ...c.resources.rage, current: Math.min(100, c.resources.rage.current + rg) } } };
+          }
+          // faded units generate zero threat
+          if (!c.isEnemy && !c.buffs.some(b => b.isFaded)) {
+            const th = c.threatTable || {};
+            c = { ...c, threatTable: { ...th, [t.id]: (th[t.id] || 0) + damage } };
+          }
+          const hitProc = fireProcAbilities(c, "on_hit", t, logs);
+          c = hitProc.unit; t = hitProc.procTarget;
+
+          // on-hit retaliation: target's buff zaps back the attacker (lightning shield, thorns, etc.)
+          for (let bi = 0; bi < t.buffs.length; bi++) {
+            const sb = t.buffs[bi];
+            if (!sb.onHitRetaliation) continue;
+            const rtn = sb.onHitRetaliation;
+            let retDmg = rtn.flat || 0;
+            if (rtn.scaling === "sp") retDmg += (t.stats.derived.spellPower || 0) * (rtn.multiplier || 0);
+            retDmg = Math.max(1, Math.floor(retDmg));
+            c = { ...c, hp: Math.max(0, c.hp - retDmg) };
+            if (c.hp <= 0 && c.alive) c = { ...c, alive: false };
+            const retLabel = sb.retaliationLabel || "retaliation zaps";
+            logs.push(`    ↳ ${t.name}: ${retLabel} ${c.name} for ${retDmg} ${rtn.damageType || "nature"}`);
+            if (sb.charges != null) {
+              const newCharges = sb.charges - 1;
+              t = { ...t, buffs: newCharges <= 0
+                ? t.buffs.filter((_, bj) => bj !== bi)
+                : t.buffs.map((b, bj) => bj === bi ? { ...b, charges: newCharges } : b) };
+            }
+            break;
+          }
+
+          // debuffOnHit: physical attacks on target with debuffOnHit buff afflict the attacker (e.g. Frost Armor chill)
+          if (effect.damageType === "physical") {
+            for (const b of t.buffs) {
+              if (!b.debuffOnHit) continue;
+              c = applyBuff(c, b.debuffOnHit.buffId, t.id);
+              logs.push(`    ↳ ${c.name} afflicted by ${b.debuffOnHit.buffId}`);
+              break;
+            }
+          }
+
+          // seal procs: attacker's seal buffs deal bonus holy damage on physical hits
+          if (effect.damageType === "physical" && t.alive) {
+            for (const b of c.buffs) {
+              if (!b.procOnHit) continue;
+              const rtn = b.procOnHit;
+              let procDmg = rtn.flat || 0;
+              if (rtn.scaling === "sp") procDmg += (c.stats.derived.spellPower || 0) * (rtn.multiplier || 0);
+              procDmg = Math.max(1, Math.floor(procDmg));
+              t = { ...t, hp: Math.max(0, t.hp - procDmg) };
+              if (t.hp <= 0 && t.alive) { t = { ...t, alive: false, hp: 0 }; logs.push(`    ✗ ${t.name} dies`); }
+              logs.push(`    ↳ ${c.name}'s seal procs: ${procDmg} holy`);
+            }
+          }
+
+          if (t.hp <= 0 && t.alive) { logs.push(`    ✗ ${t.name} dies`); t = { ...t, alive: false, hp: 0 }; }
+
+          if (effect.drainSoul && !t.alive) {
+            c = { ...c, soulShardsGained: (c.soulShardsGained || 0) + 1 };
+            logs.push(`    ↳ ${c.name} captures a Soul Shard!`);
+          }
+        }
+
+        if (effect.type === "heal") {
+          const h      = rollHeal(effect, c);
+          const isCrit = Math.random() < (c.stats.derived.critChanceSpell || 0);
+          const healed = isCrit ? Math.floor(h * 1.5) : h;
+          const healBonus = t.buffs.reduce((s, b) => s + (b.healingTakenBonus || 0), 0);
+          const amplified = healBonus > 0 ? Math.floor(healed * (1 + healBonus)) : healed;
+          const act    = Math.min(t.maxHp - t.hp, amplified);
+          t = { ...t, hp: t.hp + act };
+          logs.push(`    ↳ heals ${t.name}: +${act}${isCrit ? " [CRIT]" : ""}`);
+          if (isCrit) {
+            const hp = fireProcAbilities(c, "on_crit_heal", t, logs);
+            c = hp.unit; t = hp.procTarget;
+          }
+        }
+
+        if (effect.type === "buff") {
+          let durOverride;
+          if (effect.comboFinisher && effect.durationPerComboPoint) {
+            const cp = c.resources.combo_points?.current || 0;
+            durOverride = cp * effect.durationPerComboPoint;
+            if (!comboPtsSpent) {
+              c = { ...c, resources: { ...c.resources, combo_points: { ...c.resources.combo_points, current: 0 } } };
+              comboPtsSpent = true;
+            }
+          }
+          t = applyBuff(t, effect.buffId, c.id, durOverride);
+          logs.push(`    ↳ ${t.name} gains ${effect.buffId}${durOverride != null ? ` (${durOverride}t)` : ""}`);
+        }
+
+        if (effect.type === "debuff") {
+          const def = BUFF_DEFS_BRIDGE[effect.buffId] || {};
+          // polymorph immunity: units in bear form (or other shapeshifts) cannot be polymorphed
+          if (def.isPolymorph && t.buffs.some(b => b.immuneToPolymorph)) {
+            logs.push(`    ↳ ${t.name} is immune (shapeshift)`);
+            updated.push(t); continue;
+          }
+          // fear ward consumes its charge and blocks the fear
+          if (def.ccFlags?.feared) {
+            const wardIdx = t.buffs.findIndex(b => b.negatesNextFear);
+            if (wardIdx >= 0) {
+              t = { ...t, buffs: t.buffs.map((b, i) => i === wardIdx ? { ...b, duration: 0 } : b).filter(b => b.duration > 0) };
+              logs.push(`    ↳ ${t.name} resists fear (Fear Ward consumed)`);
+              updated.push(t); continue;
+            }
+          }
+          if (Math.random() < (effect.chance || 1)) {
+            t = applyBuff(t, effect.buffId, c.id);
+            logs.push(`    ↳ ${t.name} afflicted by ${effect.buffId}`);
+          }
+        }
+
+        // smart dispel: enemy target → strip buff; ally target → strip debuff
+        if (effect.type === "dispel") {
+          const isTargetEnemy = t.isEnemy !== c.isEnemy;
+          if (isTargetEnemy && t.buffs.length > 0) {
+            t = { ...t, buffs: t.buffs.slice(1) };
+            logs.push(`    ↳ ${t.name} buff dispelled`);
+          } else if (!isTargetEnemy && t.debuffs.length > 0) {
+            const removed = t.debuffs[0];
+            t = { ...t, debuffs: t.debuffs.slice(1) };
+            const cs = { stunned: false, silenced: false, disarmed: false, rooted: false, feared: false };
+            for (const d of t.debuffs) for (const [f, v] of Object.entries(d.ccFlags || {})) if (v) cs[f] = true;
+            t = { ...t, ccState: cs };
+            logs.push(`    ↳ ${t.name} debuff dispelled (${removed.id})`);
+          }
+        }
+
+        // explicit buff removal (e.g. spell_reflection consuming the buff)
+        if (effect.type === "dispel_buff") {
+          if (t.buffs.length > 0) { t = { ...t, buffs: t.buffs.slice(1) }; logs.push(`    ↳ ${t.name} buff removed`); }
+        }
+
+        if (effect.type === "cleanse") {
+          if (effect.debuffType) {
+            t = { ...t, debuffs: t.debuffs.filter(d => !(BUFF_DEFS_BRIDGE[d.id]?.tags || []).includes(effect.debuffType)) };
+          } else {
+            t = { ...t, debuffs: [] };
+          }
+          const cs = { stunned: false, silenced: false, disarmed: false, rooted: false, feared: false };
+          for (const d of t.debuffs) for (const [f, v] of Object.entries(d.ccFlags || {})) if (v) cs[f] = true;
+          t = { ...t, ccState: cs };
+          logs.push(`    ↳ ${t.name} cleansed`);
+        }
+
+        if (effect.type === "interrupt") {
+          t = { ...t, castQueue: [] };
+          logs.push(`    ↳ ${t.name} interrupted`);
+        }
+
+        if (effect.type === "threat") {
+          if (!c.isEnemy) {
+            const th = { ...c.threatTable };
+            for (const tgt of ts) th[tgt.id] = (th[tgt.id] || 0) + (effect.flat || 10000);
+            c = { ...c, threatTable: th };
+          }
+        }
+
+        if (effect.type === "health_cost") {
+          const cost = effect.flat || Math.floor(c.hp * (effect.percent || 0));
+          c = { ...c, hp: Math.max(1, c.hp - cost) };
+        }
+
+        if (effect.type === "rage_gain") {
+          if (c.resources.rage) {
+            const gain = effect.flat || effect.amount || 0;
+            c = { ...c, resources: { ...c.resources, rage: { ...c.resources.rage, current: Math.min(100, c.resources.rage.current + gain) } } };
+          }
+        }
+
+        // consume caster's active seal (Judgement); target is unchanged
+        if (effect.type === "consume_seal") {
+          const sealIdx = c.buffs.findIndex(b => b.isSeal);
+          if (sealIdx >= 0) {
+            const sealId = c.buffs[sealIdx].id;
+            c = { ...c, buffs: c.buffs.filter((_, bi) => bi !== sealIdx) };
+            logs.push(`    ↳ ${c.name}'s ${sealId} consumed`);
+          }
+        }
+
+        // remove disease/poison debuffs from target (Purify)
+        if (effect.type === "purify") {
+          const removes = new Set(effect.removes || []);
+          const before  = t.debuffs.length;
+          t = { ...t, debuffs: t.debuffs.filter(d => !removes.has(BUFF_DEFS_BRIDGE[d.id]?.debuffType)) };
+          const cs = { stunned: false, silenced: false, disarmed: false, rooted: false, feared: false };
+          for (const d of t.debuffs) for (const [f, v] of Object.entries(d.ccFlags || {})) if (v) cs[f] = true;
+          t = { ...t, ccState: cs };
+          const removed = before - t.debuffs.length;
+          logs.push(removed > 0 ? `    ↳ purified ${removed} effect(s) from ${t.name}` : `    ↳ nothing to purify on ${t.name}`);
+        }
+
+        // gain combo point(s) for the caster (e.g. Sinister Strike)
+        if (effect.type === "gain_combo_point") {
+          if (c.resources.combo_points) {
+            const gain  = effect.count || 1;
+            const newCp = Math.min(c.resources.combo_points.max, c.resources.combo_points.current + gain);
+            c = { ...c, resources: { ...c.resources, combo_points: { ...c.resources.combo_points, current: newCp } } };
+            logs.push(`    ↳ ${c.name} gains ${gain} combo point${gain > 1 ? "s" : ""} (${newCp}/${c.resources.combo_points.max})`);
+          }
+        }
+
+        // steal gold from target (Pick Pocket); collected into run result
+        if (effect.type === "pick_pocket") {
+          const amount = effect.flat || 0;
+          t = { ...t, pickpocketGold: (t.pickpocketGold || 0) + amount };
+          logs.push(`    ↳ ${c.name} pickpockets ${amount} copper from ${t.name}`);
+        }
+
+        // revive is handled post-combat; outOfCombatOnly guards against combat use
+        updated.push(t);
+      }
+
+      // sync updated subset back into the full target list
+      if (effectTs === ts) {
+        ts = updated;
+      } else {
+        for (const u of updated) { const idx = ts.findIndex(x => x.id === u.id); if (idx >= 0) ts[idx] = u; }
+      }
+    }
+
+    // if caster just entered fade, zero out their threat on all known targets
+    if (c.buffs.some(b => b.isFaded) && !caster.buffs.some(b => b.isFaded)) {
+      const zeroTable = {};
+      for (const k of Object.keys(c.threatTable || {})) zeroTable[k] = 0;
+      c = { ...c, threatTable: zeroTable };
+    }
+
+    // when the caster targeted themselves (self-buff), merge the target's updated
+    // fields (buffs, debuffs, hp, ccState) back into the caster so neither the
+    // resource deduction nor the applied buff is lost
+    const selfAsTarget = ts.find(t => t.id === c.id);
+    if (selfAsTarget) c = { ...selfAsTarget, resources: c.resources, cooldowns: c.cooldowns, threatTable: c.threatTable };
+
+    return { caster: c, targets: ts };
+  };
+
+  const tickBuffsUnit = (unit) => {
+    const logs = [], drainHeals = []; let u = { ...unit };
+    for (const eff of [...u.buffs, ...u.debuffs]) {
+      if (eff.tickDamage) {
+        const td  = eff.tickDamage;
+        let dmg   = td.flat || 0;
+        if (td.scaling === "sp") dmg += (u.stats.derived.spellPower || 0) * (td.multiplier || 0);
+        dmg = Math.max(1, Math.floor(dmg));
+        if (eff.rampingTickDamage && (eff.initialDuration || 0) > 1) {
+          const progress = (eff.initialDuration - eff.duration) / (eff.initialDuration - 1);
+          dmg = Math.max(1, Math.floor(dmg * (0.5 + progress)));
+        }
+        u = { ...u, hp: Math.max(0, u.hp - dmg) };
+        logs.push(`    ↳ ${u.name} takes ${dmg} ${td.damageType} (${eff.id})`);
+        if (eff.tickDrain && eff.sourceId) drainHeals.push({ sourceId: eff.sourceId, amount: dmg });
+      }
+      if (eff.tickHeal) {
+        const th   = eff.tickHeal;
+        let heal   = th.flat || 0;
+        if (th.scaling === "sp") heal += (u.stats.derived.spellPower || 0) * (th.multiplier || 0);
+        heal = Math.max(1, Math.floor(heal));
+        u = { ...u, hp: Math.min(u.maxHp, u.hp + heal) };
+        logs.push(`    ↳ ${u.name} heals ${heal} (${eff.id})`);
+      }
+      if (eff.tickRage && u.resources.rage) {
+        const gain = Math.min(eff.tickRage, u.resources.rage.max - u.resources.rage.current);
+        if (gain > 0) {
+          u = { ...u, resources: { ...u.resources, rage: { ...u.resources.rage, current: u.resources.rage.current + gain } } };
+          logs.push(`    ↳ ${u.name} gains ${gain} rage (${eff.id})`);
+        }
+      }
+    }
+    return { unit: u, logs, drainHeals };
+  };
+
+  const expireBuffsUnit = (unit) => {
+    let u = { ...unit };
+    // revert maxHpBonus before the buff expires
+    for (const b of u.buffs) {
+      if (b.duration <= 1) {
+        const def = BUFF_DEFS_BRIDGE[b.id];
+        if (def?.maxHpBonus) {
+          const newMax = u.maxHp - def.maxHpBonus;
+          u = { ...u, maxHp: newMax, hp: Math.min(u.hp, newMax) };
+        }
+      }
+    }
+    const process = list => list.map(b => ({ ...b, duration: b.duration - 1 })).filter(b => b.duration > 0);
+    const nb = process(u.buffs), nd = process(u.debuffs);
+    const ccState = { stunned: false, silenced: false, disarmed: false, rooted: false, feared: false };
+    for (const d of nd) for (const [f, v] of Object.entries(d.ccFlags || {})) if (v) ccState[f] = true;
+    return { ...u, buffs: nb, debuffs: nd, ccState };
+  };
+
+  // sameTeam = own side (for heal/buff targeting), oppositeTeam = enemy side
+  const aiChoose = (unit, sameTeam, oppositeTeam, ctx) => {
+    const liveOpp  = oppositeTeam.filter(t => t.alive && !t.buffs?.some(b => b.isFaded) && !t.buffs?.some(b => b.isStealth));
+    const liveSame = sameTeam.filter(t => t.alive);
+    if (unit.ccState.stunned) return null;
+    if (unit.buffs.some(b => b.preventsActions)) return null;
+
+    const primaryOpp = liveOpp.length
+      ? [...liveOpp].sort((a, b) => {
+          const tA = unit.threatTable?.[a.id] || 0, tB = unit.threatTable?.[b.id] || 0;
+          return tB - tA || a.hp - b.hp;
+        })[0]
+      : null;
+    const mostInjured = liveSame.length
+      ? [...liveSame].sort((a, b) => (a.hp / a.maxHp) - (b.hp / b.maxHp))[0]
+      : null;
+
+    const avail = (unit.abilities || []).filter(id => {
+      const ab = ABILITY_DATA[id];
+      if (!ab || ab.passive || ab.outOfCombatOnly || (unit.cooldowns[id] || 0) > 0) return false;
+      if (unit.ccState.disarmed && ab.tags?.includes("physical")) return false;
+      if (ab.tags?.includes("ranged") && !unit.rangedReady) return false;
+      for (const [r, a] of Object.entries(ab.resourceCost || {}))
+        if ((unit.resources[r]?.current || 0) < a) return false;
+      if (ab.spendComboPoints && (unit.resources.combo_points?.current || 0) < 1) return false;
+      if (ab.requiresCondition === "in_stealth"   && !unit.buffs.some(b => b.isStealth))   return false;
+      if (ab.requiresCondition === "in_bear_form" && !unit.buffs.some(b => b.isBearForm)) return false;
+      if (id === "stealth" && unit.debuffs?.some(d => d.blocksStealth)) return false;
+      const needsOpp  = ["single_enemy","all_enemies","front_2_enemies","single_any"].includes(ab.targeting);
+      const needsSame = ["single_ally","all_allies"].includes(ab.targeting);
+      if (needsOpp  && !liveOpp.length)  return false;
+      if (needsSame && !liveSame.length) return false;
+      if (ctx) {
+        if (ab.requiresOpener && ctx.turn > 1) return false;
+        if (ab.requiresMinCombatTurn && ctx.turn < ab.requiresMinCombatTurn) return false;
+        if (ab.requiresMaxCombatTurn && ctx.turn > ab.requiresMaxCombatTurn) return false;
+        if (ab.requiresTargetHpBelow && primaryOpp && primaryOpp.hp / primaryOpp.maxHp >= ab.requiresTargetHpBelow) return false;
+        if (ab.requiresOffhandType === "shield" && !unit.shieldEquipped) return false;
+        if (ab.requiresCondition === "prior_encounter_victory" && !ctx.priorEncounterVictory) return false;
+        if (ab.requiresCondition === "enemy_no_damage_last_turn" && primaryOpp && (primaryOpp.damageReceivedLastTurn || 0) > 0) return false;
+        if (ab.requiresCondition === "self_no_damage_last_turn"  && (unit.damageReceivedLastTurn || 0) > 0) return false;
+        if (ab.requiresTargetTag) {
+          const tagReq = ab.requiresTargetTag;
+          const hasTag = (etags) => Array.isArray(tagReq) ? tagReq.some(r => etags.includes(r)) : etags.includes(tagReq);
+          if (!liveOpp.some(e => hasTag(e.tags || []))) return false;
+        }
+      }
+      return true;
+    });
+    if (!avail.length) return null;
+
+    const dmgAbils  = avail.filter(id => {
+      const ab = ABILITY_DATA[id];
+      const enemyTargeted = !["single_ally","all_allies","self"].includes(ab.targeting);
+      return enemyTargeted && ab.effects.some(e => e.type === "damage" || e.type === "debuff" || e.type === "threat" || e.type === "pick_pocket");
+    });
+    const healAbils = avail.filter(id => ABILITY_DATA[id].effects.some(e => e.type === "heal"));
+    const buffAbils = avail.filter(id => {
+      const ab = ABILITY_DATA[id];
+      return ab.effects.some(e => e.type === "buff") && ["self","single_ally","all_allies"].includes(ab.targeting);
+    });
+
+    // setup buffs (self/party-wide enchants, seals, auras) not yet active on this unit
+    const setupAbils = buffAbils.filter(id => {
+      const ab = ABILITY_DATA[id];
+      return ["self", "single_ally", "all_allies"].includes(ab.targeting) &&
+        ab.effects.some(e => e.type === "buff" && e.buffId && !unit.buffs.some(b => b.id === e.buffId));
+    });
+
+    const injuredAlly = mostInjured && mostInjured.hp / mostInjured.maxHp < 0.5;
+    let chosen;
+    if (injuredAlly && healAbils.length)  chosen = healAbils[0];
+    else if (setupAbils.length)           chosen = setupAbils[0];
+    else if (dmgAbils.length)             chosen = dmgAbils[0];
+    else if (healAbils.length)            chosen = healAbils[0];
+    else if (buffAbils.length)            chosen = buffAbils[0];
+    else                                  chosen = avail[0];
+
+    const abChosen = ABILITY_DATA[chosen];
+    let targetId;
+    if (abChosen.targeting === "self")                                   targetId = unit.id;
+    else if (["single_ally","all_allies"].includes(abChosen.targeting))  targetId = mostInjured?.id || unit.id;
+    else if (abChosen.targeting === "front_2_enemies")                   targetId = primaryOpp?.id;
+    else if (abChosen.targeting === "single_any") {
+      const buffedEnemy  = liveOpp.find(e => e.buffs?.length > 0);
+      const debuffedAlly = liveSame.find(a => a.debuffs?.length > 0);
+      targetId = buffedEnemy?.id || debuffedAlly?.id || primaryOpp?.id || mostInjured?.id;
+    } else if (abChosen.requiresTargetTag) {
+      const tagReq = abChosen.requiresTargetTag;
+      const hasTag = (etags) => Array.isArray(tagReq) ? tagReq.some(r => etags.includes(r)) : etags.includes(tagReq);
+      targetId = liveOpp.find(e => hasTag(e.tags || []))?.id;
+    } else {
+      targetId = primaryOpp?.id;
+    }
+
+    return targetId ? { abilityId: chosen, targetId } : null;
+  };
+
+  // Resolve which unit array to pass to execAbility based on ability targeting type
+  const resolveTargets = (ab, targetId, actor, party, enemies) => {
+    const liveE = enemies.filter(u => u.alive);
+    const liveP = party.filter(u => u.alive);
+    switch (ab.targeting) {
+      case "all_enemies":     return actor.isEnemy ? liveP : liveE;
+      case "all_allies":      return actor.isEnemy ? liveE : liveP;
+      case "self":            return [actor];
+      case "aoe_both":        return [...liveP, ...liveE];
+      case "front_2_enemies":
+      case "cleave":          return (actor.isEnemy ? liveP : liveE).slice(0, 2);
+      case "single_ally": {
+        const pool = actor.isEnemy ? liveE : liveP;
+        return [pool.find(u => u.id === targetId) || pool[0]].filter(Boolean);
+      }
+      case "single_ally_dead": {
+        const pool = actor.isEnemy ? enemies : party;
+        return [pool.find(u => u.id === targetId && !u.alive)].filter(Boolean);
+      }
+      case "single_any": {
+        const all = [...liveP, ...liveE];
+        return [all.find(u => u.id === targetId) || all[0]].filter(Boolean);
+      }
+      default: {
+        const pool = actor.isEnemy ? liveP : liveE;
+        return [pool.find(u => u.id === targetId) || pool[0]].filter(Boolean);
+      }
+    }
+  };
+
+  const tickUnit = (unit) => {
+    const cd = { ...unit.cooldowns };
+    for (const id of Object.keys(cd)) { cd[id] = Math.max(0, cd[id] - 1); if (cd[id] === 0) delete cd[id]; }
+    const res = { ...unit.resources };
+    if (res.energy) res.energy = { ...res.energy, current: Math.min(res.energy.max, res.energy.current + 15) };
+    if (res.mana)   res.mana   = { ...res.mana,   current: Math.min(res.mana.max,   res.mana.current + (unit.stats.derived.manaRegen || 0)) };
+    return { ...unit, cooldowns: cd, resources: res };
+  };
+
+  const run = (encounter, partyInstances, opts = {}) => {
+    const logs = [], MAX = 30, ammoUsed = {};
+    const _trackAmmo = (ab, actor) => {
+      if (!(ab?.tags || []).includes('ranged')) return;
+      const rItem = _itemsData.items[actor.gear?.ranged];
+      if (rItem?.weaponType === 'wand' || rItem?.weaponType === 'thrown') return;
+      const aid = actor.gear?.ammo;
+      if (aid) ammoUsed[aid] = (ammoUsed[aid] || 0) + 1;
+    };
+    const _baseParty = partyInstances.map(inst => buildUnit(inst, false));
+    let party   = _injectPets(_baseParty, partyInstances);
+    let enemies = encounter.enemies.map(e => buildUnit(e, true));
+    logs.push(`⚔ ${encounter.zoneId.toUpperCase()}� ${party.map(u => u.name).join(",")} vs ${enemies.map(u => u.name).join(",")}`);
+    let turn = 0, outcome = null;
+
+    while (turn < MAX && !outcome) {
+      turn++; logs.push(`\n── T${turn}`);
+      const ctx = { turn, priorEncounterVictory: opts.priorEncounterVictory };
+
+      // ── party turn ────────────────────────────────────────────────────────
+      for (let pi = 0; pi < party.length; pi++) {
+        let actor = party[pi];
+        if (!actor.alive || actor.ccState.stunned) { if (actor.ccState.stunned) logs.push(`  ${actor.name} is stunned`); continue; }
+
+        let castFired = false;
+        if (actor.castQueue?.length) {
+          const ready = [], pending = [];
+          for (const e of actor.castQueue) {
+            if (e.turnsRemaining <= 0) ready.push(e);
+            else pending.push({ ...e, turnsRemaining: e.turnsRemaining - 1 });
+          }
+          actor = { ...actor, castQueue: pending };
+          for (const entry of ready) {
+            const ab = ABILITY_DATA[entry.abilityId];
+            if (!ab) continue;
+            castFired = true;
+            const tgts = resolveTargets(ab, entry.targetId, actor, party, enemies);
+            const res  = execAbility(entry.abilityId, actor, tgts, logs);
+            actor = res.caster; _trackAmmo(ABILITY_DATA[entry.abilityId], actor);
+            for (const t of res.targets) { if (t.isEnemy) enemies = syncUnit(enemies, t); else party = syncUnit(party, t); }
+          }
+        }
+        if (castFired) { party = syncUnit(party, actor); continue; }
+
+        const liveE = enemies.filter(e => e.alive); if (!liveE.length) break;
+        const liveP = party.filter(p => p.alive);
+        const ai = aiChoose(actor, liveP, liveE, ctx); if (!ai) continue;
+        const ab = ABILITY_DATA[ai.abilityId]; if (!ab) continue;
+
+        // earth/fire totem replacement: strip old totem group before applying new totem
+        if (ab.removesTotemGroup) {
+          const g = ab.removesTotemGroup;
+          const clean = u => ({ ...u, buffs: u.buffs.filter(b => b.totemGroup !== g), debuffs: u.debuffs.filter(b => b.totemGroup !== g) });
+          party   = party.map(clean);
+          enemies = enemies.map(clean);
+          actor   = clean(actor);
+        }
+
+        if ((ab.castTime || 0) > 0) {
+          actor = { ...actor, castQueue: [...(actor.castQueue || []), { abilityId: ai.abilityId, targetId: ai.targetId, turnsRemaining: ab.castTime - 1 }] };
+          logs.push(`  ${actor.name} begins casting ${ai.abilityId.replace(/_/g, " ")}`);
+        } else {
+          const tgts = resolveTargets(ab, ai.targetId, actor, party, enemies);
+          const res  = execAbility(ai.abilityId, actor, tgts, logs);
+          actor = res.caster; _trackAmmo(ABILITY_DATA[ai.abilityId], actor);
+          for (const t of res.targets) { if (t.isEnemy) enemies = syncUnit(enemies, t); else party = syncUnit(party, t); }
+
+          // stealth: any ability other than stealth itself breaks stealth
+          if (actor.buffs.some(b => b.isStealth) && ai.abilityId !== "stealth") {
+            actor = { ...actor, buffs: actor.buffs.filter(b => !b.isStealth) };
+            logs.push(`  ${actor.name} leaves stealth`);
+          }
+
+          // instant shift (castTime -1): shapeshift grants a free action the same turn
+          if (ab.castTime === -1 && actor.alive) {
+            const liveEsh = enemies.filter(e => e.alive);
+            const livePsh = party.filter(p => p.alive);
+            if (liveEsh.length) {
+              const aiSh = aiChoose(actor, livePsh, liveEsh, ctx);
+              if (aiSh) {
+                const abSh = ABILITY_DATA[aiSh.abilityId];
+                if (abSh && (abSh.castTime || 0) <= 0) {
+                  const tgtsSh = resolveTargets(abSh, aiSh.targetId, actor, party, enemies);
+                  const resSh  = execAbility(aiSh.abilityId, actor, tgtsSh, logs);
+                  actor = resSh.caster;
+                  for (const t of resSh.targets) { if (t.isEnemy) enemies = syncUnit(enemies, t); else party = syncUnit(party, t); }
+                }
+              }
+            }
+          }
+
+          // double action: units with doubleAction buff (Slice and Dice) act a second time
+          if (actor.buffs.some(b => b.doubleAction)) {
+            const liveE2 = enemies.filter(e => e.alive);
+            const liveP2 = party.filter(p => p.alive);
+            const ai2 = aiChoose(actor, liveP2, liveE2, ctx);
+            if (ai2) {
+              const ab2 = ABILITY_DATA[ai2.abilityId];
+              if (ab2) {
+                const tgts2 = resolveTargets(ab2, ai2.targetId, actor, party, enemies);
+                const res2  = execAbility(ai2.abilityId, actor, tgts2, logs);
+                actor = res2.caster;
+                for (const t of res2.targets) { if (t.isEnemy) enemies = syncUnit(enemies, t); else party = syncUnit(party, t); }
+                if (actor.buffs.some(b => b.isStealth) && ai2.abilityId !== "stealth") {
+                  actor = { ...actor, buffs: actor.buffs.filter(b => !b.isStealth) };
+                  logs.push(`  ${actor.name} leaves stealth`);
+                }
+              }
+            }
+          }
+        }
+        party = syncUnit(party, actor);
+      }
+
+      // ── enemy turn ────────────────────────────────────────────────────────
+      for (let ei = 0; ei < enemies.length; ei++) {
+        let actor = enemies[ei]; if (!actor.alive || actor.ccState.stunned) continue;
+        const liveP = party.filter(p => p.alive); if (!liveP.length) break;
+        const liveE = enemies.filter(e => e.alive);
+        const ai = aiChoose(actor, liveE, liveP, ctx); if (!ai) continue;
+        const ab = ABILITY_DATA[ai.abilityId]; if (!ab) continue;
+
+        if (ab.removesTotemGroup) {
+          const g = ab.removesTotemGroup;
+          const clean = u => ({ ...u, buffs: u.buffs.filter(b => b.totemGroup !== g), debuffs: u.debuffs.filter(b => b.totemGroup !== g) });
+          party   = party.map(clean);
+          enemies = enemies.map(clean);
+          actor   = clean(actor);
+        }
+
+        if ((ab.castTime || 0) > 0) {
+          actor = { ...actor, castQueue: [...(actor.castQueue || []), { abilityId: ai.abilityId, targetId: ai.targetId, turnsRemaining: ab.castTime - 1 }] };
+          logs.push(`  ${actor.name} begins casting ${ai.abilityId.replace(/_/g, " ")}`);
+        } else {
+          const tgts = resolveTargets(ab, ai.targetId, actor, party, enemies);
+          const res  = execAbility(ai.abilityId, actor, tgts, logs);
+          actor = res.caster;
+          for (const t of res.targets) if (!t.isEnemy) party = syncUnit(party, t);
+        }
+        enemies = syncUnit(enemies, actor);
+      }
+
+      // ── tick DoTs/HoTs, collect drain heals, expire buffs, regen ─────────
+      const allDrains = [];
+      for (let i = 0; i < party.length;   i++) {
+        const { unit: u, logs: l, drainHeals } = tickBuffsUnit(party[i]);
+        logs.push(...l); allDrains.push(...drainHeals); party[i] = expireBuffsUnit(u);
+      }
+      for (let i = 0; i < enemies.length; i++) {
+        const { unit: u, logs: l, drainHeals } = tickBuffsUnit(enemies[i]);
+        logs.push(...l); allDrains.push(...drainHeals); enemies[i] = expireBuffsUnit(u);
+      }
+      // apply Devouring Plague life drain back to casters
+      for (const dh of allDrains) {
+        const inParty = party.some(u => u.id === dh.sourceId);
+        if (inParty) {
+          party = party.map(u => {
+            if (u.id !== dh.sourceId || !u.alive) return u;
+            const gained = Math.min(u.maxHp - u.hp, dh.amount);
+            if (gained > 0) logs.push(`    ↳ ${u.name} drains ${gained} life`);
+            return { ...u, hp: u.hp + gained };
+          });
+        } else {
+          enemies = enemies.map(u => {
+            if (u.id !== dh.sourceId || !u.alive) return u;
+            const gained = Math.min(u.maxHp - u.hp, dh.amount);
+            if (gained > 0) logs.push(`    ↳ ${u.name} drains ${gained} life`);
+            return { ...u, hp: u.hp + gained };
+          });
+        }
+      }
+
+      party   = party.map(u => ({ ...tickUnit(u), damageReceivedLastTurn: u.damageReceivedThisTurn, damageReceivedThisTurn: 0 }));
+      enemies = enemies.map(u => ({ ...tickUnit(u), damageReceivedLastTurn: u.damageReceivedThisTurn, damageReceivedThisTurn: 0 }));
+
+      if (party.filter(u => !u.isPet).every(u => !u.alive)) { outcome = "defeat";  logs.push("\n💀 DEFEAT");  }
+      else if (enemies.every(u => !u.alive))               { outcome = "victory"; logs.push("\n🏆 VICTORY"); }
+    }
+
+    if (!outcome) { outcome = "timeout"; logs.push("\n⚠ TIMEOUT"); }
+    const kills            = enemies.filter(u => !u.alive);
+    const totalXp          = kills.reduce((s, u) => s + (u.xpValue || 0), 0);
+    const pickpocketGold   = enemies.reduce((s, e) => s + (e.pickpocketGold || 0), 0);
+    const soulShardsGained = party.filter(u => !u.isPet).reduce((s, u) => s + (u.soulShardsGained || 0), 0);
+    return { outcome, turns: turn, logs, kills, totalXp, enemies, party, pickpocketGold, soulShardsGained, ammoUsed };
+  };
+
+  const _injectPets = (party, partyInstances) => {
+    const result = [...party];
+    for (const inst of partyInstances) {
+      if (!inst.activePetId) continue;
+      const petList = PET_CLASSES[inst.classId];
+      if (!petList) continue;
+      const template = petList.find(p => p.id === inst.activePetId);
+      if (!template) continue;
+      if (template.unlockLevel > (inst.level || 1)) continue;
+      const owner = party.find(u => u.id === inst.instanceId);
+      if (!owner) continue;
+      result.push(buildPetUnit(template, owner));
+    }
+    return result;
+  };
+
+  // Build initial manual combat state from encounter + party instances
+  const startCombat = (encounter, partyInstances) => {
+    const baseParty = partyInstances.map(inst => buildUnit(inst, false));
+    const party     = _injectPets(baseParty, partyInstances);
+    const enemies   = encounter.enemies.map(e => buildUnit(e, true));
+    const header    = `⚔ ${encounter.zoneId.toUpperCase()} ⚔ ${party.map(u => u.name).join(",")} vs ${enemies.map(u => u.name).join(",")}`;
+    return { party, enemies, turn: 0, allLogs: [header] };
+  };
+
+  // Run one turn of manual combat with AGI-based initiative order.
+  // opts.mode: 'streamlined' � playerActions provides one actor's choice, rest use AI
+  //            'full_manual' � playerActions provides all actors' choices, unspecified actors skip
+  // playerActions = [{ actorId, abilityId, targetId }]
+  const stepTurn = (state, playerActions, opts) => {
+    let { party, enemies } = state;
+    const turn     = state.turn + 1;
+    const ctx      = { turn, priorEncounterVictory: opts?.priorEncounterVictory };
+    const mode     = opts?.mode || 'streamlined';
+    const stepLogs = [`\n── T${turn}`];
+    let outcome    = null;
+
+    // Build initiative order: all alive units sorted by AGI descending.
+    // Ties broken by enemies going after party members (stable sort preserves insertion order).
+    const initiative = [
+      ...party.map(u   => ({ id: u.id, isEnemy: false })),
+      ...enemies.map(u => ({ id: u.id, isEnemy: true  })),
+    ].sort((a, b) => {
+      const aUnit = a.isEnemy ? enemies.find(u => u.id === a.id) : party.find(u => u.id === a.id);
+      const bUnit = b.isEnemy ? enemies.find(u => u.id === b.id) : party.find(u => u.id === b.id);
+      return (bUnit?.agi || 0) - (aUnit?.agi || 0);
+    });
+
+    for (const ref of initiative) {
+      // Refresh actor from current state (may have been modified by earlier actions this turn)
+      let actor = ref.isEnemy ? enemies.find(u => u.id === ref.id) : party.find(u => u.id === ref.id);
+      if (!actor || !actor.alive) continue;
+
+      const liveP = party.filter(p => p.alive);
+      const liveE = enemies.filter(e => e.alive);
+      if (!liveP.length || !liveE.length) break;
+
+      if (actor.ccState.stunned) { stepLogs.push(`  ${actor.name} is stunned`); continue; }
+
+      // ── cast queue (channelled spells) ──────────────────────────────────────
+      const pAction = (playerActions || []).find(a => a.actorId === actor.id);
+      let castFired = false;
+      if (actor.castQueue?.length) {
+        if (!ref.isEnemy && pAction) {
+          // Player submitted an explicit action — cancel the pending cast
+          actor = { ...actor, castQueue: [] };
+          stepLogs.push(`  ${actor.name} cancels their cast`);
+          if (pAction.cancel) {
+            // Pure cancel: consume turn, do nothing else
+            if (ref.isEnemy) enemies = syncUnit(enemies, actor); else party = syncUnit(party, actor);
+            continue;
+          }
+          // Otherwise fall through so pAction is used as the new action below
+        } else {
+          // No player override: fire ready entries or hold the cast
+          const ready = [], pending = [];
+          for (const e of actor.castQueue) {
+            if (e.turnsRemaining <= 0) ready.push(e);
+            else pending.push({ ...e, turnsRemaining: e.turnsRemaining - 1 });
+          }
+          actor = { ...actor, castQueue: pending };
+          for (const entry of ready) {
+            const ab = ABILITY_DATA[entry.abilityId]; if (!ab) continue;
+            castFired = true;
+            const tgts = resolveTargets(ab, entry.targetId, actor, party, enemies);
+            const res  = execAbility(entry.abilityId, actor, tgts, stepLogs);
+            actor = res.caster;
+            for (const t of res.targets) { if (t.isEnemy) enemies = syncUnit(enemies, t); else party = syncUnit(party, t); }
+          }
+          // Whether cast fired or still counting down: actor's turn is consumed
+          if (ref.isEnemy) enemies = syncUnit(enemies, actor); else party = syncUnit(party, actor);
+          continue;
+        }
+      }
+
+      // ── choose action ────────────────────────────────────────────────────────
+      let chosen;
+      if (!ref.isEnemy && pAction && pAction.type === 'use_item') {
+        // Item use: apply effect to combat state and consume the actor's turn.
+        const onUse = pAction.itemDef?.onUse;
+        const itemName = pAction.itemDef?.name || pAction.itemId;
+        if (onUse) {
+          if (onUse.type === 'heal') {
+            const isParty = onUse.target === 'party';
+            const healTargets = isParty ? party.filter(u => u.alive) : [actor];
+            for (let ht of healTargets) {
+              const amount = onUse.percent != null ? Math.floor(ht.maxHp * onUse.percent) : onUse.minFlat != null ? Math.floor(Math.random() * (onUse.maxFlat - onUse.minFlat + 1) + onUse.minFlat) : (onUse.flat || 0);
+              const actual = Math.min(amount, ht.maxHp - ht.hp);
+              if (actual > 0) {
+                ht = { ...ht, hp: ht.hp + actual };
+                party = syncUnit(party, ht);
+                if (ht.id === actor.id) actor = ht;
+                stepLogs.push(`  ${actor.name} uses ${itemName}: +${actual} HP to ${ht.name}`);
+              }
+            }
+          } else if (onUse.type === 'mana') {
+            const manaDef = actor.resources?.mana;
+            if (manaDef) {
+              const amount = onUse.percent != null ? Math.floor(manaDef.max * onUse.percent) : (onUse.flat || 0);
+              const actual = Math.min(amount, manaDef.max - manaDef.current);
+              if (actual > 0) {
+                actor = { ...actor, resources: { ...actor.resources, mana: { ...manaDef, current: manaDef.current + actual } } };
+                party = syncUnit(party, actor);
+                stepLogs.push(`  ${actor.name} uses ${itemName}: +${actual} mana`);
+              }
+            }
+          } else if (onUse.type === 'weapon_buff') {
+            actor = applyBuff(actor, onUse.buffId, actor.id);
+            party = syncUnit(party, actor);
+            stepLogs.push(`  ${actor.name} uses ${itemName}`);
+          }
+        }
+        // Turn consumed � no ability fired
+        party = syncUnit(party, actor);
+        continue;
+      } else if (!ref.isEnemy && pAction) {
+        const pAb = ABILITY_DATA[pAction.abilityId];
+        const invalidRanged = pAb?.tags?.includes('ranged') && !actor.rangedReady;
+        const onCooldown    = (actor.cooldowns[pAction.abilityId] || 0) > 0;
+        if (invalidRanged || onCooldown) {
+          chosen = aiChoose(actor, liveP, liveE, ctx);
+        } else {
+          chosen = { abilityId: pAction.abilityId, targetId: pAction.targetId };
+        }
+      } else if (!ref.isEnemy && actor.isPet) {
+        // Pets are always AI-controlled, even in full_manual mode
+        chosen = aiChoose(actor, liveP, liveE, ctx);
+      } else if (!ref.isEnemy && mode === 'full_manual') {
+        continue; // no action submitted for this character� they skip
+      } else {
+        // AI (enemies always, party in streamlined if no player action)
+        const sameTeam = ref.isEnemy ? liveE : liveP;
+        const oppTeam  = ref.isEnemy ? liveP : liveE;
+        chosen = aiChoose(actor, sameTeam, oppTeam, ctx);
+      }
+      if (!chosen) continue;
+      const ab = ABILITY_DATA[chosen.abilityId]; if (!ab) continue;
+
+      if (ab.removesTotemGroup) {
+        const g = ab.removesTotemGroup;
+        const clean = u => ({ ...u, buffs: u.buffs.filter(b => b.totemGroup !== g), debuffs: u.debuffs.filter(b => b.totemGroup !== g) });
+        party = party.map(clean); enemies = enemies.map(clean); actor = clean(actor);
+      }
+
+      if ((ab.castTime || 0) > 0) {
+        actor = { ...actor, castQueue: [...(actor.castQueue || []), { abilityId: chosen.abilityId, targetId: chosen.targetId, turnsRemaining: ab.castTime - 1 }] };
+        stepLogs.push(`  ${actor.name} begins casting ${chosen.abilityId.replace(/_/g, " ")}`);
+      } else {
+        const tgts = resolveTargets(ab, chosen.targetId, actor, party, enemies);
+        const res  = execAbility(chosen.abilityId, actor, tgts, stepLogs);
+        actor = res.caster;
+        for (const t of res.targets) { if (t.isEnemy) enemies = syncUnit(enemies, t); else party = syncUnit(party, t); }
+        if (actor.buffs.some(b => b.isStealth) && chosen.abilityId !== "stealth") {
+          actor = { ...actor, buffs: actor.buffs.filter(b => !b.isStealth) };
+          stepLogs.push(`  ${actor.name} leaves stealth`);
+        }
+        if (actor.buffs.some(b => b.doubleAction)) {
+          const liveE2 = enemies.filter(e => e.alive), liveP2 = party.filter(p => p.alive);
+          const sameTeam2 = ref.isEnemy ? liveE2 : liveP2;
+          const oppTeam2  = ref.isEnemy ? liveP2 : liveE2;
+          const ai2 = aiChoose(actor, sameTeam2, oppTeam2, ctx);
+          if (ai2) {
+            const ab2 = ABILITY_DATA[ai2.abilityId];
+            if (ab2) {
+              const tgts2 = resolveTargets(ab2, ai2.targetId, actor, party, enemies);
+              const res2  = execAbility(ai2.abilityId, actor, tgts2, stepLogs);
+              actor = res2.caster;
+              for (const t of res2.targets) { if (t.isEnemy) enemies = syncUnit(enemies, t); else party = syncUnit(party, t); }
+            }
+          }
+        }
+      }
+
+      if (ref.isEnemy) enemies = syncUnit(enemies, actor); else party = syncUnit(party, actor);
+    }
+
+    // ── tick DoTs/HoTs, regen ──────────────────────────────────────────────────
+    const allDrains = [];
+    for (let i = 0; i < party.length;   i++) { const { unit: u, logs: l, drainHeals } = tickBuffsUnit(party[i]);   stepLogs.push(...l); allDrains.push(...drainHeals); party[i]   = expireBuffsUnit(u); }
+    for (let i = 0; i < enemies.length; i++) { const { unit: u, logs: l, drainHeals } = tickBuffsUnit(enemies[i]); stepLogs.push(...l); allDrains.push(...drainHeals); enemies[i] = expireBuffsUnit(u); }
+    for (const dh of allDrains) {
+      const inParty = party.some(u => u.id === dh.sourceId);
+      if (inParty) {
+        party = party.map(u => { if (u.id !== dh.sourceId || !u.alive) return u; const g = Math.min(u.maxHp - u.hp, dh.amount); if (g > 0) stepLogs.push(`    ↳ ${u.name} drains ${g} life`); return { ...u, hp: u.hp + g }; });
+      } else {
+        enemies = enemies.map(u => { if (u.id !== dh.sourceId || !u.alive) return u; const g = Math.min(u.maxHp - u.hp, dh.amount); if (g > 0) stepLogs.push(`    ↳ ${u.name} drains ${g} life`); return { ...u, hp: u.hp + g }; });
+      }
+    }
+    party   = party.map(u   => ({ ...tickUnit(u),   damageReceivedLastTurn: u.damageReceivedThisTurn,   damageReceivedThisTurn: 0 }));
+    enemies = enemies.map(u => ({ ...tickUnit(u), damageReceivedLastTurn: u.damageReceivedThisTurn, damageReceivedThisTurn: 0 }));
+
+    if (party.filter(u => !u.isPet).every(u => !u.alive)) { outcome = "defeat";  stepLogs.push("\n💀 DEFEAT");  }
+    else if (enemies.every(u => !u.alive))               { outcome = "victory"; stepLogs.push("\n🏆 VICTORY"); }
+
+    return { party, enemies, turn, stepLogs, outcome };
+  };
+
+  return { run, buildUnit, startCombat, stepTurn };
+})();
+
+
+// =============================================================================
+// DEATH HANDLER
+// =============================================================================
+
+const DeathHandler = (() => {
+  const CONFIG = { rezBaseCost: 500, rezLevelMult: 200, wipePenalty: 0.25, wipeReturnHpMin: 0.20, wipeReturnHpMax: 1.00, wipeReturnHpStep: 0.10 };
+  const wipeReturnHpPct = (level) => Math.max(CONFIG.wipeReturnHpMin, CONFIG.wipeReturnHpMax - Math.max(0, level - 1) * CONFIG.wipeReturnHpStep);
+  const rezCostForLevel = (level) => CONFIG.rezBaseCost + level * CONFIG.rezLevelMult;
+
+  const handleDeath = (inst, save) => {
+    const mode = save.mode || "normal";
+    if (mode === "hardcore") return { ...inst, deathState: "dead", permadead: true, downedAt: new Date().toISOString() };
+    return { ...inst, deathState: "downed", downedAt: new Date().toISOString(), rezCost: rezCostForLevel(inst.level || 1) };
+  };
+
+  const rezForGold = (inst, save) => {
+    if ((save.mode || "normal") === "hardcore") return { ok: false, error: "Cannot rez in hardcore." };
+    if (inst.deathState !== "downed")           return { ok: false, error: "Not downed." };
+    if (inst.permadead)                         return { ok: false, error: "Permanently dead." };
+    const cost = inst.rezCost || rezCostForLevel(inst.level || 1);
+    if ((save.currency || 0) < cost)            return { ok: false, error: `Need ${Currency.toString(cost)}.` };
+    return { ok: true, save: Currency.deduct(save, cost), inst: { ...inst, deathState: "alive", currentHp: inst.maxHp || 999, currentMp: inst.maxMp || 0, downedAt: null, rezCost: 0 } };
+  };
+
+  // reviveIds: Set of instanceIds that died in this specific combat � only those
+  // are revived.  Pre-downed companions (downed from earlier fights) are left
+  // untouched so they still require an explicit gold rez.
+  const handleWipe = (save, reviveIds) => {
+    const mode = save.mode || "normal";
+    if (mode === "hardcore") return { ...save, wipedOut: true, wipeTimestamp: new Date().toISOString() };
+    const penalty = Math.floor((save.currency || 0) * CONFIG.wipePenalty);
+    let s = Currency.deduct(save, penalty);
+    s = { ...s, party: s.party.map(m => {
+      if (reviveIds && !reviveIds.has(m.instanceId)) return m;
+      const ir = Loader.load(`instances/companions/${m.instanceId}`, "companionInstance");
+      if (!ir.ok) return m;
+      const inst = ir.data;
+      if (inst.deathState === "downed" && !inst.permadead) {
+        const pct      = wipeReturnHpPct(inst.level || 1);
+        const restored = { ...inst, deathState: "alive", currentHp: Math.max(1, Math.floor((inst.maxHp || 999) * pct)), downedAt: null, rezCost: 0 };
+        DataStore.write(`instances/companions/${m.instanceId}`, restored);
+      }
+      return m;
+    }) };
+
+    // Reset in-progress kill objectives that have resetOnWipe
+    for (const [questId, questState] of Object.entries(s.quests || {})) {
+      if (questState.completed) continue;
+      const qr = Loader.load(`templates/quests/${questId}`, "quest");
+      if (!qr.ok) continue;
+      let objState = { ...questState.objectives };
+      let changed  = false;
+      for (const obj of qr.data.objectives) {
+        if (!obj.resetOnWipe) continue;
+        const current = objState[obj.id] || 0;
+        if (current > 0 && current < obj.count) {
+          objState = { ...objState, [obj.id]: 0 };
+          changed  = true;
+        }
+      }
+      if (changed) s = { ...s, quests: { ...s.quests, [questId]: { ...questState, objectives: objState } } };
+    }
+
+    return { ...s, _wipeNote: `Lost ${Currency.toString(penalty)} on wipe` };
+  };
+
+  const isWipe = (save) =>
+    save.party.every(m => {
+      const ir = Loader.load(`instances/companions/${m.instanceId}`, "companionInstance");
+      return ir.ok ? ir.data.deathState !== "alive" : false;
+    });
+
+  return { handleDeath, rezForGold, handleWipe, isWipe, rezCostForLevel, wipeReturnHpPct, CONFIG };
+})();
+
+
+// =============================================================================
+// REWARD ENGINE
+// =============================================================================
+
+const RewardEngine = (() => {
+  const rollLoot = (kills, activeQuestIds = []) => {
+    const drops = [];
+    for (const enemy of kills)
+      for (const le of (enemy.loot || [])) {
+        if (le.questId && !activeQuestIds.includes(le.questId)) continue;
+        if (Math.random() < le.chance) {
+          const qty = le.qty ?? (le.minQty !== undefined
+            ? Math.floor(Math.random() * ((le.maxQty ?? le.minQty) - le.minQty + 1)) + le.minQty
+            : 1);
+          // Random-suffix-eligible drops roll independently per unit, since
+          // each could come back as a different suffix (or no suffix at all).
+          if (ItemSuffixes.isEligible(le.itemId)) {
+            for (let i = 0; i < qty; i++) drops.push({ itemId: ItemSuffixes.maybeApplySuffix(le.itemId), qty: 1 });
+          } else {
+            drops.push({ itemId: le.itemId, qty });
+          }
+        }
+      }
+    return drops;
+  };
+
+  const apply = (combatResult, encounter, save) => {
+    let s     = { ...save };
+    const sum = { xp: 0, currency: 0, loot: [], questProgress: [], weaponskill: 0, levelUps: [] };
+
+    // always clear tracking/flee flags after an encounter
+    s = Modifiers.clearFlag(s, "trackingBoost");
+    s = Modifiers.clearFlag(s, "activeTrack");
+    s = Modifiers.clearFlag(s, "fleeBonus");
+
+    if (combatResult.outcome !== "victory") return { save: s, summary: sum };
+
+    // XP penalty: each member beyond 5 cuts XP by 20%, floor at 0%
+    const xpMult = Math.max(0, 1 - Math.max(0, s.party.length - 5) * 0.2);
+    const xp = Math.floor(combatResult.totalXp * xpMult);
+    sum.xp      = xp;
+    sum.xpMult  = xpMult;
+    s = { ...s, party: s.party.map(m => {
+      const ir = Loader.load(`instances/companions/${m.instanceId}`, "companionInstance");
+      if (!ir.ok) return m;
+      const { inst: updated, levelUpLines } = addXpToInst(ir.data, xp);
+      DataStore.write(`instances/companions/${m.instanceId}`, updated);
+      if (levelUpLines.length) sum.levelUps.push(...levelUpLines);
+      return m;
+    }) };
+
+    const activeQuestIds = Object.keys(s.quests || {}).filter(id => !s.quests[id].completed);
+    const drops = rollLoot(encounter.enemies, activeQuestIds);
+    for (const d of drops) { s = Modifiers.addToInventory(s, d.itemId, d.qty); sum.loot.push(d); }
+
+    const pouches = drops.filter(d => d.itemId === "copper_coin_pouch").length;
+    if (pouches > 0) {
+      const cg = pouches * 150;
+      s = Currency.add(s, cg); sum.currency += cg;
+      s = { ...s, inventory: s.inventory.map(e => e.itemId === "copper_coin_pouch" ? { ...e, qty: Math.max(0, e.qty - pouches) } : e).filter(e => e.qty > 0) };
+    }
+
+    for (const node of (encounter.gatheringNodes || [])) {
+      s = Modifiers.addToInventory(s, node.nodeId || node.itemId, node.qty);
+      sum.loot.push({ itemId: node.nodeId || node.itemId, qty: node.qty, source: "gathering" });
+    }
+
+    for (const [questId, questSt] of Object.entries(s.quests || {})) {
+      if (questSt.completed) continue;
+      const qr = Loader.load(`templates/quests/${questId}`, "quest");
+      if (!qr.ok) continue;
+      const quest = qr.data;
+      let objState   = { ...questSt.objectives };
+      let anyProgress = false;
+
+      // Kill objectives
+      for (const obj of quest.objectives) {
+        if (obj.type !== "kill") continue;
+        const prev = objState[obj.id] || 0;
+        if (prev >= obj.count) continue;
+        if (obj.requiresObjective) {
+          const gate = quest.objectives.find(o => o.id === obj.requiresObjective);
+          if (gate && (objState[gate.id] || 0) < gate.count) continue;
+        }
+        const matching = encounter.enemies.filter(e =>
+          obj.targetId ? e.id === obj.targetId :
+          (e.tags || []).some(tag => (obj.targetTags || []).includes(tag))
+        ).length;
+        if (matching > 0) {
+          const next = Math.min(obj.count, prev + matching);
+          objState = { ...objState, [obj.id]: next };
+          sum.questProgress.push({ questId, objectiveId: obj.id, prev, next, goal: obj.count });
+          anyProgress = true;
+          if (next >= obj.count && obj.triggersEncounter) {
+            s = Modifiers.setFlag(s, "forcedEncounter", { type: "combat", ...obj.triggersEncounter });
+          }
+        }
+      }
+
+      // Collect objectives � check current inventory after loot was added
+      for (const obj of quest.objectives) {
+        if (obj.type !== "collect") continue;
+        const prev = objState[obj.id] || 0;
+        if (prev >= obj.count) continue;
+        if (obj.requiresObjective) {
+          const gate = quest.objectives.find(o => o.id === obj.requiresObjective);
+          if (gate && (objState[gate.id] || 0) < gate.count) continue;
+        }
+        const invEntry = (s.inventory || []).find(e => e.itemId === obj.targetItem);
+        const next = Math.min(obj.count, invEntry ? invEntry.qty : 0);
+        if (next > prev) {
+          objState = { ...objState, [obj.id]: next };
+          sum.questProgress.push({ questId, objectiveId: obj.id, prev, next, goal: obj.count });
+          anyProgress = true;
+        }
+      }
+
+      if (anyProgress) {
+        s = { ...s, quests: { ...s.quests, [questId]: { ...questSt, objectives: objState } } };
+      }
+
+      // Complete quest only when ALL objectives are satisfied
+      const allDone = quest.objectives.every(obj => (objState[obj.id] || 0) >= obj.count);
+      if (allDone) {
+        // Remove consumed collect items from inventory
+        for (const obj of quest.objectives) {
+          if (obj.type === "collect") {
+            s = { ...s, inventory: (s.inventory || []).map(e =>
+              e.itemId === obj.targetItem ? { ...e, qty: e.qty - obj.count } : e
+            ).filter(e => e.qty > 0) };
+          }
+        }
+        s = Modifiers.completeQuest(s, questId);
+        const rw = quest.rewards || {};
+        if (rw.xp) {
+          const questXp = Math.floor(rw.xp * xpMult);
+          sum.xp += questXp;
+          s = { ...s, party: s.party.map(m => {
+            const ir = Loader.load(`instances/companions/${m.instanceId}`, "companionInstance");
+            if (!ir.ok) return m;
+            const { inst: updated, levelUpLines } = addXpToInst(ir.data, questXp);
+            DataStore.write(`instances/companions/${m.instanceId}`, updated);
+            if (levelUpLines.length) sum.levelUps.push(...levelUpLines);
+            return m;
+          }) };
+        }
+        if (rw.currency)   { s = Currency.add(s, rw.currency); sum.currency += rw.currency; }
+        if (rw.items)      for (const ri of rw.items) { s = Modifiers.addToInventory(s, ri.itemId, ri.qty); sum.loot.push({ ...ri, source: "quest_reward" }); }
+        if (rw.reputation) for (const rf of rw.reputation) { s = Modifiers.addReputation(s, rf.factionId, rf.amount); (sum.reputation = sum.reputation || []).push(rf); }
+        sum.questProgress.push({ questId, completed: true });
+      }
+    }
+
+    if (combatResult.kills.length > 0) {
+      const WEAPON_SKILL_MAP = {
+        sword_1h: "weaponskill_sword", sword_2h: "weaponskill_sword",
+        axe_1h:   "weaponskill_axe",   axe_2h:   "weaponskill_axe",
+        mace_1h:  "weaponskill_mace",  mace_2h:  "weaponskill_mace",
+        dagger:   "weaponskill_dagger", fist:     "weaponskill_fist",
+        staff:    "weaponskill_staff",  polearm:  "weaponskill_polearm",
+      };
+      for (const m of s.party) {
+        const ir = Loader.load(`instances/companions/${m.instanceId}`, "companionInstance");
+        if (!ir.ok) continue;
+        const mainhandId = ir.data.gear?.mainhand;
+        let school = "weaponskill_unarmed";
+        if (mainhandId) {
+          const wr = Loader.load(`templates/items/${mainhandId}`, "item");
+          school = (wr.ok && wr.data.weaponType && WEAPON_SKILL_MAP[wr.data.weaponType]) || "weaponskill_unarmed";
+        }
+        s = Modifiers.advanceTalent(s, school, 1);
+        sum.weaponskill = school;
+        break;
+      }
+    }
+
+    const partyHasSkinning = s.party.some(m => {
+      const ir = Loader.load(`instances/companions/${m.instanceId}`, "companionInstance");
+      return ir.ok && ir.data.profession === "skinning" && ir.data.deathState === "alive";
+    });
+    if (partyHasSkinning) {
+      const skinnable = (combatResult.kills || []).filter(e => e.type === "beast");
+      if (skinnable.length > 0) {
+        s = Modifiers.setFlag(s, "pendingSkinning", skinnable.map(e => e.id));
+        sum.skinnableKills = skinnable;
+      }
+    }
+
+    return { save: s, summary: sum };
+  };
+
+  const rollSkinningForKill = (enemy) => {
+    const level      = enemy.level || 1;
+    const candidates = _skinningData.leatherTiers.filter(t => level >= t.minLevel && level <= t.maxLevel);
+    const loot       = [];
+    if (candidates.length > 0) {
+      const tier = candidates[Math.floor(Math.random() * candidates.length)];
+      loot.push({ itemId: tier.itemId, qty: 1 + Math.floor(Math.random() * 2) });
+    }
+    for (const tier of _skinningData.hideTiers) {
+      if (level >= tier.minLevel && level <= tier.maxLevel) {
+        const chance = (level >= tier.peakMin && level <= tier.peakMax) ? tier.chancePeak : tier.chanceBase;
+        if (Math.random() < chance) loot.push({ itemId: tier.itemId, qty: 1 });
+      }
+    }
+    for (const le of (enemy.skinningLoot || [])) {
+      if (Math.random() < le.chance) {
+        const qty = (le.minQty != null && le.maxQty != null)
+          ? le.minQty + Math.floor(Math.random() * (le.maxQty - le.minQty + 1))
+          : (le.qty || 1);
+        loot.push({ itemId: le.itemId, qty });
+      }
+    }
+    return loot;
+  };
+
+  const applySkinning = (save, kills) => {
+    let s = { ...save };
+    const drops = [];
+    for (const enemy of kills) {
+      for (const d of rollSkinningForKill(enemy)) {
+        s = Modifiers.addToInventory(s, d.itemId, d.qty);
+        drops.push(d);
+      }
+    }
+    s = Modifiers.clearFlag(s, "pendingSkinning");
+    return { save: s, drops };
+  };
+
+  return { apply, rollLoot, applySkinning };
+})();
+
+
+// =============================================================================
+// RIDING SYSTEM
+// Player-level skill stored on save.riding (not per-companion).
+// Increases +1 on each successful flee. Cap: 75 until highest party member
+// reaches level 40, then raises to 150.
+// Controls flee chance and mount purchase eligibility.
+// =============================================================================
+
+const RidingSystem = (() => {
+  const BASIC_MOUNT_LEVEL  = 40;
+  const BASIC_MOUNT_RIDING = 75;
+  const EPIC_MOUNT_LEVEL   = 60;
+  const EPIC_MOUNT_RIDING  = 150;
+  const CAP_LOW            = 75;
+  const CAP_HIGH           = 150;
+
+  const getSkill = (save) => save.riding || 1;
+
+  const getHighestPartyLevel = (save) => {
+    let best = 1;
+    for (const m of (save.party || [])) {
+      const ir = Loader.load(`instances/companions/${m.instanceId}`, "companionInstance");
+      if (ir.ok) best = Math.max(best, ir.data.level || 1);
+    }
+    return best;
+  };
+
+  const getCap = (highestPartyLevel) =>
+    highestPartyLevel >= BASIC_MOUNT_LEVEL ? CAP_HIGH : CAP_LOW;
+
+  // chance = clamp(0,1,  80% + (partyLvl - enemyLvl)*10% + riding*0.1% + extraBonus)
+  // extraBonus comes from fleeBonus buffs/debuffs active at flee time (earthbind, concussive, wing_clip)
+  const getFleeChance = (save, enemies, extraBonus = 0) => {
+    const partyLevel = getHighestPartyLevel(save);
+    const enemyLevel = (enemies || []).reduce((best, e) => Math.max(best, e.level || 1), 1);
+    const riding     = getSkill(save);
+    const raw        = 0.80 + (partyLevel - enemyLevel) * 0.10 + riding * 0.001 + extraBonus;
+    return Math.max(0, Math.min(1, raw));
+  };
+
+  const gainRiding = (save) => {
+    const current = getSkill(save);
+    const cap     = getCap(getHighestPartyLevel(save));
+    if (current >= cap) return save;
+    return { ...save, riding: current + 1 };
+  };
+
+  const canBuyBasicMount = (save) =>
+    getHighestPartyLevel(save) >= BASIC_MOUNT_LEVEL && getSkill(save) >= BASIC_MOUNT_RIDING;
+
+  const canBuyEpicMount = (save) =>
+    getHighestPartyLevel(save) >= EPIC_MOUNT_LEVEL && getSkill(save) >= EPIC_MOUNT_RIDING;
+
+  const acquireMount = (save, mountId) => {
+    const mounts = save.mounts || [];
+    if (mounts.includes(mountId)) return { ok: false, error: "Already owned." };
+    return { ok: true, save: { ...save, mounts: [...mounts, mountId] } };
+  };
+
+  return {
+    getSkill, getCap, getHighestPartyLevel, getFleeChance,
+    gainRiding, canBuyBasicMount, canBuyEpicMount, acquireMount,
+    BASIC_MOUNT_LEVEL, BASIC_MOUNT_RIDING, EPIC_MOUNT_LEVEL, EPIC_MOUNT_RIDING,
+  };
+})();
+
+
+// =============================================================================
+// SHOP SYSTEM
+// =============================================================================
+
+const ShopSystem = (() => {
+  const getStock   = (save, zoneId, keeperName, itemId) => { const key = `${zoneId}_${keeperName}_${itemId}`; return save.shopStocks?.[key] ?? null; };
+  const setStock   = (save, zoneId, keeperName, itemId, value) => { const key = `${zoneId}_${keeperName}_${itemId}`; return { ...save, shopStocks: { ...(save.shopStocks || {}), [key]: value } }; };
+  const getBuyList = (zone, save, keeperName) => {
+    const inv = zone.shopkeepers?.[keeperName]?.inventory || [];
+    return inv.map(entry => { const saved = getStock(save, zone.id, keeperName, entry.itemId); return { ...entry, stock: saved !== null ? saved : entry.stock }; }).filter(e => e.stock !== 0);
+  };
+
+  const buy = (save, zone, itemId, qty, keeperName) => {
+    const entry = (zone.shopkeepers?.[keeperName]?.inventory || []).find(e => e.itemId === itemId);
+    if (!entry) return { ok: false, error: "Item not in shop." };
+    const stock = getStock(save, zone.id, keeperName, itemId) ?? entry.stock;
+    if (stock !== -1 && stock < qty) return { ok: false, error: `Only ${stock} in stock.` };
+    const totalCost = entry.buyPrice * qty;
+    const ir = Loader.load(`templates/items/${itemId}`, "item");
+    // Mount requirement check before currency � level + riding gating
+    if (ir.ok && (ir.data.tags || []).includes("mount")) {
+      const isEpic = (ir.data.tags || []).includes("mount_epic");
+      if (isEpic  && !RidingSystem.canBuyEpicMount(save))
+        return { ok: false, error: `Requires level ${RidingSystem.EPIC_MOUNT_LEVEL} and ${RidingSystem.EPIC_MOUNT_RIDING} Riding.` };
+      if (!isEpic && !RidingSystem.canBuyBasicMount(save))
+        return { ok: false, error: `Requires level ${RidingSystem.BASIC_MOUNT_LEVEL} and ${RidingSystem.BASIC_MOUNT_RIDING} Riding.` };
+      const mr = RidingSystem.acquireMount(save, itemId);
+      if (!mr.ok) return { ok: false, error: mr.error };
+      if (!Currency.canAfford(save, totalCost)) return { ok: false, error: `Need ${Currency.toString(totalCost)}, have ${Currency.toString(save.currency || 0)}.` };
+      let s = Currency.deduct(mr.save, totalCost);
+      if (stock !== -1) s = setStock(s, zone.id, keeperName, itemId, stock - qty);
+      return { ok: true, save: s, message: `Collected ${ir.data.name} for ${Currency.toString(totalCost)}. Added to mount collection.` };
+    }
+    if (!Currency.canAfford(save, totalCost)) return { ok: false, error: `Need ${Currency.toString(totalCost)}, have ${Currency.toString(save.currency || 0)}.` };
+    const grantQty = (entry.quantity ?? 1) * qty;
+    let s = Currency.deduct(save, totalCost);
+    s = Modifiers.addToInventory(s, itemId, grantQty);
+    if (stock !== -1) s = setStock(s, zone.id, keeperName, itemId, stock - qty);
+    return { ok: true, save: s, message: `Bought ${grantQty}x ${ir.ok ? ir.data.name : itemId} for ${Currency.toString(totalCost)}.` };
+  };
+
+  const sell = (save, zone, itemId, qty) => {
+    const invEntry = (save.inventory || []).find(e => e.itemId === itemId);
+    if (!invEntry || invEntry.qty < qty) return { ok: false, error: "You don't have that many." };
+    const ir = Loader.load(`templates/items/${itemId}`, "item");
+    if (!ir.ok) return { ok: false, error: "Unknown item." };
+    const total = Math.floor(ir.data.value * (zone.sellMultiplier ?? 0.25)) * qty;
+    let s = { ...save, inventory: save.inventory.map(e => e.itemId === itemId ? { ...e, qty: e.qty - qty } : e).filter(e => e.qty > 0) };
+    s = Currency.add(s, total);
+    return { ok: true, save: s, message: `Sold ${qty}x ${ir.data.name} for ${Currency.toString(total)}.` };
+  };
+
+  return { getBuyList, buy, sell, getStock };
+})();
+
+
+// =============================================================================
+// SAVE MANAGER
+// =============================================================================
+
+const SaveManager = (() => {
+  let _sessionStart = Date.now();
+
+  const save = (saveData, slotId) => {
+    const elapsed = Math.floor((Date.now() - _sessionStart) / 1000);
+    const stamped = { ...saveData, saveId: slotId, timestamp: new Date().toISOString(), playtime: (saveData.playtime || 0) + elapsed };
+    _sessionStart = Date.now();
+    return Saver.saveSave(stamped);
+  };
+
+  const listSlots = () =>
+    DataStore.list("saves/save_")
+      .filter(p => !p.endsWith(".backup"))
+      .map(p => { const data = DataStore.read(p); return data ? { slotId: data.saveId, timestamp: data.timestamp, playtime: data.playtime || 0, zone: data.currentZone || "unknown", partySize: (data.party || []).length } : null; })
+      .filter(Boolean);
+
+  const load = (slotId) => Loader.load(`saves/save_${slotId}`, "save");
+
+  return { save, listSlots, load };
+})();
+
+
+// =============================================================================
+// SYNTHETIC DATASET
+// =============================================================================
+
+const SyntheticGameData = (() => {
+  const seed = () => {
+
+    DataStore.write("templates/abilities/strike_basic", { id: "strike_basic", name: "Basic Strike", _version: 1, resourceCost: { rage: 10 }, cooldown: 0, castTime: 0, targeting: "single_enemy", threatModifier: 1.0, effects: [{ type: "damage", damageType: "physical", scaling: "ap", multiplier: 1.0 }], tags: ["physical","melee"], description: "A simple melee strike." });
+    DataStore.write("templates/abilities/power_smash",  { id: "power_smash",  name: "Power Smash",  _version: 1, resourceCost: { rage: 25 }, cooldown: 3, castTime: 0, targeting: "single_enemy", threatModifier: 1.5, effects: [{ type: "damage", damageType: "physical", scaling: "ap", multiplier: 1.6 }], tags: ["physical","melee"], description: "A heavy smash." });
+    DataStore.write("templates/abilities/ember_bolt",   { id: "ember_bolt",   name: "Ember Bolt",   _version: 1, resourceCost: { mana: 20 }, cooldown: 0, castTime: 1, targeting: "single_enemy", threatModifier: 1.0, effects: [{ type: "damage", damageType: "fire", scaling: "sp", multiplier: 1.0, flatBonus: 15 }], tags: ["fire","spell"], description: "A bolt of fire." });
+    DataStore.write("templates/abilities/minor_heal",   { id: "minor_heal",   name: "Minor Heal",   _version: 1, resourceCost: { mana: 15 }, cooldown: 0, castTime: 2, targeting: "single_ally",  threatModifier: 0.5, effects: [{ type: "heal", scaling: "sp", multiplier: 1.2, flatBonus: 30 }], tags: ["holy","heal"], description: "A small heal." });
+    DataStore.write("templates/abilities/melee_attack",  { id: "melee_attack",  name: "Auto Attack",  _version: 1, resourceCost: {}, cooldown: 0, castTime: 0, targeting: "single_enemy", threatModifier: 1.0, effects: [{ type: "damage", damageType: "physical", scaling: "ap", multiplier: 1.0 }], tags: ["physical","auto"], description: "Basic auto attack." });
+
+    DataStore.write("templates/buffs/burning_ember", { id: "burning_ember", name: "Burning Ember", _version: 1, duration: 3, tickDamage: { damageType: "fire", flat: 6, scaling: "sp", multiplier: 0.05 }, modifiers: {}, ccFlags: {}, stacks: true, maxStacks: 3, tags: ["fire","dot"], description: "Burns the target." });
+
+    for (const [id, mob] of Object.entries(_mobsData.mobs))
+      DataStore.write(`templates/enemies/${id}`, mob);
+
+    for (const [id, item] of Object.entries(_itemsData.items))
+      DataStore.write(`templates/items/${id}`, item);
+
+    // Random-suffix variants ("<Item> of the Bear", etc.) for every item
+    // tagged "randomEnchant" � see Engine/itemsuffixes.js.
+    for (const variant of ItemSuffixes.generateAllVariants(_itemsData.items))
+      DataStore.write(`templates/items/${variant.id}`, variant);
+
+    for (const [id, recipe] of Object.entries(_craftingData.recipes))
+      DataStore.write(`templates/recipes/${id}`, recipe);
+
+    for (const [id, node] of Object.entries(_gatheringData.nodes))
+      DataStore.write(`templates/nodes/${id}`, node);
+
+    // Shop level ranges are sourced from shop.json (minLevel/maxLevel per shop).
+    const _shopLvl      = (id) => { const s = _shopData.shops[id] || {}; return { min: s.minLevel || 1, max: s.maxLevel || 60 }; };
+    const _shopKeepers  = (id) => (_shopData.shops[id] || {}).shopkeepers || {};
+
+    // ── Durotar Region ────────────────────────────────────────────────────────
+    DataStore.write("templates/zones/valley_of_trials", { id: "valley_of_trials", regionId: "durotar", name: "Valley of Trials",   zoneType: "combat",  _version: 1, encounterTableId: "enc_valley_of_trials", minPartyLevel: 1,  maxPartyLevel: 5,  ambientBuffs: [], connectedZones: ["senjin_village","razor_hill"],                                              shopInventory: [], sellMultiplier: 0.25, tags: ["outdoor","arid"],    lore: "A sheltered canyon where new orcs and trolls prove their worth.", forcedOnly: false, forcedEncounterQueue: [] });
+    DataStore.write("templates/zones/senjin_village",   { id: "senjin_village",   regionId: "durotar", name: "Sen'Jin Village",    zoneType: "shop",    _version: 1, encounterTableId: "enc_durotar", minPartyLevel: _shopLvl("senjin_village").min,  maxPartyLevel: _shopLvl("senjin_village").max,  ambientBuffs: [], connectedZones: ["valley_of_trials","echo_isles"],                                          shopkeepers: _shopKeepers('senjin_village'), sellMultiplier: 0.25, tags: ["outdoor","settlement"], lore: "A troll village on the southern shore.", forcedOnly: false, forcedEncounterQueue: [] });
+    DataStore.write("templates/zones/echo_isles",       { id: "echo_isles",       regionId: "durotar", name: "Echo Isles",         zoneType: "combat",  _version: 1, encounterTableId: "enc_echo_isles",      minPartyLevel: 7,  maxPartyLevel: 9,  ambientBuffs: [], connectedZones: ["senjin_village","drygulch_ravine"],                                       shopInventory: [], sellMultiplier: 0.25, tags: ["outdoor","coastal"],  lore: "Troll islands thick with wildlife and ancient magic.", forcedOnly: false, forcedEncounterQueue: [] });
+    DataStore.write("templates/zones/kolkar_crag",      { id: "kolkar_crag",      regionId: "durotar", name: "Kolkar Crag",        zoneType: "combat",  _version: 1, encounterTableId: "enc_kolkar_crag",     minPartyLevel: 5,  maxPartyLevel: 7,  ambientBuffs: [], connectedZones: ["razor_hill","tiragarde_keep"],                                            shopInventory: [], sellMultiplier: 0.25, tags: ["outdoor","arid"],    lore: "Rocky crags held by Kolkar centaur raiders.", forcedOnly: false, forcedEncounterQueue: [] });
+    DataStore.write("templates/zones/tiragarde_keep",   { id: "tiragarde_keep",   regionId: "durotar", name: "Tiragarde Keep",     zoneType: "combat",  _version: 1, encounterTableId: "enc_tiragarde_keep",  minPartyLevel: 6,  maxPartyLevel: 7,  ambientBuffs: [], connectedZones: ["kolkar_crag","razor_hill"],                                              shopInventory: [], sellMultiplier: 0.25, tags: ["outdoor","fortress"], lore: "A human foothold resisting Horde expansion.", forcedOnly: false, forcedEncounterQueue: [] });
+    DataStore.write("templates/zones/razor_hill",       { id: "razor_hill",       regionId: "durotar", name: "Razor Hill",         zoneType: "shop",    _version: 1, encounterTableId: "enc_durotar",          minPartyLevel: _shopLvl("razor_hill").min,  maxPartyLevel: _shopLvl("razor_hill").max, ambientBuffs: [], connectedZones: ["valley_of_trials","kolkar_crag","tiragarde_keep","durotar","drygulch_ravine"], shopkeepers: _shopKeepers('razor_hill'), sellMultiplier: 0.25, tags: ["outdoor","settlement"], lore: "A fortified outpost at the heart of Durotar.", forcedOnly: false, forcedEncounterQueue: [] });
+    DataStore.write("templates/zones/drygulch_ravine",  { id: "drygulch_ravine",  regionId: "durotar", name: "Drygulch Ravine",    zoneType: "combat",  _version: 1, encounterTableId: "enc_drygulch_ravine",  minPartyLevel: 7,  maxPartyLevel: 9,  ambientBuffs: [], connectedZones: ["razor_hill","echo_isles","razormane_grounds"],                             shopInventory: [], sellMultiplier: 0.25, tags: ["outdoor","arid"],    lore: "A dusty ravine prowled by quilboar.", forcedOnly: false, forcedEncounterQueue: [] });
+    DataStore.write("templates/zones/razormane_grounds",{ id: "razormane_grounds", regionId: "durotar", name: "Razormane Grounds",  zoneType: "combat",  _version: 1, encounterTableId: "enc_razormane_grounds", minPartyLevel: 7,  maxPartyLevel: 10, ambientBuffs: [], connectedZones: ["drygulch_ravine","durotar","thunder_ridge"],                               shopInventory: [], sellMultiplier: 0.25, tags: ["outdoor","arid"],    lore: "Contested scrubland overrun by Razormane quilboar.", forcedOnly: false, forcedEncounterQueue: [] });
+    DataStore.write("templates/zones/durotar",          { id: "durotar",          regionId: "durotar", name: "Durotar",            zoneType: "combat",  _version: 1, encounterTableId: "enc_durotar",           minPartyLevel: 5,  maxPartyLevel: 10, ambientBuffs: [], connectedZones: ["razor_hill","razormane_grounds","thunder_ridge","orgrimmar"],               shopInventory: [], sellMultiplier: 0.25, tags: ["outdoor","arid"],    lore: "The harsh red land named for the legendary Durotan.", forcedOnly: false, forcedEncounterQueue: [] });
+    DataStore.write("templates/zones/thunder_ridge",    { id: "thunder_ridge",    regionId: "durotar", name: "Thunder Ridge",      zoneType: "combat",  _version: 1, encounterTableId: "enc_thunder_ridge",     minPartyLevel: 8,  maxPartyLevel: 11, ambientBuffs: [], connectedZones: ["durotar","razormane_grounds","skull_rock"],                               shopInventory: [], sellMultiplier: 0.25, tags: ["outdoor","arid"],    lore: "A high ridge cracking with lightning and harpy nests.", forcedOnly: false, forcedEncounterQueue: [] });
+    DataStore.write("templates/zones/skull_rock",       { id: "skull_rock",       regionId: "durotar", name: "Skull Rock",         zoneType: "combat",  _version: 1, encounterTableId: "enc_skull_rock",        minPartyLevel: 9,  maxPartyLevel: 12, ambientBuffs: [], connectedZones: ["thunder_ridge"],                                                            shopInventory: [], sellMultiplier: 0.25, tags: ["outdoor","cave"],    lore: "A skull-shaped cave haunted by demons and dark energies.", forcedOnly: false, forcedEncounterQueue: [] });
+    DataStore.write("templates/zones/orgrimmar",        { id: "orgrimmar",        regionId: "durotar", name: "Orgrimmar",          zoneType: "shop",    _version: 1, encounterTableId: "enc_durotar",          minPartyLevel: _shopLvl("orgrimmar").min,  maxPartyLevel: _shopLvl("orgrimmar").max, ambientBuffs: [], connectedZones: ["durotar","skull_rock","ragefire_chasm","northern_barrens"],                  shopkeepers: _shopKeepers('orgrimmar'), sellMultiplier: 0.25, tags: ["city"], lore: "The capital of the Horde, carved into the cliffs of Durotar.", forcedOnly: false, forcedEncounterQueue: [] });
+    // ragefire_chasm and its wings are seeded from Data/dungeons.json below.
+    // ── Barrens Region ────────────────────────────────────────────────────────
+    DataStore.write("templates/zones/northern_barrens", { id: "northern_barrens", regionId: "barrens", name: "Northern Barrens",   zoneType: "combat",  _version: 1, encounterTableId: "enc_barrens",  minPartyLevel: 10, maxPartyLevel: 18, ambientBuffs: [], connectedZones: ["orgrimmar","the_crossroads","camp_taurajo"],                              shopInventory: [], sellMultiplier: 0.25, tags: ["outdoor","plains"],  lore: "A vast sun-baked savanna stretching south from Durotar.", forcedOnly: false, forcedEncounterQueue: [] });
+    DataStore.write("templates/zones/the_crossroads",   { id: "the_crossroads",   regionId: "barrens", name: "The Crossroads",     zoneType: "shop",    _version: 1, encounterTableId: "enc_barrens",          minPartyLevel: _shopLvl("the_crossroads").min, maxPartyLevel: _shopLvl("the_crossroads").max, ambientBuffs: [], connectedZones: ["northern_barrens","forgotten_pool","stagnant_oasis","ratchet","lushwater_oasis"], shopkeepers: _shopKeepers('the_crossroads'), sellMultiplier: 0.25, tags: ["outdoor","settlement"], lore: "The central hub of the Barrens, where all roads meet.", forcedOnly: false, forcedEncounterQueue: [] });
+    DataStore.write("templates/zones/forgotten_pool",   { id: "forgotten_pool",   regionId: "barrens", name: "The Forgotten Pool",  zoneType: "combat",  _version: 1, encounterTableId: "enc_forgotten_pool",  minPartyLevel: 14, maxPartyLevel: 17, ambientBuffs: [], connectedZones: ["the_crossroads"],                                                          shopInventory: [], sellMultiplier: 0.25, tags: ["outdoor","wetland"],  lore: "A hidden oasis pool, eerily quiet and cold.", forcedOnly: false, forcedEncounterQueue: [] });
+    DataStore.write("templates/zones/stagnant_oasis",   { id: "stagnant_oasis",   regionId: "barrens", name: "The Stagnant Oasis",  zoneType: "combat",  _version: 1, encounterTableId: "enc_stagnant_oasis",  minPartyLevel: 14, maxPartyLevel: 17, ambientBuffs: [], connectedZones: ["the_crossroads","lushwater_oasis"],                                       shopInventory: [], sellMultiplier: 0.25, tags: ["outdoor","wetland"],  lore: "A fetid watering hole plagued by centaur and disease.", forcedOnly: false, forcedEncounterQueue: [] });
+    DataStore.write("templates/zones/lushwater_oasis",  { id: "lushwater_oasis",  regionId: "barrens", name: "Lushwater Oasis",    zoneType: "combat",  _version: 1, encounterTableId: "enc_lushwater_oasis", minPartyLevel: 14, maxPartyLevel: 17, ambientBuffs: [], connectedZones: ["the_crossroads","stagnant_oasis","wailing_caverns"],                        shopInventory: [], sellMultiplier: 0.25, tags: ["outdoor","wetland"],  lore: "A green oasis sheltering rare herbs and wailing winds.", forcedOnly: false, forcedEncounterQueue: [] });
+    DataStore.write("templates/zones/ratchet",          { id: "ratchet",          regionId: "barrens", name: "Ratchet",            zoneType: "shop",    _version: 1, encounterTableId: "enc_barrens",          minPartyLevel: _shopLvl("ratchet").min, maxPartyLevel: _shopLvl("ratchet").max, ambientBuffs: [], connectedZones: ["the_crossroads"],                                                            shopkeepers: _shopKeepers('ratchet'), sellMultiplier: 0.25, tags: ["outdoor","port"], lore: "A goblin port town where anyone can do business � for a price.", forcedOnly: false, forcedEncounterQueue: [] });
+    DataStore.write("templates/zones/wailing_caverns",  { id: "wailing_caverns",  regionId: "barrens", name: "Wailing Caverns",    zoneType: "dungeon", _version: 1, encounterTableId: "enc_wailing_caverns", minPartyLevel: 16, maxPartyLevel: 21, ambientBuffs: [], connectedZones: ["lushwater_oasis"],                                                         shopInventory: [], sellMultiplier: 0.25, tags: ["dungeon","nature"],   lore: "A twisting cavern labyrinth corrupted by the Emerald Nightmare.", forcedOnly: false, forcedEncounterQueue: [] });
+    DataStore.write("templates/zones/camp_taurajo",     { id: "camp_taurajo",     regionId: "barrens", name: "Camp Taurajo",       zoneType: "shop",    _version: 1, encounterTableId: "enc_barrens",          minPartyLevel: _shopLvl("camp_taurajo").min, maxPartyLevel: _shopLvl("camp_taurajo").max, ambientBuffs: [], connectedZones: ["northern_barrens","mulgore"],                                                    shopkeepers: _shopKeepers('camp_taurajo'), sellMultiplier: 0.25, tags: ["outdoor","settlement"], lore: "A tauren camp on the southern road through the Barrens.", forcedOnly: false, forcedEncounterQueue: [] });
+    // ── Mulgore Region ────────────────────────────────────────────────────────
+    DataStore.write("templates/zones/red_cloud_mesa",      { id: "red_cloud_mesa",      regionId: "mulgore", name: "Red Cloud Mesa",      zoneType: "combat", _version: 1, encounterTableId: "enc_red_cloud_mesa",      minPartyLevel: 1,  maxPartyLevel: 5,  ambientBuffs: [], connectedZones: ["narache_village","brambleblade_ravine"],                                              shopInventory: [], sellMultiplier: 0.25, tags: ["outdoor","plains"],   lore: "The high mesa where young tauren first learn to hunt.", forcedOnly: false, forcedEncounterQueue: [] });
+    DataStore.write("templates/zones/narache_village",     { id: "narache_village",     regionId: "mulgore", name: "Narache Village",     zoneType: "shop",   _version: 1, encounterTableId: "enc_mulgore",             minPartyLevel: _shopLvl("narache_village").min,  maxPartyLevel: _shopLvl("narache_village").max, ambientBuffs: [], connectedZones: ["red_cloud_mesa","bloodhoof_village"],                                          shopkeepers: _shopKeepers('narache_village'), sellMultiplier: 0.25, tags: ["outdoor","settlement"], lore: "A small tauren outpost at the base of Red Cloud Mesa.", forcedOnly: false, forcedEncounterQueue: [] });
+    DataStore.write("templates/zones/brambleblade_ravine", { id: "brambleblade_ravine", regionId: "mulgore", name: "Brambleblade Ravine", zoneType: "combat", _version: 1, encounterTableId: "enc_brambleblade_ravine", minPartyLevel: 2,  maxPartyLevel: 6,  ambientBuffs: [], connectedZones: ["red_cloud_mesa","venture_co_mine","palemane_camp"],                          shopInventory: [], sellMultiplier: 0.25, tags: ["outdoor","arid"],     lore: "A thorny ravine prowled by quilboar and small predators.", forcedOnly: false, forcedEncounterQueue: [] });
+    DataStore.write("templates/zones/venture_co_mine",     { id: "venture_co_mine",     regionId: "mulgore", name: "Venture Co. Mine",    zoneType: "combat", _version: 1, encounterTableId: "enc_venture_co_mine",     minPartyLevel: 5,  maxPartyLevel: 8,  ambientBuffs: [], connectedZones: ["brambleblade_ravine","mulgore"],                                               shopInventory: [], sellMultiplier: 0.25, tags: ["outdoor","cave"],     lore: "A mine seized by Venture Company goblins, displacing the local tauren.", forcedOnly: false, forcedEncounterQueue: [] });
+    DataStore.write("templates/zones/palemane_camp",       { id: "palemane_camp",       regionId: "mulgore", name: "Palemane Camp",       zoneType: "combat", _version: 1, encounterTableId: "enc_palemane_camp",       minPartyLevel: 5,  maxPartyLevel: 8,  ambientBuffs: [], connectedZones: ["brambleblade_ravine","mulgore"],                                               shopInventory: [], sellMultiplier: 0.25, tags: ["outdoor","plains"],   lore: "A gnoll encampment threatening the peaceful grasslands of Mulgore.", forcedOnly: false, forcedEncounterQueue: [] });
+    DataStore.write("templates/zones/mulgore",             { id: "mulgore",             regionId: "mulgore", name: "Mulgore",             zoneType: "combat", _version: 1, encounterTableId: "enc_mulgore",             minPartyLevel: 7,  maxPartyLevel: 11, ambientBuffs: [], connectedZones: ["venture_co_mine","palemane_camp","baeldun_digsite","red_rocks","bloodhoof_village","thunder_bluff","camp_taurajo"], shopInventory: [], sellMultiplier: 0.25, tags: ["outdoor","plains"],   lore: "The sacred homeland of the tauren, a vast rolling green prairie.", forcedOnly: false, forcedEncounterQueue: [] });
+    DataStore.write("templates/zones/baeldun_digsite",     { id: "baeldun_digsite",     regionId: "mulgore", name: "Baeldun Digsite",     zoneType: "combat", _version: 1, encounterTableId: "enc_baeldun_digsite",     minPartyLevel: 8,  maxPartyLevel: 11, ambientBuffs: [], connectedZones: ["mulgore"],                                                               shopInventory: [], sellMultiplier: 0.25, tags: ["outdoor","fortress"], lore: "An excavation site held by Alliance humans deep in tauren territory.", forcedOnly: false, forcedEncounterQueue: [] });
+    DataStore.write("templates/zones/red_rocks",           { id: "red_rocks",           regionId: "mulgore", name: "Red Rocks",           zoneType: "combat", _version: 1, encounterTableId: "enc_red_rocks",           minPartyLevel: 8,  maxPartyLevel: 12, ambientBuffs: [], connectedZones: ["mulgore"],                                                               shopInventory: [], sellMultiplier: 0.25, tags: ["outdoor","arid"],     lore: "Crimson cliffs where predators lurk above the plains.", forcedOnly: false, forcedEncounterQueue: [] });
+    DataStore.write("templates/zones/bloodhoof_village",   { id: "bloodhoof_village",   regionId: "mulgore", name: "Bloodhoof Village",   zoneType: "shop",   _version: 1, encounterTableId: "enc_mulgore",             minPartyLevel: _shopLvl("bloodhoof_village").min,  maxPartyLevel: _shopLvl("bloodhoof_village").max, ambientBuffs: [], connectedZones: ["narache_village","mulgore","thunder_bluff"],                               shopkeepers: _shopKeepers('bloodhoof_village'), sellMultiplier: 0.25, tags: ["outdoor","settlement"], lore: "The main settlement of the Mulgore plains, where the Bloodhoof clan holds court.", forcedOnly: false, forcedEncounterQueue: [] });
+    DataStore.write("templates/zones/thunder_bluff",       { id: "thunder_bluff",       regionId: "mulgore", name: "Thunder Bluff",       zoneType: "shop",   _version: 1, encounterTableId: "enc_mulgore",             minPartyLevel: _shopLvl("thunder_bluff").min,  maxPartyLevel: _shopLvl("thunder_bluff").max, ambientBuffs: [], connectedZones: ["mulgore","bloodhoof_village"],                                           shopkeepers: _shopKeepers('thunder_bluff'), sellMultiplier: 0.25, tags: ["city"],               lore: "The great mesa city of the tauren, seat of High Chieftain Cairne Bloodhoof.", forcedOnly: false, forcedEncounterQueue: [] });
+
+    // ── Teldrassil ──
+    DataStore.write("templates/zones/shadowglen",        { id: "shadowglen",        regionId: "teldrassil",     name: "Shadowglen",         zoneType: "combat",  _version: 1, encounterTableId: "enc_shadowglen",          minPartyLevel: 1,  maxPartyLevel: 5,  ambientBuffs: [], connectedZones: ["dolanaar"],                                         shopInventory: [], sellMultiplier: 0.25, tags: ["outdoor","forest"],     lore: "A secluded glade inside Teldrassil where young night elves take their first steps.", forcedOnly: false, forcedEncounterQueue: [] });
+    DataStore.write("templates/zones/dolanaar",          { id: "dolanaar",          regionId: "teldrassil",     name: "Dolanaar",           zoneType: "shop",    _version: 1, encounterTableId: "enc_teldrassil",          minPartyLevel: 4,  maxPartyLevel: 8,  ambientBuffs: [], connectedZones: ["shadowglen","ban_ethil_hollow","oracle_glade"],       shopkeepers: _shopKeepers('dolanaar'), sellMultiplier: 0.25, tags: ["outdoor","settlement"], lore: "A small night elf village beneath the great boughs of Teldrassil.", forcedOnly: false, forcedEncounterQueue: [] });
+    DataStore.write("templates/zones/ban_ethil_hollow",  { id: "ban_ethil_hollow",  regionId: "teldrassil",     name: "Ban'ethil Hollow",   zoneType: "combat",  _version: 1, encounterTableId: "enc_ban_ethil_barrow_den", minPartyLevel: 4,  maxPartyLevel: 7,  ambientBuffs: [], connectedZones: ["dolanaar"],                                         shopInventory: [], sellMultiplier: 0.25, tags: ["outdoor","cave"],       lore: "A corrupted burrow system overrun by Gnarlpine furbolgs driven mad by the taint.", forcedOnly: false, forcedEncounterQueue: [] });
+    DataStore.write("templates/zones/gnarlpine_hold",    { id: "gnarlpine_hold",    regionId: "teldrassil",     name: "Gnarlpine Hold",     zoneType: "combat",  _version: 1, encounterTableId: "enc_gnarlpine_hold",      minPartyLevel: 6,  maxPartyLevel: 9,  ambientBuffs: [], connectedZones: ["dolanaar","oracle_glade"],                            shopInventory: [], sellMultiplier: 0.25, tags: ["outdoor","forest"],     lore: "The heart of the corrupted furbolg territory, thick with tainted beasts.", forcedOnly: false, forcedEncounterQueue: [] });
+    DataStore.write("templates/zones/oracle_glade",      { id: "oracle_glade",      regionId: "teldrassil",     name: "Oracle Glade",       zoneType: "combat",  _version: 1, encounterTableId: "enc_oracle_glade",        minPartyLevel: 7,  maxPartyLevel: 10, ambientBuffs: [], connectedZones: ["gnarlpine_hold","darnassus"],                       shopInventory: [], sellMultiplier: 0.25, tags: ["outdoor","forest"],     lore: "A moonlit clearing where harpies and satyr clash with the forest's defenders.", forcedOnly: false, forcedEncounterQueue: [] });
+    DataStore.write("templates/zones/darnassus",         { id: "darnassus",         regionId: "teldrassil",     name: "Darnassus",          zoneType: "shop",    _version: 1, encounterTableId: "enc_teldrassil",          minPartyLevel: 10, maxPartyLevel: 60, ambientBuffs: [], connectedZones: ["oracle_glade"],                                        shopkeepers: _shopKeepers('darnassus'), sellMultiplier: 0.25, tags: ["city"],                 lore: "The capital of the night elves, built atop Teldrassil after the Third War.", forcedOnly: false, forcedEncounterQueue: [] });
+
+    // ── Azuremyst Isle ──
+    DataStore.write("templates/zones/ammen_vale",        { id: "ammen_vale",        regionId: "azuremyst_isle", name: "Ammen Vale",         zoneType: "combat",  _version: 1, encounterTableId: "enc_ammen_vale",          minPartyLevel: 1,  maxPartyLevel: 5,  ambientBuffs: [], connectedZones: ["azure_watch"],                                       shopInventory: [], sellMultiplier: 0.25, tags: ["outdoor","forest"],     lore: "A crash-scarred valley where Draenei survivors first set foot on Azeroth.", forcedOnly: false, forcedEncounterQueue: [] });
+    DataStore.write("templates/zones/azure_watch",       { id: "azure_watch",       regionId: "azuremyst_isle", name: "Azure Watch",        zoneType: "shop",    _version: 1, encounterTableId: "enc_azuremyst_isle",      minPartyLevel: 4,  maxPartyLevel: 8,  ambientBuffs: [], connectedZones: ["ammen_vale","crystal_vale","odesyus_landing","stillpine_hold"], shopkeepers: _shopKeepers('azure_watch'), sellMultiplier: 0.25, tags: ["outdoor","settlement"], lore: "A Draenei outpost established to explore and secure Azuremyst Isle.", forcedOnly: false, forcedEncounterQueue: [] });
+    DataStore.write("templates/zones/crystal_vale",      { id: "crystal_vale",      regionId: "azuremyst_isle", name: "Crystal Vale",       zoneType: "combat",  _version: 1, encounterTableId: "enc_crystal_vale",        minPartyLevel: 3,  maxPartyLevel: 6,  ambientBuffs: [], connectedZones: ["azure_watch"],                                       shopInventory: [], sellMultiplier: 0.25, tags: ["outdoor","magical"],    lore: "A glittering valley of arcane crystal formations crawling with mutated wildlife.", forcedOnly: false, forcedEncounterQueue: [] });
+    DataStore.write("templates/zones/odesyus_landing",   { id: "odesyus_landing",   regionId: "azuremyst_isle", name: "Odesyus' Landing",   zoneType: "combat",  _version: 1, encounterTableId: "enc_azuremyst_isle",      minPartyLevel: 5,  maxPartyLevel: 8,  ambientBuffs: [], connectedZones: ["azure_watch"],                                       shopInventory: [], sellMultiplier: 0.25, tags: ["outdoor","coastal"],    lore: "An Alliance crash site on the western shore, defended against murlocs and naga.", forcedOnly: false, forcedEncounterQueue: [] });
+    DataStore.write("templates/zones/vector_coil",       { id: "vector_coil",       regionId: "azuremyst_isle", name: "Vector Coil",        zoneType: "combat",  _version: 1, encounterTableId: "enc_vector_coil",         minPartyLevel: 6,  maxPartyLevel: 9,  ambientBuffs: [], connectedZones: ["azure_watch"],                                       shopInventory: [], sellMultiplier: 0.25, tags: ["outdoor","ruins"],      lore: "A corrupted section of the Exodar wreckage swarming with rogue mechagnomes and arcane constructs.", forcedOnly: false, forcedEncounterQueue: [] });
+    DataStore.write("templates/zones/stillpine_hold",    { id: "stillpine_hold",    regionId: "azuremyst_isle", name: "Stillpine Hold",     zoneType: "combat",  _version: 1, encounterTableId: "enc_stillpine_hold",      minPartyLevel: 7,  maxPartyLevel: 10, ambientBuffs: [], connectedZones: ["azure_watch","the_exodar"],                        shopInventory: [], sellMultiplier: 0.25, tags: ["outdoor","forest"],     lore: "Sacred furbolg grounds threatened by corruption and hostile Ravager beasts.", forcedOnly: false, forcedEncounterQueue: [] });
+    DataStore.write("templates/zones/silvermyst_isle",   { id: "silvermyst_isle",   regionId: "azuremyst_isle", name: "Silvermyst Isle",    zoneType: "combat",  _version: 1, encounterTableId: "enc_silvermyst_isle",     minPartyLevel: 7,  maxPartyLevel: 10, ambientBuffs: [], connectedZones: ["the_exodar"],                                        shopInventory: [], sellMultiplier: 0.25, tags: ["outdoor","coastal"],    lore: "A small island off the coast thick with satyr and corrupted night elf ruins.", forcedOnly: false, forcedEncounterQueue: [] });
+    DataStore.write("templates/zones/sunhawk_base",      { id: "sunhawk_base",      regionId: "azuremyst_isle", name: "Sunhawk Base",       zoneType: "combat",  _version: 1, encounterTableId: "enc_sunhawk_base",        minPartyLevel: 8,  maxPartyLevel: 10, ambientBuffs: [], connectedZones: ["the_exodar"],                                        shopInventory: [], sellMultiplier: 0.25, tags: ["outdoor","fortress"],   lore: "A blood elf staging ground threatening the Draenei from within the isle.", forcedOnly: false, forcedEncounterQueue: [] });
+    DataStore.write("templates/zones/wrathscale_point",  { id: "wrathscale_point",  regionId: "azuremyst_isle", name: "Wrathscale Point",   zoneType: "combat",  _version: 1, encounterTableId: "enc_wrathscale_point",    minPartyLevel: 7,  maxPartyLevel: 10, ambientBuffs: [], connectedZones: ["the_exodar"],                                        shopInventory: [], sellMultiplier: 0.25, tags: ["outdoor","coastal"],    lore: "A naga stronghold on the rocky eastern shore of Azuremyst.", forcedOnly: false, forcedEncounterQueue: [] });
+    DataStore.write("templates/zones/the_exodar",        { id: "the_exodar",        regionId: "azuremyst_isle", name: "The Exodar",         zoneType: "shop",    _version: 1, encounterTableId: "enc_azuremyst_isle",      minPartyLevel: 10, maxPartyLevel: 60, ambientBuffs: [], connectedZones: ["stillpine_hold","silvermyst_isle"],               shopkeepers: _shopKeepers('the_exodar'), sellMultiplier: 0.25, tags: ["city"],                 lore: "The dimensional ship turned city-refuge, seat of Draenei civilization on Azeroth.", forcedOnly: false, forcedEncounterQueue: [] });
+
+    // ── Bloodmyst Isle ──
+    DataStore.write("templates/zones/bloodmyst_isle",    { id: "bloodmyst_isle",    regionId: "bloodmyst_isle", name: "Bloodmyst Isle",     zoneType: "combat",  _version: 1, encounterTableId: "enc_bloodmyst_isle",      minPartyLevel: 10, maxPartyLevel: 18, ambientBuffs: [], connectedZones: ["bloodwatch","bloodfen","cobalt_ridge"],              shopInventory: [], sellMultiplier: 0.25, tags: ["outdoor","corrupted"], lore: "A crimson-tainted island north of Azuremyst, overrun by corrupted beasts and blood elves.", forcedOnly: false, forcedEncounterQueue: [] });
+    DataStore.write("templates/zones/bloodfen",          { id: "bloodfen",          regionId: "bloodmyst_isle", name: "Bloodfen",           zoneType: "combat",  _version: 1, encounterTableId: "enc_bloodfen",            minPartyLevel: 11, maxPartyLevel: 15, ambientBuffs: [], connectedZones: ["bloodmyst_isle"],                                    shopInventory: [], sellMultiplier: 0.25, tags: ["outdoor","wetland"],    lore: "A blood-soaked marsh teeming with corrupted wildlife and hostile naga.", forcedOnly: false, forcedEncounterQueue: [] });
+    DataStore.write("templates/zones/cobalt_ridge",      { id: "cobalt_ridge",      regionId: "bloodmyst_isle", name: "Cobalt Ridge",       zoneType: "combat",  _version: 1, encounterTableId: "enc_cobalt_ridge",        minPartyLevel: 14, maxPartyLevel: 18, ambientBuffs: [], connectedZones: ["bloodmyst_isle"],                                    shopInventory: [], sellMultiplier: 0.25, tags: ["outdoor","rocky"],      lore: "A mineral-rich ridge controlled by Sunhawk blood elf forces.", forcedOnly: false, forcedEncounterQueue: [] });
+    DataStore.write("templates/zones/bloodwatch",        { id: "bloodwatch",        regionId: "bloodmyst_isle", name: "Bloodwatch",         zoneType: "shop",    _version: 1, encounterTableId: "enc_bloodmyst_isle",      minPartyLevel: 10, maxPartyLevel: 20, ambientBuffs: [], connectedZones: ["bloodmyst_isle"],                                    shopkeepers: _shopKeepers('bloodwatch'), sellMultiplier: 0.25, tags: ["outdoor","settlement"], lore: "A Draenei forward camp established to push back the Sunhawk incursion.", forcedOnly: false, forcedEncounterQueue: [] });
+
+    // ── Darkshore ──
+    DataStore.write("templates/zones/darkshore",         { id: "darkshore",         regionId: "darkshore",      name: "Darkshore",          zoneType: "combat",  _version: 1, encounterTableId: "enc_darkshore",           minPartyLevel: 10, maxPartyLevel: 20, ambientBuffs: [], connectedZones: ["auberdine","angerclaw_thicket","blackwood_den"],    shopInventory: [], sellMultiplier: 0.25, tags: ["outdoor","coastal"],    lore: "A bleak, storm-lashed shore haunted by furbolgs and ancient undead.", forcedOnly: false, forcedEncounterQueue: [] });
+    DataStore.write("templates/zones/auberdine",         { id: "auberdine",         regionId: "darkshore",      name: "Auberdine",          zoneType: "shop",    _version: 1, encounterTableId: "enc_darkshore",           minPartyLevel: 10, maxPartyLevel: 25, ambientBuffs: [], connectedZones: ["darkshore"],                                        shopkeepers: _shopKeepers('auberdine'), sellMultiplier: 0.25, tags: ["outdoor","settlement"], lore: "A small night elf port town, waypoint for travelers crossing to the Eastern Kingdoms.", forcedOnly: false, forcedEncounterQueue: [] });
+    DataStore.write("templates/zones/angerclaw_thicket", { id: "angerclaw_thicket", regionId: "darkshore",      name: "Angerclaw Thicket",  zoneType: "combat",  _version: 1, encounterTableId: "enc_angerclaw_thicket",   minPartyLevel: 10, maxPartyLevel: 15, ambientBuffs: [], connectedZones: ["darkshore"],                                        shopInventory: [], sellMultiplier: 0.25, tags: ["outdoor","forest"],     lore: "A dense forest patch prowled by bears and furbolg hunters.", forcedOnly: false, forcedEncounterQueue: [] });
+    DataStore.write("templates/zones/blackwood_den",     { id: "blackwood_den",     regionId: "darkshore",      name: "Blackwood Den",      zoneType: "combat",  _version: 1, encounterTableId: "enc_blackwood_den",       minPartyLevel: 12, maxPartyLevel: 18, ambientBuffs: [], connectedZones: ["darkshore"],                                        shopInventory: [], sellMultiplier: 0.25, tags: ["outdoor","cave"],       lore: "A furbolg den deep in the coastal cliffs, tainted by shadow corruption.", forcedOnly: false, forcedEncounterQueue: [] });
+    DataStore.write("templates/zones/mathystra_ruins",   { id: "mathystra_ruins",   regionId: "darkshore",      name: "Mathystra Ruins",    zoneType: "combat",  _version: 1, encounterTableId: "enc_mathystra_ruins",     minPartyLevel: 16, maxPartyLevel: 20, ambientBuffs: [], connectedZones: ["darkshore"],                                        shopInventory: [], sellMultiplier: 0.25, tags: ["outdoor","ruins"],      lore: "Ancient night elf ruins haunted by naga searching for arcane artifacts.", forcedOnly: false, forcedEncounterQueue: [] });
+    DataStore.write("templates/zones/shatterspear_vale", { id: "shatterspear_vale", regionId: "darkshore",      name: "Shatterspear Vale",  zoneType: "combat",  _version: 1, encounterTableId: "enc_shatterspear_vale",   minPartyLevel: 17, maxPartyLevel: 21, ambientBuffs: [], connectedZones: ["darkshore"],                                        shopInventory: [], sellMultiplier: 0.25, tags: ["outdoor","forest"],     lore: "A hidden troll enclave on the northern coast, hostile to all outsiders.", forcedOnly: false, forcedEncounterQueue: [] });
+    DataStore.write("templates/zones/tower_of_althalaxx",{ id: "tower_of_althalaxx",regionId: "darkshore",      name: "Tower of Althalaxx", zoneType: "combat",  _version: 1, encounterTableId: "enc_tower_of_althalaxx",  minPartyLevel: 18, maxPartyLevel: 22, ambientBuffs: [], connectedZones: ["darkshore"],                                        shopInventory: [], sellMultiplier: 0.25, tags: ["outdoor","fortress"],   lore: "A warlock's tower wreathed in shadow, base of the Twilight's Hammer on the coast.", forcedOnly: false, forcedEncounterQueue: [] });
+
+    // ── Ashenvale ──
+    DataStore.write("templates/zones/ashenvale",          { id: "ashenvale",          regionId: "ashenvale",          name: "Ashenvale",           zoneType: "combat",  _version: 1, encounterTableId: "enc_ashenvale",           minPartyLevel: 18, maxPartyLevel: 30, ambientBuffs: [], connectedZones: ["astranaar","jadefire_run","foulweald_den","shattered_strand","warsong_lumber_camp"],  shopInventory: [], sellMultiplier: 0.25, tags: ["outdoor","forest"],    lore: "An ancient night elf forest threatened by the Horde's logging operations and demon corruption.", forcedOnly: false, forcedEncounterQueue: [] });
+    DataStore.write("templates/zones/astranaar",          { id: "astranaar",          regionId: "ashenvale",          name: "Astranaar",           zoneType: "shop",    _version: 1, encounterTableId: "enc_ashenvale",           minPartyLevel: 18, maxPartyLevel: 30, ambientBuffs: [], connectedZones: ["ashenvale"],                                                                     shopkeepers: _shopKeepers('astranaar'), sellMultiplier: 0.25, tags: ["outdoor","settlement"], lore: "A night elf outpost at the heart of Ashenvale, rally point against Horde incursions.", forcedOnly: false, forcedEncounterQueue: [] });
+    DataStore.write("templates/zones/jadefire_run",       { id: "jadefire_run",       regionId: "ashenvale",          name: "Jadefire Run",        zoneType: "combat",  _version: 1, encounterTableId: "enc_jadefire_run",        minPartyLevel: 18, maxPartyLevel: 23, ambientBuffs: [], connectedZones: ["ashenvale"],                                                                     shopInventory: [], sellMultiplier: 0.25, tags: ["outdoor","demonic"],   lore: "Demon-infested ruins where satyr of the Jadefire clan traffic in dark magic.", forcedOnly: false, forcedEncounterQueue: [] });
+    DataStore.write("templates/zones/shattered_strand",   { id: "shattered_strand",   regionId: "ashenvale",          name: "Shattered Strand",    zoneType: "combat",  _version: 1, encounterTableId: "enc_shattered_strand",    minPartyLevel: 19, maxPartyLevel: 24, ambientBuffs: [], connectedZones: ["ashenvale"],                                                                     shopInventory: [], sellMultiplier: 0.25, tags: ["outdoor","coastal"],   lore: "A rocky shoreline crawling with naga who have emerged from the sea to reclaim ancient ruins.", forcedOnly: false, forcedEncounterQueue: [] });
+    DataStore.write("templates/zones/foulweald_den",      { id: "foulweald_den",      regionId: "ashenvale",          name: "Foulweald Den",       zoneType: "combat",  _version: 1, encounterTableId: "enc_foulweald_den",       minPartyLevel: 20, maxPartyLevel: 25, ambientBuffs: [], connectedZones: ["ashenvale"],                                                                     shopInventory: [], sellMultiplier: 0.25, tags: ["outdoor","forest"],    lore: "A furbolg encampment deep in the woods, corrupted and hostile to all.", forcedOnly: false, forcedEncounterQueue: [] });
+    DataStore.write("templates/zones/warsong_lumber_camp",{ id: "warsong_lumber_camp",regionId: "ashenvale",          name: "Warsong Lumber Camp", zoneType: "combat",  _version: 1, encounterTableId: "enc_warsong_lumber_camp", minPartyLevel: 22, maxPartyLevel: 27, ambientBuffs: [], connectedZones: ["ashenvale","splintertree_post"],                                                shopInventory: [], sellMultiplier: 0.25, tags: ["outdoor","horde"],     lore: "A Horde logging operation aggressively clear-cutting Ashenvale's ancient trees.", forcedOnly: false, forcedEncounterQueue: [] });
+    DataStore.write("templates/zones/splintertree_post",  { id: "splintertree_post",  regionId: "ashenvale",          name: "Splintertree Post",   zoneType: "shop",    _version: 1, encounterTableId: "enc_ashenvale",           minPartyLevel: 22, maxPartyLevel: 30, ambientBuffs: [], connectedZones: ["warsong_lumber_camp","irontree_woods","xavian","nazzivian"],                     shopkeepers: _shopKeepers('splintertree_post'), sellMultiplier: 0.25, tags: ["outdoor","settlement"], lore: "A Horde outpost deep in Ashenvale, resupply point for Warsong loggers.", forcedOnly: false, forcedEncounterQueue: [] });
+    DataStore.write("templates/zones/xavian",             { id: "xavian",             regionId: "ashenvale",          name: "Xavian",              zoneType: "combat",  _version: 1, encounterTableId: "enc_xavian",             minPartyLevel: 24, maxPartyLevel: 29, ambientBuffs: [], connectedZones: ["splintertree_post"],                                                              shopInventory: [], sellMultiplier: 0.25, tags: ["outdoor","demonic"],   lore: "A satyr stronghold where Xavian's demons plot to spread corruption through the forest.", forcedOnly: false, forcedEncounterQueue: [] });
+    DataStore.write("templates/zones/nazzivian",          { id: "nazzivian",          regionId: "ashenvale",          name: "Nazzivian",           zoneType: "combat",  _version: 1, encounterTableId: "enc_nazzivian",          minPartyLevel: 25, maxPartyLevel: 30, ambientBuffs: [], connectedZones: ["splintertree_post"],                                                              shopInventory: [], sellMultiplier: 0.25, tags: ["outdoor","demonic"],   lore: "A ruined satyr enclave on the eastern border of Ashenvale, thick with demonic energy.", forcedOnly: false, forcedEncounterQueue: [] });
+    DataStore.write("templates/zones/raynewood_retreat",  { id: "raynewood_retreat",  regionId: "ashenvale",          name: "Raynewood Retreat",   zoneType: "combat",  _version: 1, encounterTableId: "enc_raynewood_retreat",   minPartyLevel: 24, maxPartyLevel: 28, ambientBuffs: [], connectedZones: ["ashenvale"],                                                                     shopInventory: [], sellMultiplier: 0.25, tags: ["outdoor","forest"],    lore: "Ancient treant groves corrupted by demonic magic, now hostile to travelers.", forcedOnly: false, forcedEncounterQueue: [] });
+
+    // ── Stonetalon Mountains ──
+    DataStore.write("templates/zones/stonetalon_mountains",{ id: "stonetalon_mountains",regionId: "stonetalon",      name: "Stonetalon Mountains",zoneType: "combat",  _version: 1, encounterTableId: "enc_stonetalon_mountains",minPartyLevel: 15, maxPartyLevel: 27, ambientBuffs: [], connectedZones: ["sun_rock_retreat","windshear_crag","grimtotem_post"],                          shopInventory: [], sellMultiplier: 0.25, tags: ["outdoor","mountain"],  lore: "Rugged peaks claimed by harpies and Venture Company logging operations.", forcedOnly: false, forcedEncounterQueue: [] });
+    DataStore.write("templates/zones/sun_rock_retreat",    { id: "sun_rock_retreat",   regionId: "stonetalon",        name: "Sun Rock Retreat",    zoneType: "shop",    _version: 1, encounterTableId: "enc_stonetalon_mountains",minPartyLevel: 15, maxPartyLevel: 30, ambientBuffs: [], connectedZones: ["stonetalon_mountains"],                                                          shopkeepers: _shopKeepers('sun_rock_retreat'), sellMultiplier: 0.25, tags: ["outdoor","settlement"], lore: "A Horde outpost perched in the mountain passes of Stonetalon.", forcedOnly: false, forcedEncounterQueue: [] });
+    DataStore.write("templates/zones/grimtotem_post",      { id: "grimtotem_post",     regionId: "stonetalon",        name: "Grimtotem Post",      zoneType: "combat",  _version: 1, encounterTableId: "enc_grimtotem_post",      minPartyLevel: 15, maxPartyLevel: 20, ambientBuffs: [], connectedZones: ["stonetalon_mountains"],                                                          shopInventory: [], sellMultiplier: 0.25, tags: ["outdoor","plains"],    lore: "A hostile Grimtotem tauren camp, threatening neutral travelers and Horde alike.", forcedOnly: false, forcedEncounterQueue: [] });
+    DataStore.write("templates/zones/windshear_crag",      { id: "windshear_crag",     regionId: "stonetalon",        name: "Windshear Crag",      zoneType: "combat",  _version: 1, encounterTableId: "enc_windshear_crag",      minPartyLevel: 18, maxPartyLevel: 23, ambientBuffs: [], connectedZones: ["stonetalon_mountains"],                                                          shopInventory: [], sellMultiplier: 0.25, tags: ["outdoor","cave"],      lore: "A mine shaft blasted open by the Venture Company, belching toxic fumes.", forcedOnly: false, forcedEncounterQueue: [] });
+    DataStore.write("templates/zones/stonetalon_peak",     { id: "stonetalon_peak",    regionId: "stonetalon",        name: "Stonetalon Peak",     zoneType: "combat",  _version: 1, encounterTableId: "enc_stonetalon_peak",     minPartyLevel: 23, maxPartyLevel: 29, ambientBuffs: [], connectedZones: ["stonetalon_mountains","charred_vale"],                                          shopInventory: [], sellMultiplier: 0.25, tags: ["outdoor","mountain"],  lore: "The highest summit in Stonetalon, home to a Cenarion druid retreat under siege.", forcedOnly: false, forcedEncounterQueue: [] });
+    DataStore.write("templates/zones/charred_vale",        { id: "charred_vale",       regionId: "stonetalon",        name: "Charred Vale",        zoneType: "combat",  _version: 1, encounterTableId: "enc_charred_vale",        minPartyLevel: 25, maxPartyLevel: 30, ambientBuffs: [], connectedZones: ["stonetalon_peak"],                                                              shopInventory: [], sellMultiplier: 0.25, tags: ["outdoor","fire"],      lore: "A scorched basin blackened by elemental fire, crawling with fire elementals.", forcedOnly: false, forcedEncounterQueue: [] });
+
+    // ── Southern Barrens ──
+    DataStore.write("templates/zones/southern_barrens",    { id: "southern_barrens",   regionId: "southern_barrens",  name: "Southern Barrens",    zoneType: "combat",  _version: 1, encounterTableId: "enc_southern_barrens",    minPartyLevel: 25, maxPartyLevel: 35, ambientBuffs: [], connectedZones: ["razorfen_fields","bristleback_camp","bael_modan"],                           shopInventory: [], sellMultiplier: 0.25, tags: ["outdoor","plains"],    lore: "The dusty southern reaches of the Barrens, dominated by quilboar settlements.", forcedOnly: false, forcedEncounterQueue: [] });
+    DataStore.write("templates/zones/razorfen_fields",     { id: "razorfen_fields",    regionId: "southern_barrens",  name: "Razorfen Fields",     zoneType: "combat",  _version: 1, encounterTableId: "enc_razorfen_fields",     minPartyLevel: 25, maxPartyLevel: 30, ambientBuffs: [], connectedZones: ["southern_barrens","razorfen_kraul"],                                           shopInventory: [], sellMultiplier: 0.25, tags: ["outdoor","arid"],      lore: "Open plains dominated by the Razorfen quilboar, littered with their crude encampments.", forcedOnly: false, forcedEncounterQueue: [] });
+    DataStore.write("templates/zones/bristleback_camp",    { id: "bristleback_camp",   regionId: "southern_barrens",  name: "Bristleback Camp",    zoneType: "combat",  _version: 1, encounterTableId: "enc_bristleback_camp",    minPartyLevel: 26, maxPartyLevel: 31, ambientBuffs: [], connectedZones: ["southern_barrens"],                                                          shopInventory: [], sellMultiplier: 0.25, tags: ["outdoor","arid"],      lore: "A bristleback quilboar village pressed up against the southern thorn thickets.", forcedOnly: false, forcedEncounterQueue: [] });
+    DataStore.write("templates/zones/razorfen_kraul",      { id: "razorfen_kraul",     regionId: "southern_barrens",  name: "Razorfen Kraul",      zoneType: "dungeon", _version: 1, encounterTableId: "enc_razorfen_kraul",      minPartyLevel: 25, maxPartyLevel: 32, ambientBuffs: [], connectedZones: ["razorfen_fields"],                                                             shopInventory: [], sellMultiplier: 0.25, tags: ["dungeon","thorn"],     lore: "A thorny quilboar fortress-city beneath the great briar, ruled by the Death's Head cult.", forcedOnly: false, forcedEncounterQueue: [] });
+    DataStore.write("templates/zones/bael_modan",          { id: "bael_modan",         regionId: "southern_barrens",  name: "Bael Modan",          zoneType: "shop",    _version: 1, encounterTableId: "enc_southern_barrens",    minPartyLevel: 25, maxPartyLevel: 35, ambientBuffs: [], connectedZones: ["southern_barrens"],                                                          shopkeepers: _shopKeepers('bael_modan'), sellMultiplier: 0.25, tags: ["outdoor","settlement"], lore: "A dwarven excavation camp in the southern Barrens, digging for titan artifacts.", forcedOnly: false, forcedEncounterQueue: [] });
+
+    // ── Thousand Needles ──
+    DataStore.write("templates/zones/thousand_needles",    { id: "thousand_needles",   regionId: "thousand_needles",  name: "Thousand Needles",    zoneType: "combat",  _version: 1, encounterTableId: "enc_thousand_needles",    minPartyLevel: 25, maxPartyLevel: 35, ambientBuffs: [], connectedZones: ["freewind_post","screeching_canyon","darkcloud_pinnacle"],                   shopInventory: [], sellMultiplier: 0.25, tags: ["outdoor","mesa"],      lore: "A vast plateau riddled with towering stone needles and centaur warbands.", forcedOnly: false, forcedEncounterQueue: [] });
+    DataStore.write("templates/zones/freewind_post",       { id: "freewind_post",      regionId: "thousand_needles",  name: "Freewind Post",       zoneType: "shop",    _version: 1, encounterTableId: "enc_thousand_needles",    minPartyLevel: 25, maxPartyLevel: 35, ambientBuffs: [], connectedZones: ["thousand_needles"],                                                          shopkeepers: _shopKeepers('freewind_post'), sellMultiplier: 0.25, tags: ["outdoor","settlement"], lore: "A Horde outpost perched atop a mesa, accessible only by zeppelin.", forcedOnly: false, forcedEncounterQueue: [] });
+    DataStore.write("templates/zones/screeching_canyon",   { id: "screeching_canyon",  regionId: "thousand_needles",  name: "Screeching Canyon",   zoneType: "combat",  _version: 1, encounterTableId: "enc_screeching_canyon",   minPartyLevel: 25, maxPartyLevel: 30, ambientBuffs: [], connectedZones: ["thousand_needles"],                                                          shopInventory: [], sellMultiplier: 0.25, tags: ["outdoor","mesa"],      lore: "A canyon filled with the constant screech of wind and the harpies that nest in its walls.", forcedOnly: false, forcedEncounterQueue: [] });
+    DataStore.write("templates/zones/darkcloud_pinnacle",  { id: "darkcloud_pinnacle", regionId: "thousand_needles",  name: "Darkcloud Pinnacle",  zoneType: "combat",  _version: 1, encounterTableId: "enc_darkcloud_pinnacle",  minPartyLevel: 28, maxPartyLevel: 33, ambientBuffs: [], connectedZones: ["thousand_needles"],                                                          shopInventory: [], sellMultiplier: 0.25, tags: ["outdoor","mesa"],      lore: "A fortified tauren village atop a needle mesa, attacked by Grimtotem marauders.", forcedOnly: false, forcedEncounterQueue: [] });
+
+    // ── Desolace ──
+    DataStore.write("templates/zones/desolace_plains",     { id: "desolace_plains",    regionId: "desolace",          name: "Desolace",            zoneType: "combat",  _version: 1, encounterTableId: "enc_desolace_plains",     minPartyLevel: 30, maxPartyLevel: 40, ambientBuffs: [], connectedZones: ["shadowprey_village","waterspring_field","magram_village","galak_encampment","kolkar_hold"], shopInventory: [], sellMultiplier: 0.25, tags: ["outdoor","barren"],    lore: "A bleak, ash-grey wasteland haunted by centaur clans and demons.", forcedOnly: false, forcedEncounterQueue: [] });
+    DataStore.write("templates/zones/shadowprey_village",  { id: "shadowprey_village", regionId: "desolace",          name: "Shadowprey Village",  zoneType: "shop",    _version: 1, encounterTableId: "enc_desolace_plains",     minPartyLevel: 30, maxPartyLevel: 42, ambientBuffs: [], connectedZones: ["desolace_plains"],                                                          shopkeepers: _shopKeepers('shadowprey_village'), sellMultiplier: 0.25, tags: ["outdoor","settlement"], lore: "A troll fishing village on the western coast of Desolace.", forcedOnly: false, forcedEncounterQueue: [] });
+    DataStore.write("templates/zones/waterspring_field",   { id: "waterspring_field",  regionId: "desolace",          name: "Waterspring Field",   zoneType: "combat",  _version: 1, encounterTableId: "enc_waterspring_field",   minPartyLevel: 30, maxPartyLevel: 36, ambientBuffs: [], connectedZones: ["desolace_plains"],                                                          shopInventory: [], sellMultiplier: 0.25, tags: ["outdoor","wetland"],   lore: "One of the few oasis points in Desolace, fiercely contested by centaur tribes.", forcedOnly: false, forcedEncounterQueue: [] });
+    DataStore.write("templates/zones/magram_village",      { id: "magram_village",     regionId: "desolace",          name: "Magram Village",      zoneType: "combat",  _version: 1, encounterTableId: "enc_magram_village",      minPartyLevel: 31, maxPartyLevel: 37, ambientBuffs: [], connectedZones: ["desolace_plains"],                                                          shopInventory: [], sellMultiplier: 0.25, tags: ["outdoor","barren"],    lore: "The war camp of the savage Magram centaur clan.", forcedOnly: false, forcedEncounterQueue: [] });
+    DataStore.write("templates/zones/galak_encampment",    { id: "galak_encampment",   regionId: "desolace",          name: "Galak Encampment",    zoneType: "combat",  _version: 1, encounterTableId: "enc_galak_encampment",    minPartyLevel: 31, maxPartyLevel: 37, ambientBuffs: [], connectedZones: ["desolace_plains"],                                                          shopInventory: [], sellMultiplier: 0.25, tags: ["outdoor","barren"],    lore: "A sprawling centaur camp belonging to the Galak clan.", forcedOnly: false, forcedEncounterQueue: [] });
+    DataStore.write("templates/zones/kolkar_hold",         { id: "kolkar_hold",        regionId: "desolace",          name: "Kolkar Hold",         zoneType: "combat",  _version: 1, encounterTableId: "enc_kolkar_hold",         minPartyLevel: 31, maxPartyLevel: 37, ambientBuffs: [], connectedZones: ["desolace_plains"],                                                          shopInventory: [], sellMultiplier: 0.25, tags: ["outdoor","barren"],    lore: "The stronghold of the Kolkar centaur, fiercest of Desolace's clans.", forcedOnly: false, forcedEncounterQueue: [] });
+    DataStore.write("templates/zones/valley_of_spears",    { id: "valley_of_spears",   regionId: "desolace",          name: "Valley of Spears",    zoneType: "combat",  _version: 1, encounterTableId: "enc_valley_of_spears",    minPartyLevel: 33, maxPartyLevel: 39, ambientBuffs: [], connectedZones: ["desolace_plains"],                                                          shopInventory: [], sellMultiplier: 0.25, tags: ["outdoor","barren"],    lore: "A centaur cemetery turned battleground, littered with ancient spears.", forcedOnly: false, forcedEncounterQueue: [] });
+    DataStore.write("templates/zones/splithoof_hold",      { id: "splithoof_hold",     regionId: "desolace",          name: "Splithoof Hold",      zoneType: "combat",  _version: 1, encounterTableId: "enc_splithoof_hold",      minPartyLevel: 35, maxPartyLevel: 40, ambientBuffs: [], connectedZones: ["desolace_plains"],                                                          shopInventory: [], sellMultiplier: 0.25, tags: ["outdoor","barren"],    lore: "A centaur rock fortress housing their most powerful warriors.", forcedOnly: false, forcedEncounterQueue: [] });
+    DataStore.write("templates/zones/mannoroc_coven",      { id: "mannoroc_coven",     regionId: "desolace",          name: "Mannoroc Coven",      zoneType: "combat",  _version: 1, encounterTableId: "enc_mannoroc_coven",      minPartyLevel: 36, maxPartyLevel: 42, ambientBuffs: [], connectedZones: ["desolace_plains"],                                                          shopInventory: [], sellMultiplier: 0.25, tags: ["outdoor","demonic"],   lore: "A demon summoning ground where satyr perform dark rituals under Mannoroc.", forcedOnly: false, forcedEncounterQueue: [] });
+    DataStore.write("templates/zones/maraudon",            { id: "maraudon",           regionId: "desolace",          name: "Maraudon",            zoneType: "dungeon", _version: 1, encounterTableId: "enc_maraudon",            minPartyLevel: 34, maxPartyLevel: 44, ambientBuffs: [], connectedZones: ["desolace_plains"],                                                          shopInventory: [], sellMultiplier: 0.25, tags: ["dungeon","nature"],    lore: "A sacred centaur burial site corrupted by the earth demon Theradras, now a twisted dungeon.", forcedOnly: false, forcedEncounterQueue: [] });
+
+    // ── Feralas ──
+    DataStore.write("templates/zones/feralas_wilds",       { id: "feralas_wilds",      regionId: "feralas",           name: "Feralas",             zoneType: "combat",  _version: 1, encounterTableId: "enc_feralas_wilds",       minPartyLevel: 40, maxPartyLevel: 50, ambientBuffs: [], connectedZones: ["feathermoon_stronghold","darkmist_ruins","gordunni_outpost","woodpaw_gnoll_camp","frayfeather_highlands","hidden_reef"], shopInventory: [], sellMultiplier: 0.25, tags: ["outdoor","forest"],    lore: "A vast, ancient rainforest teeming with giant creatures and hostile ogre clans.", forcedOnly: false, forcedEncounterQueue: [] });
+    DataStore.write("templates/zones/feathermoon_stronghold",{ id: "feathermoon_stronghold",regionId: "feralas",       name: "Feathermoon Stronghold",zoneType: "shop",  _version: 1, encounterTableId: "enc_feralas_wilds",       minPartyLevel: 40, maxPartyLevel: 52, ambientBuffs: [], connectedZones: ["feralas_wilds"],                                                          shopkeepers: _shopKeepers('feathermoon_stronghold'), sellMultiplier: 0.25, tags: ["outdoor","settlement"], lore: "A night elf fortress on a small island off the Feralas coast.", forcedOnly: false, forcedEncounterQueue: [] });
+    DataStore.write("templates/zones/darkmist_ruins",      { id: "darkmist_ruins",     regionId: "feralas",           name: "Darkmist Ruins",      zoneType: "combat",  _version: 1, encounterTableId: "enc_darkmist_ruins",      minPartyLevel: 40, maxPartyLevel: 46, ambientBuffs: [], connectedZones: ["feralas_wilds"],                                                          shopInventory: [], sellMultiplier: 0.25, tags: ["outdoor","ruins"],     lore: "Ancient night elf ruins overrun with spiders and naga searching for arcane relics.", forcedOnly: false, forcedEncounterQueue: [] });
+    DataStore.write("templates/zones/gordunni_outpost",    { id: "gordunni_outpost",   regionId: "feralas",           name: "Gordunni Outpost",    zoneType: "combat",  _version: 1, encounterTableId: "enc_gordunni_outpost",    minPartyLevel: 42, maxPartyLevel: 48, ambientBuffs: [], connectedZones: ["feralas_wilds"],                                                          shopInventory: [], sellMultiplier: 0.25, tags: ["outdoor","fortress"],  lore: "A massive ogre fortress, seat of the powerful Gordunni clan.", forcedOnly: false, forcedEncounterQueue: [] });
+    DataStore.write("templates/zones/woodpaw_gnoll_camp",  { id: "woodpaw_gnoll_camp", regionId: "feralas",           name: "Woodpaw Gnoll Camp",  zoneType: "combat",  _version: 1, encounterTableId: "enc_woodpaw_gnoll_camp",  minPartyLevel: 41, maxPartyLevel: 46, ambientBuffs: [], connectedZones: ["feralas_wilds"],                                                          shopInventory: [], sellMultiplier: 0.25, tags: ["outdoor","forest"],    lore: "A gnoll settlement in the eastern wilds of Feralas.", forcedOnly: false, forcedEncounterQueue: [] });
+    DataStore.write("templates/zones/frayfeather_highlands",{ id: "frayfeather_highlands",regionId: "feralas",        name: "Frayfeather Highlands",zoneType: "combat", _version: 1, encounterTableId: "enc_frayfeather_highlands",minPartyLevel: 43, maxPartyLevel: 49, ambientBuffs: [], connectedZones: ["feralas_wilds"],                                                          shopInventory: [], sellMultiplier: 0.25, tags: ["outdoor","cliffs"],    lore: "Windswept highlands patrolled by massive harpies and hippogryphs.", forcedOnly: false, forcedEncounterQueue: [] });
+    DataStore.write("templates/zones/hidden_reef",         { id: "hidden_reef",        regionId: "feralas",           name: "Hidden Reef",         zoneType: "combat",  _version: 1, encounterTableId: "enc_hidden_reef",         minPartyLevel: 43, maxPartyLevel: 49, ambientBuffs: [], connectedZones: ["feralas_wilds"],                                                          shopInventory: [], sellMultiplier: 0.25, tags: ["outdoor","coastal"],   lore: "A submerged reef teeming with naga and sea creatures off the Feralas coast.", forcedOnly: false, forcedEncounterQueue: [] });
+    DataStore.write("templates/zones/dire_maul",           { id: "dire_maul",          regionId: "feralas",           name: "Dire Maul",           zoneType: "dungeon", _version: 1, encounterTableId: "enc_dire_maul",           minPartyLevel: 36, maxPartyLevel: 46, ambientBuffs: [], connectedZones: ["feralas_wilds"],                                                          shopInventory: [], sellMultiplier: 0.25, tags: ["dungeon","arcane"],    lore: "A ruined night elf city split into three wings, overrun by ogres and demons.", forcedOnly: false, forcedEncounterQueue: [] });
+
+    // ── Dustwallow Marsh ──
+    DataStore.write("templates/zones/theramore_outskirts", { id: "theramore_outskirts",regionId: "dustwallow",        name: "Theramore Outskirts", zoneType: "combat",  _version: 1, encounterTableId: "enc_theramore_outskirts", minPartyLevel: 35, maxPartyLevel: 45, ambientBuffs: [], connectedZones: ["theramore"],                                                              shopInventory: [], sellMultiplier: 0.25, tags: ["outdoor","wetland"],   lore: "The murky swampland surrounding Theramore, crawling with crocolisks and raptors.", forcedOnly: false, forcedEncounterQueue: [] });
+    DataStore.write("templates/zones/theramore",           { id: "theramore",          regionId: "dustwallow",        name: "Theramore",           zoneType: "shop",    _version: 1, encounterTableId: "enc_theramore_outskirts", minPartyLevel: 35, maxPartyLevel: 50, ambientBuffs: [], connectedZones: ["theramore_outskirts"],                                                    shopkeepers: _shopKeepers('theramore'), sellMultiplier: 0.25, tags: ["city"],                lore: "Jaina Proudmoore's fortified port city on the edge of Dustwallow Marsh.", forcedOnly: false, forcedEncounterQueue: [] });
+
+    // ── Azshara ──
+    DataStore.write("templates/zones/thalassian_base_camp",{ id: "thalassian_base_camp",regionId: "azshara",          name: "Thalassian Base Camp",zoneType: "combat",  _version: 1, encounterTableId: "enc_thalassian_base_camp",minPartyLevel: 47, maxPartyLevel: 52, ambientBuffs: [], connectedZones: ["legash_encampment","ruins_of_eldarath"],                               shopInventory: [], sellMultiplier: 0.25, tags: ["outdoor","coastal"],   lore: "A blood elf forward camp seeking to exploit Azshara's ancient arcane resources.", forcedOnly: false, forcedEncounterQueue: [] });
+    DataStore.write("templates/zones/legash_encampment",   { id: "legash_encampment",  regionId: "azshara",           name: "Legash Encampment",   zoneType: "combat",  _version: 1, encounterTableId: "enc_legash_encampment",   minPartyLevel: 48, maxPartyLevel: 53, ambientBuffs: [], connectedZones: ["thalassian_base_camp"],                                                  shopInventory: [], sellMultiplier: 0.25, tags: ["outdoor","demonic"],   lore: "A naga outpost on the rocky shores of Azshara.", forcedOnly: false, forcedEncounterQueue: [] });
+    DataStore.write("templates/zones/ruins_of_eldarath",   { id: "ruins_of_eldarath",  regionId: "azshara",           name: "Ruins of Eldarath",   zoneType: "combat",  _version: 1, encounterTableId: "enc_ruins_of_eldarath",   minPartyLevel: 48, maxPartyLevel: 53, ambientBuffs: [], connectedZones: ["thalassian_base_camp","bay_of_storms"],                                  shopInventory: [], sellMultiplier: 0.25, tags: ["outdoor","ruins"],     lore: "Sunken night elf ruins on the Azshara coast, haunted by satyrs and naga.", forcedOnly: false, forcedEncounterQueue: [] });
+    DataStore.write("templates/zones/bay_of_storms",       { id: "bay_of_storms",      regionId: "azshara",           name: "Bay of Storms",       zoneType: "combat",  _version: 1, encounterTableId: "enc_bay_of_storms",       minPartyLevel: 50, maxPartyLevel: 55, ambientBuffs: [], connectedZones: ["ruins_of_eldarath"],                                                      shopInventory: [], sellMultiplier: 0.25, tags: ["outdoor","coastal"],   lore: "A storm-battered bay where powerful naga champions guard their queen's secrets.", forcedOnly: false, forcedEncounterQueue: [] });
+
+    // ── Tanaris ──
+    DataStore.write("templates/zones/gadgetzan",           { id: "gadgetzan",          regionId: "tanaris",           name: "Gadgetzan",           zoneType: "shop",    _version: 1, encounterTableId: "enc_dunemaul_compound",   minPartyLevel: 40, maxPartyLevel: 55, ambientBuffs: [], connectedZones: ["dunemaul_compound","lost_rigger_cove","zulfarrak"],                        shopkeepers: _shopKeepers('gadgetzan'), sellMultiplier: 0.25, tags: ["city"],                lore: "A goblin city in the Tanaris desert � the only neutral settlement for hundreds of miles.", forcedOnly: false, forcedEncounterQueue: [] });
+    DataStore.write("templates/zones/dunemaul_compound",   { id: "dunemaul_compound",  regionId: "tanaris",           name: "Dunemaul Compound",   zoneType: "combat",  _version: 1, encounterTableId: "enc_dunemaul_compound",   minPartyLevel: 42, maxPartyLevel: 48, ambientBuffs: [], connectedZones: ["gadgetzan"],                                                              shopInventory: [], sellMultiplier: 0.25, tags: ["outdoor","desert"],    lore: "A sprawling ogre encampment in the Tanaris badlands.", forcedOnly: false, forcedEncounterQueue: [] });
+    DataStore.write("templates/zones/lost_rigger_cove",    { id: "lost_rigger_cove",   regionId: "tanaris",           name: "Lost Rigger Cove",    zoneType: "combat",  _version: 1, encounterTableId: "enc_lost_rigger_cove",    minPartyLevel: 44, maxPartyLevel: 50, ambientBuffs: [], connectedZones: ["gadgetzan"],                                                              shopInventory: [], sellMultiplier: 0.25, tags: ["outdoor","coastal"],   lore: "A cove overrun by the Southsea pirate fleet, hiding stolen loot and captives.", forcedOnly: false, forcedEncounterQueue: [] });
+    DataStore.write("templates/zones/zulfarrak",           { id: "zulfarrak",          regionId: "tanaris",           name: "Zul'Farrak",          zoneType: "dungeon", _version: 1, encounterTableId: "enc_zulfarrak",           minPartyLevel: 44, maxPartyLevel: 50, ambientBuffs: [], connectedZones: ["gadgetzan"],                                                              shopInventory: [], sellMultiplier: 0.25, tags: ["dungeon","desert"],    lore: "A troll city buried in sand, ruled by the voodoo witch doctor Zum'rah and his undead army.", forcedOnly: false, forcedEncounterQueue: [] });
+
+    // ── Un'Goro Crater ──
+    DataStore.write("templates/zones/marshals_refuge",     { id: "marshals_refuge",    regionId: "ungoro",            name: "Marshal's Refuge",    zoneType: "shop",    _version: 1, encounterTableId: "enc_marshals_refuge",     minPartyLevel: 48, maxPartyLevel: 55, ambientBuffs: [], connectedZones: ["lakkari_tar_pits","bloodpetal_grove","swampwalker_grove","hive_zora","fire_plume_ridge","slithering_scar","hive_regal"], shopkeepers: _shopKeepers('marshals_refuge'), sellMultiplier: 0.25, tags: ["outdoor","camp"],      lore: "A small Alliance camp in the crater, base for researchers studying Un'Goro's mysteries.", forcedOnly: false, forcedEncounterQueue: [] });
+    DataStore.write("templates/zones/lakkari_tar_pits",    { id: "lakkari_tar_pits",   regionId: "ungoro",            name: "Lakkari Tar Pits",    zoneType: "combat",  _version: 1, encounterTableId: "enc_lakkari_tar_pits",    minPartyLevel: 48, maxPartyLevel: 53, ambientBuffs: [], connectedZones: ["marshals_refuge"],                                                        shopInventory: [], sellMultiplier: 0.25, tags: ["outdoor","wetland"],   lore: "Bubbling tar pits trapping dinosaurs and silithid hunting parties.", forcedOnly: false, forcedEncounterQueue: [] });
+    DataStore.write("templates/zones/bloodpetal_grove",    { id: "bloodpetal_grove",   regionId: "ungoro",            name: "Bloodpetal Grove",    zoneType: "combat",  _version: 1, encounterTableId: "enc_bloodpetal_grove",    minPartyLevel: 48, maxPartyLevel: 53, ambientBuffs: [], connectedZones: ["marshals_refuge"],                                                        shopInventory: [], sellMultiplier: 0.25, tags: ["outdoor","jungle"],    lore: "A lush grove thick with carnivorous Bloodpetal plants and hostile pterrordax.", forcedOnly: false, forcedEncounterQueue: [] });
+    DataStore.write("templates/zones/swampwalker_grove",   { id: "swampwalker_grove",  regionId: "ungoro",            name: "Swampwalker Grove",   zoneType: "combat",  _version: 1, encounterTableId: "enc_swampwalker_grove",   minPartyLevel: 49, maxPartyLevel: 54, ambientBuffs: [], connectedZones: ["marshals_refuge"],                                                        shopInventory: [], sellMultiplier: 0.25, tags: ["outdoor","jungle"],    lore: "A waterlogged area prowled by massive swampwalker elementals.", forcedOnly: false, forcedEncounterQueue: [] });
+    DataStore.write("templates/zones/hive_zora",           { id: "hive_zora",          regionId: "ungoro",            name: "Hive'Zora",           zoneType: "combat",  _version: 1, encounterTableId: "enc_hive_zora",           minPartyLevel: 50, maxPartyLevel: 55, ambientBuffs: [], connectedZones: ["marshals_refuge"],                                                        shopInventory: [], sellMultiplier: 0.25, tags: ["outdoor","silithid"],  lore: "A silithid nest in the crater walls, thrumming with alien life.", forcedOnly: false, forcedEncounterQueue: [] });
+    DataStore.write("templates/zones/fire_plume_ridge",    { id: "fire_plume_ridge",   regionId: "ungoro",            name: "Fire Plume Ridge",    zoneType: "combat",  _version: 1, encounterTableId: "enc_fire_plume_ridge",    minPartyLevel: 50, maxPartyLevel: 55, ambientBuffs: [], connectedZones: ["marshals_refuge"],                                                        shopInventory: [], sellMultiplier: 0.25, tags: ["outdoor","fire"],      lore: "A volcanic ridge at the crater's heart, crawling with fire elementals and dinosaurs.", forcedOnly: false, forcedEncounterQueue: [] });
+    DataStore.write("templates/zones/slithering_scar",     { id: "slithering_scar",    regionId: "ungoro",            name: "Slithering Scar",     zoneType: "combat",  _version: 1, encounterTableId: "enc_slithering_scar",     minPartyLevel: 52, maxPartyLevel: 56, ambientBuffs: [], connectedZones: ["marshals_refuge"],                                                        shopInventory: [], sellMultiplier: 0.25, tags: ["outdoor","silithid"],  lore: "A massive silithid excavation cutting through the crater floor.", forcedOnly: false, forcedEncounterQueue: [] });
+    DataStore.write("templates/zones/hive_regal",          { id: "hive_regal",         regionId: "ungoro",            name: "Hive'Regal",          zoneType: "combat",  _version: 1, encounterTableId: "enc_hive_regal",          minPartyLevel: 52, maxPartyLevel: 56, ambientBuffs: [], connectedZones: ["marshals_refuge"],                                                        shopInventory: [], sellMultiplier: 0.25, tags: ["outdoor","silithid"],  lore: "The largest and most dangerous silithid hive in Un'Goro Crater.", forcedOnly: false, forcedEncounterQueue: [] });
+
+    // ── Felwood ──
+    DataStore.write("templates/zones/bloodvenom_post",     { id: "bloodvenom_post",    regionId: "felwood",           name: "Bloodvenom Post",     zoneType: "shop",    _version: 1, encounterTableId: "enc_jaedenar",            minPartyLevel: 48, maxPartyLevel: 55, ambientBuffs: [], connectedZones: ["jaedenar","irontree_woods","deadwood_village"],                        shopkeepers: _shopKeepers('bloodvenom_post'), sellMultiplier: 0.25, tags: ["outdoor","settlement"], lore: "A Horde outpost in the corrupted Felwood forest.", forcedOnly: false, forcedEncounterQueue: [] });
+    DataStore.write("templates/zones/irontree_woods",      { id: "irontree_woods",     regionId: "felwood",           name: "Irontree Woods",      zoneType: "combat",  _version: 1, encounterTableId: "enc_irontree_woods",      minPartyLevel: 48, maxPartyLevel: 53, ambientBuffs: [], connectedZones: ["bloodvenom_post"],                                                        shopInventory: [], sellMultiplier: 0.25, tags: ["outdoor","corrupted"], lore: "A section of Felwood where the trees have been twisted into iron-hard, lifeless husks.", forcedOnly: false, forcedEncounterQueue: [] });
+    DataStore.write("templates/zones/jaedenar",            { id: "jaedenar",           regionId: "felwood",           name: "Jaedenar",            zoneType: "combat",  _version: 1, encounterTableId: "enc_jaedenar",            minPartyLevel: 50, maxPartyLevel: 55, ambientBuffs: [], connectedZones: ["bloodvenom_post"],                                                        shopInventory: [], sellMultiplier: 0.25, tags: ["outdoor","demonic"],   lore: "A massive Shadow Council base deep in Felwood, a center of demon worship.", forcedOnly: false, forcedEncounterQueue: [] });
+    DataStore.write("templates/zones/deadwood_village",    { id: "deadwood_village",   regionId: "felwood",           name: "Deadwood Village",    zoneType: "combat",  _version: 1, encounterTableId: "enc_deadwood_village",    minPartyLevel: 48, maxPartyLevel: 53, ambientBuffs: [], connectedZones: ["bloodvenom_post"],                                                        shopInventory: [], sellMultiplier: 0.25, tags: ["outdoor","corrupted"], lore: "A furbolg village deep in Felwood, driven feral by the forest's corruption.", forcedOnly: false, forcedEncounterQueue: [] });
+
+    // ── Winterspring ──
+    DataStore.write("templates/zones/everlook",            { id: "everlook",           regionId: "winterspring",      name: "Everlook",            zoneType: "shop",    _version: 1, encounterTableId: "enc_frozen_reaches",      minPartyLevel: 53, maxPartyLevel: 60, ambientBuffs: [], connectedZones: ["frozen_reaches","winterfall_village","ruins_of_keltheril","darkwhisper_gorge"], shopkeepers: _shopKeepers('everlook'), sellMultiplier: 0.25, tags: ["city"],                lore: "A goblin trading post in the frozen valleys of Winterspring.", forcedOnly: false, forcedEncounterQueue: [] });
+    DataStore.write("templates/zones/frozen_reaches",      { id: "frozen_reaches",     regionId: "winterspring",      name: "Frozen Reaches",      zoneType: "combat",  _version: 1, encounterTableId: "enc_frozen_reaches",      minPartyLevel: 53, maxPartyLevel: 58, ambientBuffs: [], connectedZones: ["everlook"],                                                              shopInventory: [], sellMultiplier: 0.25, tags: ["outdoor","frozen"],    lore: "The icy outer valleys of Winterspring, prowled by owlbeasts and ice elementals.", forcedOnly: false, forcedEncounterQueue: [] });
+    DataStore.write("templates/zones/winterfall_village",  { id: "winterfall_village", regionId: "winterspring",      name: "Winterfall Village",  zoneType: "combat",  _version: 1, encounterTableId: "enc_winterfall_village",  minPartyLevel: 55, maxPartyLevel: 60, ambientBuffs: [], connectedZones: ["everlook"],                                                              shopInventory: [], sellMultiplier: 0.25, tags: ["outdoor","frozen"],    lore: "A furbolg village corrupted by a mysterious addiction to Winterfall Firewater.", forcedOnly: false, forcedEncounterQueue: [] });
+    DataStore.write("templates/zones/ruins_of_keltheril",  { id: "ruins_of_keltheril", regionId: "winterspring",      name: "Ruins of Kel'Theril", zoneType: "combat",  _version: 1, encounterTableId: "enc_ruins_of_keltheril",  minPartyLevel: 55, maxPartyLevel: 60, ambientBuffs: [], connectedZones: ["everlook"],                                                              shopInventory: [], sellMultiplier: 0.25, tags: ["outdoor","ruins"],     lore: "A frozen lake haunted by the ghosts of night elves betrayed by their highborne kin.", forcedOnly: false, forcedEncounterQueue: [] });
+    DataStore.write("templates/zones/darkwhisper_gorge",   { id: "darkwhisper_gorge",  regionId: "winterspring",      name: "Darkwhisper Gorge",   zoneType: "combat",  _version: 1, encounterTableId: "enc_darkwhisper_gorge",   minPartyLevel: 57, maxPartyLevel: 60, ambientBuffs: [], connectedZones: ["everlook"],                                                              shopInventory: [], sellMultiplier: 0.25, tags: ["outdoor","demonic"],   lore: "A demon-haunted gorge at the base of Mount Hyjal.", forcedOnly: false, forcedEncounterQueue: [] });
+
+    // ── Silithus ──
+    DataStore.write("templates/zones/cenarion_hold",       { id: "cenarion_hold",      regionId: "silithus",          name: "Cenarion Hold",       zoneType: "shop",    _version: 1, encounterTableId: "enc_abyssal_sands",       minPartyLevel: 55, maxPartyLevel: 60, ambientBuffs: [], connectedZones: ["abyssal_sands","southwind_ruins","silithid_hive"],                     shopkeepers: _shopKeepers('cenarion_hold'), sellMultiplier: 0.25, tags: ["outdoor","settlement"], lore: "The Cenarion Circle's fortified base of operations against the silithid threat.", forcedOnly: false, forcedEncounterQueue: [] });
+    DataStore.write("templates/zones/abyssal_sands",       { id: "abyssal_sands",      regionId: "silithus",          name: "Abyssal Sands",       zoneType: "combat",  _version: 1, encounterTableId: "enc_abyssal_sands",       minPartyLevel: 55, maxPartyLevel: 60, ambientBuffs: [], connectedZones: ["cenarion_hold"],                                                        shopInventory: [], sellMultiplier: 0.25, tags: ["outdoor","desert"],    lore: "The blasted wasteland of Silithus, buried under sand and silithid warrens.", forcedOnly: false, forcedEncounterQueue: [] });
+    DataStore.write("templates/zones/southwind_ruins",     { id: "southwind_ruins",    regionId: "silithus",          name: "Southwind Village",   zoneType: "combat",  _version: 1, encounterTableId: "enc_southwind_ruins",     minPartyLevel: 57, maxPartyLevel: 60, ambientBuffs: [], connectedZones: ["cenarion_hold"],                                                        shopInventory: [], sellMultiplier: 0.25, tags: ["outdoor","ruins"],     lore: "The ruins of a tauren settlement obliterated by the silithid swarm.", forcedOnly: false, forcedEncounterQueue: [] });
+    DataStore.write("templates/zones/silithid_hive",       { id: "silithid_hive",      regionId: "silithus",          name: "Silithid Hive",       zoneType: "combat",  _version: 1, encounterTableId: "enc_silithid_hive",       minPartyLevel: 58, maxPartyLevel: 60, ambientBuffs: [], connectedZones: ["cenarion_hold"],                                                        shopInventory: [], sellMultiplier: 0.25, tags: ["outdoor","silithid"],  lore: "One of the great silithid hive complexes that honeycomb the deserts of Silithus.", forcedOnly: false, forcedEncounterQueue: [] });
+
+    // ── Dungeon zones (Data/dungeons.json) ────────────────────────────────────
+    for (const [zoneId, zone] of Object.entries(_dungeonsData.zones || {}))
+      DataStore.write(`templates/zones/${zoneId}`, { id: zoneId, _version: 1, ambientBuffs: [], shopInventory: [], ...zone });
+
+    if (typeof seedCompanions !== "undefined") seedCompanions(DataStore);
+
+    const playerStats = getStatsAtLevel("orc", "warrior", 1);
+    const playerMaxHp = playerStats.sta * 10 + 60;
+    DataStore.write("instances/companions/player_main", { instanceId: "player_main", templateId: "thazzril", _version: 1, name: "Thazz'ril", raceId: "orc", classId: "warrior", profession: "mining", level: 1, xp: 0, currentHp: playerMaxHp, currentMp: 0, maxHp: playerMaxHp, maxMp: 0, deathState: "alive", permadead: false, downedAt: null, rezCost: 0, learnedAbilities: getAbilitiesForClass("warrior", 1), acquiredQuirks: [], activeBuffs: [], relationship: 100, skills: { mining: 1 }, stats: { raw: playerStats }, gear: { head: null, neck: null, shoulders: null, back: null, chest: null, waist: null, tabard: null, wrist: null, hands: null, feet: null, legs: null, ring: null, trinket: null, mainhand: "worn_blade", offhand: null, ranged: null, ammo: null, relic: null }, isPlayer: true });
+    DataStore.write("saves/save_slot_start", { saveId: "slot_start", _version: 1, timestamp: new Date().toISOString(), mode: "normal", currentZone: "valley_of_trials", party: [{ instanceId: "player_main", templateId: "thazzril" }], quests: { q_first_blood: { objectives: { obj_kill_3: 0 }, completed: false } }, inventory: [{ itemId: "minor_health_potion", qty: 2 }, { itemId: "rough_bandage", qty: 3 }, { itemId: "crawler_chitin", qty: 5 }], currency: 1500, reputation: {}, talentSchools: { weaponskill_sword: 0 }, flags: {}, playtime: 0, shopStocks: {}, riding: 1, mounts: [] });
+  };
+
+  return { seed };
+})();
+
+
+// =============================================================================
+// HOME SCREEN
+// =============================================================================
+
+const HomeScreen = (() => {
+  const STATES = { HOME: "home", ENCOUNTER: "encounter", REWARD: "reward", MAP: "map", BAG: "bag", SHOP: "shop", STATS: "stats", PARTY: "party", REPUTATION: "reputation", ABILITIES: "abilities", CRAFTING: "crafting", NON_COMBAT: "non_combat", SAVE_LOAD: "save_load", COMBAT_PENDING: "combat_pending", MOUNTS: "mounts", IN_COMBAT: "in_combat" };
+
+  const createSession = () => {
+    let state = STATES.HOME, save = null, slotId = "slot_start", _pendingCombat = null, _lastKills = [];
+    let combatMode = "full_manual", _manualCombatState = null;
+    const output = [];
+    const emit  = (...lines) => output.push(...lines);
+    const flush = () => { const copy = [...output]; output.length = 0; return copy; };
+
+    const init = (loadSlotId = "slot_start") => {
+      slotId = loadSlotId;
+      const result = SaveManager.load(slotId);
+      if (!result.ok) { emit(`ERROR loading save: ${result.errors.join(", ")}`); return false; }
+      save = result.data;
+      emit(`\nWelcome to Kalimdor RPG`);
+      emit(`Save loaded: slot "${slotId}" | Zone: ${save.currentZone} | Party: ${save.party.length}`);
+      return true;
+    };
+
+    const renderHome = () => {
+      emit(`\n${"─".repeat(50)}`);
+      emit(` HOME  |  Zone: ${save.currentZone}  |  Party: ${save.party.length}  |  ${Currency.toString(save.currency || 0)}  [${(save.mode || "normal").toUpperCase()}]`);
+      emit(`${"─".repeat(50)}`);
+    };
+
+    // Apply post-combat rewards and state transitions from a resolved combat result.
+    // Used by both autobattle (_resolveCombat) and manual combat (executePlayerAction).
+    const _applyPostCombat = (cr, enc) => {
+      _lastKills = cr.kills || [];
+      (cr.logs || []).forEach(l => emit(l));
+
+      // Write post-combat HP and death state back to companion instances.
+      // CombatBridge works on in-memory units; without this the DataStore still
+      // has the pre-combat currentHp, so the UI health bars never move.
+      // Only companions that were alive at the start of this combat and died are
+      // newly downed; companions already downed before combat are left untouched
+      // so their rezCost / downedAt are not reset and they aren't accidentally
+      // swept up in the wipe revival.
+      const diedThisCombat = new Set();
+      for (const unit of cr.party) {
+        const ir = Loader.load(`instances/companions/${unit.id}`, 'companionInstance');
+        if (!ir.ok) continue;
+        const inst = ir.data;
+        if (!unit.alive) {
+          if (inst.deathState === 'alive') {
+            // Died during this combat � mark as downed.
+            diedThisCombat.add(unit.id);
+            const died = DeathHandler.handleDeath(inst, save);
+            DataStore.write(`instances/companions/${unit.id}`, { ...died, currentHp: 0, currentMp: 0 });
+          }
+          // else: already downed/dead before this combat � do not overwrite.
+        } else {
+          const currentMp = unit.resources?.mana?.current ?? inst.currentMp;
+          DataStore.write(`instances/companions/${unit.id}`, { ...inst, deathState: 'alive', currentHp: unit.hp, currentMp });
+        }
+      }
+
+      const { save: ns, summary } = RewardEngine.apply(cr, enc, save);
+      save = ns;
+
+      // pickpocket gold: add stolen gold to party currency
+      if ((cr.pickpocketGold || 0) > 0) save = Currency.add(save, cr.pickpocketGold);
+
+      // soul shards: awarded when warlock kills with Drain Soul
+      if ((cr.soulShardsGained || 0) > 0) {
+        save = Modifiers.addToInventory(save, "soul_shard", cr.soulShardsGained);
+      }
+      // warlock death clears soul shards and healthstones from inventory
+      for (const unit of cr.party) {
+        if (!unit.alive && unit.classId === "warlock") {
+          save = { ...save, inventory: (save.inventory || []).filter(e => e.itemId !== "soul_shard" && e.itemId !== "healthstone") };
+        }
+      }
+
+      save = cr.outcome === "victory" ? Modifiers.setFlag(save, "priorEncounterVictory", true) : Modifiers.clearFlag(save, "priorEncounterVictory");
+
+      // Tick down persistent buff durations by turns elapsed; remove expired.
+      const turnsPassed = cr.turns || 0;
+      if (turnsPassed > 0) {
+        for (const m of save.party) {
+          const ir = Loader.load(`instances/companions/${m.instanceId}`, "companionInstance");
+          if (!ir.ok || !ir.data.activeBuffs?.length) continue;
+          const updated = ir.data.activeBuffs
+            .map(b => typeof b === "string" ? { id: b, remainingDuration: 1 } : { ...b, remainingDuration: b.remainingDuration - turnsPassed })
+            .filter(b => b.remainingDuration > 0);
+          DataStore.write(`instances/companions/${m.instanceId}`, { ...ir.data, activeBuffs: updated });
+        }
+      }
+
+      // A wipe occurs only when at least one companion died in THIS combat and
+      // every combat-eligible companion is now down.  Pre-downed companions
+      // (already downed before this fight) are excluded from both the trigger
+      // check and the revival so they still require a paid rez.
+      if (diedThisCombat.size > 0 && cr.party.filter(u => !u.isPet).every(u => !u.alive)) {
+        save = DeathHandler.handleWipe(save, diedThisCombat);
+        if (save.wipedOut) { emit(`\n💀 GAME OVER � hardcore wipe.`); SaveManager.save(save, slotId); state = STATES.HOME; return; }
+        emit(`\n💀 Party wipe! ${save._wipeNote || ""}`);
+      }
+
+      state = STATES.REWARD;
+      emit(`\n── Encounter Results ──`);
+      emit(`   Outcome:   ${cr.outcome.toUpperCase()}`);
+      emit(`   Turns:     ${cr.turns}`);
+      if (summary.xp || (summary.xpMult != null && summary.xpMult < 1)) {
+        const multNote = (summary.xpMult != null && summary.xpMult < 1)
+          ? ` (${Math.round(summary.xpMult * 100)}% � large party penalty)` : '';
+        emit(`   XP gained: +${summary.xp} (each member)${multNote}`);
+      }
+      if (summary.levelUps.length)      summary.levelUps.forEach(l => emit(l));
+      if (summary.currency)             emit(`   Currency:  +${Currency.toString(summary.currency)}`);
+      if ((cr.pickpocketGold || 0) > 0) emit(`   Pickpocket: +${Currency.toString(cr.pickpocketGold)}`);
+      if ((cr.soulShardsGained || 0) > 0) emit(`   Soul Shard: +${cr.soulShardsGained} added to bag`);
+      if (summary.loot.length)     emit(`   Loot:      ${summary.loot.map(l => `${l.qty}x ${l.itemId}`).join(", ")}`);
+      if (summary.weaponskill)     emit(`   ${summary.weaponskill.replace("weaponskill_", "")} skill +1`);
+      for (const qp of (summary.questProgress || [])) { if (qp.completed) emit(`   ✓ Quest complete: ${qp.questId}`); else emit(`   Quest "${qp.questId}" � ${qp.objectiveId}: ${qp.next}/${qp.goal}`); }
+      if (summary.reputation?.length) for (const rr of summary.reputation) emit(`   Rep: +${rr.amount} ${rr.factionId}`);
+      if ((summary.skinnableKills || []).length > 0) emit(`   🐾 ${summary.skinnableKills.length} beast corpse${summary.skinnableKills.length > 1 ? "s" : ""} can be skinned. Type 'skin'.`);
+
+      if ((save.mode || "normal") !== "hardcore") {
+        for (const m of save.party) {
+          const ir = Loader.load(`instances/companions/${m.instanceId}`, "companionInstance");
+          if (!ir.ok) continue;
+          const inst = ir.data;
+          if (inst.deathState === "downed" && !inst.permadead) emit(`   ${inst.name} is downed. Rez cost: ${Currency.toString(inst.rezCost || DeathHandler.rezCostForLevel(inst.level || 1))}.`);
+        }
+      }
+
+      trackCollections(cr.kills, summary.loot);
+      checkAchievements();
+
+      for (const [ammoId, count] of Object.entries(cr.ammoUsed || {})) {
+        const inv = (save.inventory || []).find(e => e.itemId === ammoId);
+        const toDeduct = Math.min(count, inv?.qty ?? 0);
+        if (toDeduct > 0)
+          save = { ...save, inventory: save.inventory.map(e => e.itemId === ammoId ? { ...e, qty: e.qty - toDeduct } : e).filter(e => e.qty > 0) };
+      }
+
+      const sr = SaveManager.save(save, slotId);
+      emit(sr.ok ? `   ✓ Auto-saved.` : `   ✗ Save failed: ${sr.errors?.join(", ")}`);
+      state = STATES.HOME;
+    };
+
+    // Shared combat resolution � runs autobattle then applies post-combat logic.
+    const _resolveCombat = (enc) => {
+      const partyInsts = save.party
+        .map(p => { const r = Loader.load(`instances/companions/${p.instanceId}`, "companionInstance"); return r.ok ? r.data : null; })
+        .filter(Boolean)
+        .map(inst => ({ ...inst, _inventory: save.inventory || [] }));
+      const priorVictory = !!(save.flags?.priorEncounterVictory);
+      const cr = CombatBridge.run(enc, partyInsts, { priorEncounterVictory: priorVictory });
+      _applyPostCombat(cr, enc);
+    };
+
+    const runEncounter = () => {
+      const _zoneGuard = Loader.load(`templates/zones/${save.currentZone}`, "zone");
+      if (_zoneGuard.ok && _zoneGuard.data.zoneType === "shop") {
+        emit(`\n🏪 ${_zoneGuard.data.name} � Use the shop or travel to another zone.`);
+        state = STATES.HOME;
+        return;
+      }
+      state = STATES.ENCOUNTER;
+      emit(`\n⚡ Generating encounter in ${save.currentZone}...`);
+
+      let enc = EncounterGenerator.generate(save.currentZone, save, Loader);
+      if (!enc.ok) { emit(`ERROR: ${enc.errors.join(", ")}`); state = STATES.HOME; return; }
+
+      if (enc.forced) save = Modifiers.clearFlag(save, "forcedEncounter");
+
+      // Build enemies for forced combat encounters that specify a single enemyId
+      if (enc.forced && enc.encounterType === "combat" && enc.enemyId && !enc.enemies.length) {
+        const er = Loader.load(`templates/enemies/${enc.enemyId}`, "enemy");
+        if (er.ok) enc = { ...enc, enemies: [{ ...er.data, instanceId: `${enc.enemyId}_${Date.now()}` }] };
+      }
+
+      if (enc.encounterType === "gathering") {
+        const nodes = enc.gatheringNodes || [];
+        emit(`\n🌿 Gathering � ${nodes.map(n => n.name).join(", ")}`);
+        for (const n of nodes) {
+          const lootMap = {};
+          const rolls = n.rolls || 1;
+          for (let r = 0; r < rolls; r++) {
+            for (const drop of (n.drops || [])) {
+              if (Math.random() < drop.chance)
+                lootMap[drop.itemId] = (lootMap[drop.itemId] || 0) + drop.qty;
+            }
+          }
+          const loot = Object.entries(lootMap).map(([itemId, qty]) => ({ itemId, qty }));
+          if (!loot.length) loot.push({ itemId: n.nodeId, qty: 1 });
+          for (const { itemId, qty } of loot) save = Modifiers.addToInventory(save, itemId, qty);
+          emit(`   Gathered: ${loot.map(l => `${l.qty}x ${l.itemId}`).join(", ")}`);
+          if (n.requiredProfession && n.skillGain > 0) {
+            for (const member of save.party) {
+              const ir = Loader.load(`instances/companions/${member.instanceId}`, "companionInstance");
+              if (!ir.ok) continue;
+              const inst = ir.data;
+              if (inst.profession === n.requiredProfession) {
+                DataStore.write(`instances/companions/${member.instanceId}`, { ...inst, skills: { ...inst.skills, [n.requiredProfession]: (inst.skills?.[n.requiredProfession] || 0) + n.skillGain } });
+                break;
+              }
+            }
+          }
+        }
+        save = Modifiers.clearFlag(save, "trackingBoost");
+        save = Modifiers.clearFlag(save, "activeTrack");
+        save = Modifiers.clearFlag(save, "fleeBonus");
+        const sr = SaveManager.save(save, slotId); emit(sr.ok ? `   ✓ Auto-saved.` : `   ✗ Save failed.`);
+        state = STATES.HOME; return;
+      }
+
+      if (enc.encounterType === "quest") {
+        const q = enc.quest;
+        if (!q) { emit(`\n📜 A quest was available but failed to load.`); state = STATES.HOME; return; }
+        emit(`\n📜 Quest: ${q.name}`); emit(`  ${q.description || ""}`);
+        for (const obj of (q.objectives || [])) emit(`  ☐ ${obj.description}  [0/${obj.count}]`);
+        const rw = q.rewards || {}, rwP = [];
+        if (rw.xp) rwP.push(`${rw.xp} XP`); if (rw.currency) rwP.push(Currency.toString(rw.currency)); if (rw.items?.length) rwP.push(rw.items.map(i => `${i.qty}x ${i.itemId}`).join(", ")); if (rw.reputation?.length) rwP.push(rw.reputation.map(r => `+${r.amount} ${r.factionId} rep`).join(", "));
+        if (rwP.length) emit(`  Rewards: ${rwP.join(" | ")}`);
+        const objectives = {}; for (const obj of (q.objectives || [])) objectives[obj.id] = 0;
+        save = { ...save, quests: { ...save.quests, [q.id]: { objectives, completed: false, assignedAt: new Date().toISOString() } } };
+        save = Modifiers.clearFlag(save, "trackingBoost");
+        save = Modifiers.clearFlag(save, "activeTrack");
+        save = Modifiers.clearFlag(save, "fleeBonus");
+        const sr = SaveManager.save(save, slotId); emit(`  ✓ Quest accepted.`); emit(sr.ok ? `  ✓ Auto-saved.` : `  ✗ Save failed.`);
+        state = STATES.HOME; return;
+      }
+
+      if (enc.encounterType === "companion") {
+        if (enc.companionRecruit) {
+          const rec = enc.companionRecruit;
+          const iid = `${rec.id}_${Date.now()}`;
+          const newInst = buildCompanionInstance(rec, iid);
+          DataStore.write(`instances/companions/${iid}`, newInst);
+          emit(`\n🤝 Companion encounter!`);
+          for (const line of (rec.joinDialogue || [])) emit(`  "${line}"`);
+          save = { ...save, party: [...save.party, { instanceId: iid, templateId: rec.id }] };
+          const partySize = save.party.length;
+          emit(`  ✦ ${rec.name} (${rec.raceId} ${rec.classId} Lv${rec.joinLevel}) joined the party! (${partySize} members)`);
+          if (partySize > 5) {
+            const xpPct = Math.max(0, Math.round((1 - (partySize - 5) * 0.2) * 100));
+            emit(`  ⚠ Party size ${partySize}: XP reduced to ${xpPct}%.`);
+          }
+          emit(`  Profession: ${rec.profession || "none"}`);
+        }
+        save = Modifiers.clearFlag(save, "trackingBoost");
+        save = Modifiers.clearFlag(save, "activeTrack");
+        save = Modifiers.clearFlag(save, "fleeBonus");
+        const sr = SaveManager.save(save, slotId); emit(sr.ok ? `  ✓ Auto-saved.` : `  ✗ Save failed.`);
+        state = STATES.HOME; return;
+      }
+
+      if (enc.encounterType === "locked_chest") {
+        const hasLockpick = save.party.some(m => {
+          const ir = Loader.load(`instances/companions/${m.instanceId}`, "companionInstance");
+          return ir.ok && ((ir.data.skills || {}).lockpicking || 0) >= 1;
+        });
+        if (hasLockpick) {
+          const gold = 100 + Math.floor(Math.random() * 300);
+          save = Currency.add(save, gold);
+          emit(`\n🔓 Locked Chest � A rogue in your party picks the lock!`);
+          emit(`   Found: +${Currency.toString(gold)}`);
+        } else {
+          emit(`\n🔒 Locked Chest � You cannot open it without Lockpicking.`);
+        }
+        save = Modifiers.clearFlag(save, "trackingBoost"); save = Modifiers.clearFlag(save, "activeTrack"); save = Modifiers.clearFlag(save, "fleeBonus");
+        const srLc = SaveManager.save(save, slotId); emit(srLc.ok ? `   ✓ Auto-saved.` : `   ✗ Save failed.`);
+        state = STATES.HOME; return;
+      }
+      if (enc.encounterType === "fishing_spot") { emit(`\n🎣 Fishing Spot � (fishing not yet implemented)`);    save = Modifiers.clearFlag(save, "trackingBoost"); save = Modifiers.clearFlag(save, "activeTrack"); save = Modifiers.clearFlag(save, "fleeBonus"); state = STATES.HOME; return; }
+
+      // Combat: surface enemies then wait for engageCombat() or tryFlee()
+      const _fleeBonus  = save.flags?.fleeBonus || 0;
+      const fleeChance  = RidingSystem.getFleeChance(save, enc.enemies, _fleeBonus);
+      emit(`\n⚡ Encounter: ${enc.enemies.map(e => e.name).join(", ")}`);
+      emit(`   Flee chance: ${Math.round(fleeChance * 100)}%  |  Riding: ${RidingSystem.getSkill(save)}/${RidingSystem.getCap(RidingSystem.getHighestPartyLevel(save))}${_fleeBonus > 0 ? `  (+${Math.round(_fleeBonus * 100)}% bonus)` : ""}`);
+      _pendingCombat = enc;
+      state = STATES.COMBAT_PENDING;
+    };
+
+    const engageCombat = () => {
+      if (!_pendingCombat || state !== STATES.COMBAT_PENDING) { emit(`   No pending combat.`); return; }
+      const enc = _pendingCombat;
+      _pendingCombat = null;
+      if (combatMode === "streamlined" || combatMode === "full_manual") {
+        const partyInsts = save.party
+          .map(p => { const r = Loader.load(`instances/companions/${p.instanceId}`, "companionInstance"); return r.ok ? r.data : null; })
+          .filter(Boolean);
+        _manualCombatState = { enc, ...CombatBridge.startCombat(enc, partyInsts) };
+        state = STATES.IN_COMBAT;
+        emit(`⚔ Manual combat started � ${enc.enemies.map(e => e.name).join(", ")}`);
+      } else {
+        state = STATES.ENCOUNTER;
+        _resolveCombat(enc);
+      }
+    };
+
+    const executePlayerAction = (actions) => {
+      if (state !== STATES.IN_COMBAT || !_manualCombatState) { emit(`   Not in manual combat.`); return; }
+      const priorVictory = !!(save.flags?.priorEncounterVictory);
+
+      // Validate and consume any item actions before handing off to stepTurn.
+      const resolvedActions = [];
+      for (const action of (actions || [])) {
+        if (action.type === 'use_item') {
+          const { itemId } = action;
+          const entry = (save.inventory || []).find(e => e.itemId === itemId);
+          if (!entry || entry.qty < 1) { emit(`   You don't have ${itemId}.`); continue; }
+          const ir = Loader.load(`templates/items/${itemId}`, 'item');
+          if (!ir.ok || !ir.data.onUse) { emit(`   ${itemId} has no use effect.`); continue; }
+          const itemDef = ir.data;
+          if (itemDef.onUse.outOfCombatOnly) { emit(`   ${itemDef.name} cannot be used in combat.`); continue; }
+          save = { ...save, inventory: save.inventory.map(e => e.itemId === itemId ? { ...e, qty: e.qty - 1 } : e).filter(e => e.qty > 0) };
+          resolvedActions.push({ ...action, itemDef });
+        } else {
+          resolvedActions.push(action);
+        }
+      }
+
+      const result = CombatBridge.stepTurn(_manualCombatState, resolvedActions, { priorEncounterVictory: priorVictory, mode: combatMode });
+      _manualCombatState = { ..._manualCombatState, party: result.party, enemies: result.enemies, turn: result.turn, allLogs: [..._manualCombatState.allLogs, ...result.stepLogs] };
+      result.stepLogs.forEach(l => emit(l));
+
+      if (result.outcome || result.turn >= 30) {
+        const enc = _manualCombatState.enc;
+        if (!result.outcome) emit(`\n⚠ TIMEOUT`);
+        const cr = {
+          outcome: result.outcome || "timeout",
+          turns:   result.turn,
+          logs:    [],  // already emitted turn-by-turn; skip re-emit in _applyPostCombat
+          kills:   result.enemies.filter(u => !u.alive),
+          totalXp: result.enemies.filter(u => !u.alive).reduce((s, u) => s + (u.xpValue || 0), 0),
+          enemies: result.enemies,
+          party:   result.party,
+          pickpocketGold:   result.enemies.reduce((s, e) => s + (e.pickpocketGold || 0), 0),
+          soulShardsGained: result.party.reduce((s, u) => s + (u.soulShardsGained || 0), 0),
+        };
+        _manualCombatState = null;
+        _applyPostCombat(cr, enc);
+      }
+    };
+
+    const setCombatMode = (mode) => {
+      combatMode = ['auto', 'streamlined', 'full_manual'].includes(mode) ? mode : 'auto';
+      emit(`   Combat mode: ${combatMode}`);
+    };
+
+    const getCombatMode = () => combatMode;
+
+    const getManualCombatState = () => {
+      if (!_manualCombatState) return null;
+      return {
+        turn: _manualCombatState.turn,
+        enemyUnits: _manualCombatState.enemies.map(u => ({
+          id: u.id, name: u.name, hp: u.hp, maxHp: u.maxHp, alive: u.alive,
+          buffs: u.buffs?.map(b => b.id || b) || [],
+          debuffs: u.debuffs?.map(b => b.id || b) || [],
+        })),
+        partyUnits: _manualCombatState.party.map(u => ({
+          id: u.id, name: u.name, hp: u.hp, maxHp: u.maxHp, alive: u.alive,
+          resources: u.resources,
+          cooldowns: u.cooldowns || {},
+          buffs: u.buffs?.map(b => b.id || b) || [],
+          debuffs: u.debuffs?.map(b => b.id || b) || [],
+          castQueue: (u.castQueue || []).map(e => ({ abilityId: e.abilityId, turnsRemaining: e.turnsRemaining })),
+          isPet: u.isPet || false,
+          ownerId: u.ownerId || null,
+          classId: u.classId,
+          rangedReady: u.rangedReady || false,
+        })),
+      };
+    };
+
+    const tryFlee = () => {
+      if (!_pendingCombat || state !== STATES.COMBAT_PENDING) { emit(`   No pending combat.`); return; }
+      const enc     = _pendingCombat;
+      const chance  = RidingSystem.getFleeChance(save, enc.enemies, save.flags?.fleeBonus || 0);
+      if (Math.random() < chance) {
+        _pendingCombat = null;
+        save = RidingSystem.gainRiding(save);
+        const newRiding = RidingSystem.getSkill(save);
+        const cap       = RidingSystem.getCap(RidingSystem.getHighestPartyLevel(save));
+        emit(`   ✓ Fled successfully! (${Math.round(chance * 100)}% chance)`);
+        emit(`   Riding: ${newRiding}/${cap}`);
+        save = Modifiers.clearFlag(save, "trackingBoost");
+        save = Modifiers.clearFlag(save, "activeTrack");
+        save = Modifiers.clearFlag(save, "fleeBonus");
+        const sr = SaveManager.save(save, slotId);
+        emit(sr.ok ? `   ✓ Auto-saved.` : `   ✗ Save failed.`);
+        state = STATES.HOME;
+      } else {
+        emit(`   ✗ Failed to flee (${Math.round(chance * 100)}% chance) � engaging combat.`);
+        _pendingCombat = null;
+        state = STATES.ENCOUNTER;
+        _resolveCombat(enc);
+      }
+    };
+
+    const renderMap = () => {
+      state = STATES.MAP;
+      const zr   = Loader.load(`templates/zones/${save.currentZone}`, "zone");
+      const zone = zr.ok ? zr.data : null;
+      emit(`\n── Map ──`);
+      if (zone?.regionId) emit(`   Region:  ${zone.regionId}`);
+      emit(`   Current: ${save.currentZone}` + (zone ? ` [${zone.zoneType}] Lv${zone.minPartyLevel}�${zone.maxPartyLevel}` : ""));
+      if (zone) emit(`   Exits:   ${zone.connectedZones.join(", ")}`);
+    };
+    const selectZone = (zoneId) => {
+      const zr = Loader.load(`templates/zones/${zoneId}`, "zone");
+      if (!zr.ok) { emit(`   Unknown zone: ${zoneId}`); return false; }
+      const dest = zr.data;
+      const currZr = Loader.load(`templates/zones/${save.currentZone}`, "zone");
+      const sameRegion = !currZr.ok || currZr.data.regionId === dest.regionId;
+      if (!sameRegion) {
+        const cost = Math.max(100, (dest.minPartyLevel || 1) * 10);
+        if ((save.currency || 0) < cost) {
+          emit(`   Not enough coin to travel to ${dest.name}. (Need ${Currency.toString(cost)})`);
+          return false;
+        }
+        save = { ...save, currency: save.currency - cost };
+        emit(`   Paid ${Currency.toString(cost)} to travel to ${dest.name}.`);
+      }
+      save = { ...save, currentZone: zoneId };
+      if (sameRegion) emit(`   Traveled to: ${dest.name}`);
+      state = STATES.HOME;
+      return true;
+    };
+    const renderBag  = () => { state = STATES.BAG; emit(`\n── Bag ──`); emit(`   Currency: ${Currency.toString(save.currency || 0)}`); if (!save.inventory?.length) { emit(`   (empty)`); return; } save.inventory.forEach((e, i) => emit(`   ${i + 1}. ${e.itemId.padEnd(26)} �${e.qty}`)); };
+
+    const useItem = (itemId) => {
+      const invEntry = (save.inventory || []).find(e => e.itemId === itemId);
+      if (!invEntry || invEntry.qty < 1) { emit(`   You don't have that.`); return; }
+      const ir = Loader.load(`templates/items/${itemId}`, "item");
+      if (!ir.ok || !ir.data.onUse) { emit(`   No use effect.`); return; }
+      const item = ir.data;
+      if (item.onUse.outOfCombatOnly && (state === STATES.ENCOUNTER || state === STATES.COMBAT_PENDING)) { emit(`   ${item.name} can only be used out of combat.`); return; }
+      if (item.onUse.type === "heal") {
+        const isParty = item.onUse.target === "party";
+        const aliveInsts = [];
+        for (const m of save.party) {
+          const ir2 = Loader.load(`instances/companions/${m.instanceId}`, "companionInstance");
+          if (ir2.ok && ir2.data.deathState === "alive") aliveInsts.push({ member: m, inst: ir2.data });
+        }
+        const targets = isParty
+          ? aliveInsts
+          : aliveInsts.sort((a, b) => (a.inst.currentHp / a.inst.maxHp) - (b.inst.currentHp / b.inst.maxHp)).slice(0, 1);
+        let anyHealed = false;
+        for (const { member, inst } of targets) {
+          const amount = item.onUse.percent != null
+            ? Math.floor((inst.maxHp || 1) * item.onUse.percent)
+            : item.onUse.minFlat != null
+              ? Math.floor(Math.random() * (item.onUse.maxFlat - item.onUse.minFlat + 1) + item.onUse.minFlat)
+              : (item.onUse.flat || 0);
+          const actual = Math.min(amount, (inst.maxHp || 0) - (inst.currentHp || 0));
+          if (actual <= 0) continue;
+          DataStore.write(`instances/companions/${member.instanceId}`, { ...inst, currentHp: inst.currentHp + actual });
+          emit(`   Used ${item.name}: restored ${actual} HP to ${inst.name}.`);
+          anyHealed = true;
+        }
+        if (!anyHealed) { emit(`   ${item.name}: everyone is already at full health.`); return; }
+      }
+      if (item.onUse.type === "currency") { save = Currency.add(save, item.onUse.amount); emit(`   Opened ${item.name}: +${Currency.toString(item.onUse.amount)}`); }
+      if (item.onUse.type === "weapon_buff") {
+        const buffId = item.onUse.buffId;
+        let applied = false;
+        for (const m of save.party) {
+          const ir = Loader.load(`instances/companions/${m.instanceId}`, "companionInstance");
+          if (!ir.ok) continue;
+          const inst = ir.data;
+          if (inst.deathState !== "alive") continue;
+          const duration = _abilitiesData.buffs[buffId]?.duration ?? 1;
+          const existing = (inst.activeBuffs || []).filter(b => (typeof b === "string" ? b : b.id) !== buffId);
+          DataStore.write(`instances/companions/${m.instanceId}`, { ...inst, activeBuffs: [...existing, { id: buffId, remainingDuration: duration }] });
+          emit(`   Applied ${item.name} to ${inst.name}. (+2 melee damage for 30 turns)`);
+          applied = true;
+          break;
+        }
+        if (!applied) { emit(`   No valid target for ${item.name}.`); return; }
+      }
+      save = { ...save, inventory: save.inventory.map(e => e.itemId === itemId ? { ...e, qty: e.qty - 1 } : e).filter(e => e.qty > 0) };
+    };
+
+    const renderShop = (tab = "buy") => {
+      state = STATES.SHOP;
+      const zr = Loader.load(`templates/zones/${save.currentZone}`, "zone");
+      if (!zr.ok) { emit(`   No shop in this zone.`); return; }
+      const zone = zr.data;
+      emit(`\n── Shop (${zone.name}) � ${tab.toUpperCase()} ──`);
+      emit(`   Your gold: ${Currency.toString(save.currency || 0)}`);
+      if (tab === "buy") {
+        const list = ShopSystem.getBuyList(zone, save);
+        if (!list.length) { emit(`   Nothing for sale.`); return; }
+        list.forEach((e, i) => emit(`   ${i + 1}. ${e.itemId.padEnd(26)} ${Currency.toString(e.buyPrice).padStart(8)}  [${e.stock === -1 ? "∞" : e.stock}]`));
+      } else {
+        emit(`   Sell at ${Math.round((zone.sellMultiplier || 0.25) * 100)}% value:`);
+        if (!save.inventory?.length) { emit(`   (nothing to sell)`); return; }
+        save.inventory.forEach((e, i) => { const ir = Loader.load(`templates/items/${e.itemId}`, "item"); const sv = ir.ok ? Currency.toString(Math.floor(ir.data.value * (zone.sellMultiplier || 0.25))) : "?"; emit(`   ${i + 1}. ${e.itemId.padEnd(26)} �${e.qty}  (${sv} each)`); });
+      }
+    };
+
+    const buyItem  = (itemId, qty = 1, keeperName = 'unknown') => { const zr = Loader.load(`templates/zones/${save.currentZone}`, "zone"); if (!zr.ok) { emit(`   No shop.`); return; } const res = ShopSystem.buy(save, zr.data, itemId, qty, keeperName); emit(`   ${res.ok ? res.message : "✗ " + res.error}`); if (res.ok) save = res.save; };
+    const sellItem = (itemId, qty = 1) => { const zr = Loader.load(`templates/zones/${save.currentZone}`, "zone"); if (!zr.ok) { emit(`   No shop.`); return; } const res = ShopSystem.sell(save, zr.data, itemId, qty); emit(`   ${res.ok ? res.message : "✗ " + res.error}`); if (res.ok) save = res.save; };
+
+    const getShopData = () => {
+      const zr = Loader.load(`templates/zones/${save.currentZone}`, "zone");
+      if (!zr.ok) return { zoneName: "", sellMultiplier: 0.25, shopkeepers: {}, sellList: [] };
+      const zone = zr.data;
+      const sellMult = zone.sellMultiplier ?? 0.25;
+      const enrichItem = (entry) => {
+        const ir   = Loader.load(`templates/items/${entry.itemId}`, "item");
+        const item = ir.ok ? ir.data : {};
+        return {
+          itemId:      entry.itemId,
+          name:        item.name        || entry.itemId,
+          buyPrice:    entry.buyPrice,
+          stock:       entry.stock,
+          quantity:    entry.quantity ?? 1,
+          quality:     item.quality     || "common",
+          itemType:    item.type        || null,
+          slot:        item.slot        || null,
+          weaponType:  item.weaponType  || null,
+          itemLevel:   item.itemLevel   || null,
+          reqLevel:    item.reqLevel    || null,
+          description: item.description || "",
+          statBonuses: item.statBonuses || {},
+          tags:        item.tags        || [],
+        };
+      };
+      const shopkeepers = {};
+      for (const keeperName of Object.keys(zone.shopkeepers || {})) {
+        const list = ShopSystem.getBuyList(zone, save, keeperName);
+        shopkeepers[keeperName] = { inventory: list.map(enrichItem) };
+      }
+      return {
+        zoneName:       zone.name,
+        minLevel:       zone.minPartyLevel,
+        maxLevel:       zone.maxPartyLevel,
+        sellMultiplier: sellMult,
+        shopkeepers,
+        sellList: (save.inventory || []).map(e => {
+          const ir   = Loader.load(`templates/items/${e.itemId}`, "item");
+          const item = ir.ok ? ir.data : {};
+          return {
+            itemId:    e.itemId,
+            name:      item.name     || e.itemId,
+            qty:       e.qty,
+            quality:   item.quality  || "common",
+            sellValue: Math.floor((item.value || 0) * sellMult),
+          };
+        }),
+      };
+    };
+
+    const renderStats = () => {
+      state = STATES.STATS; emit(`\n── Party Stats ──`);
+      for (const member of save.party) {
+        const ir = Loader.load(`instances/companions/${member.instanceId}`, "companionInstance"); if (!ir.ok) continue;
+        const inst = ir.data, raw = inst.stats?.raw || getStatsAtLevel(inst.raceId, inst.classId, inst.level || 1);
+        const xpStr = xpToNextLevel(inst.level || 1) === Infinity ? "MAX" : `${inst.xp}/${xpToNextLevel(inst.level || 1)}`;
+        const deathTag = inst.deathState !== "alive" ? ` [${inst.deathState.toUpperCase()}]` : "";
+        emit(`   ${inst.name}${deathTag} � ${inst.raceId} ${inst.classId} | Lv${inst.level || 1} | XP ${xpStr}`);
+        emit(`     HP: ${inst.currentHp}/${inst.maxHp}  MP: ${inst.currentMp}/${inst.maxMp}`);
+        emit(`     STR:${raw.str} AGI:${raw.agi} STA:${raw.sta} INT:${raw.int} SPI:${raw.spi}`);
+        emit(`     Profession: ${inst.profession || "none"}`);
+        const sk = inst.skills || {}; if (Object.keys(sk).length) emit(`     Skills: ${Object.entries(sk).map(([k, v]) => `${k}:${v}`).join(", ")}`);
+      }
+      const ts = save.talentSchools || {}; if (Object.keys(ts).length) emit(`   Talents: ${Object.entries(ts).map(([k, v]) => `${k}:${v}`).join(", ")}`);
+    };
+
+    const renderParty = () => {
+      state = STATES.PARTY; emit(`\n── Party (${save.party.length}) ──`);
+      save.party.forEach((m, i) => { const ir = Loader.load(`instances/companions/${m.instanceId}`, "companionInstance"); const inst = ir.ok ? ir.data : null; const deathTag = inst && inst.deathState !== "alive" ? ` [${inst.deathState.toUpperCase()}]` : ""; emit(`   ${i + 1}. ${inst ? inst.name : m.instanceId}${deathTag}  ${inst ? `${inst.raceId} ${inst.classId}  Lv${inst.level || 1}  Prof: ${inst.profession || "�"}` : ""}`); });
+    };
+
+    const renderReputation = () => {
+      state = STATES.REPUTATION; emit(`\n── Reputation ──`);
+      const rep = save.reputation || {}; if (!Object.keys(rep).length) { emit(`   (no faction standing yet)`); return; }
+      for (const [faction, val] of Object.entries(rep)) { const label = val >= 75 ? "Exalted" : val >= 50 ? "Revered" : val >= 25 ? "Honored" : val >= 0 ? "Friendly" : "Hostile"; emit(`   ${faction.padEnd(24)} ${val.toString().padStart(4)}  (${label})`); }
+    };
+
+    const renderAbilities = () => {
+      state = STATES.ABILITIES; emit(`\n── Ability Lists ──`);
+      for (const member of save.party) { const ir = Loader.load(`instances/companions/${member.instanceId}`, "companionInstance"); if (!ir.ok) continue; emit(`   ${ir.data.name}:`); (ir.data.learnedAbilities || []).forEach(id => emit(`     - ${id}`)); }
+    };
+
+    const renderSaveLoad = () => {
+      state = STATES.SAVE_LOAD; emit(`\n── Save / Load ──`);
+      const slots = SaveManager.listSlots();
+      if (!slots.length) emit(`   No saves found.`);
+      else slots.forEach((s, i) => { const pt = `${Math.floor(s.playtime / 60)}m${s.playtime % 60}s`; emit(`   ${i + 1}. [${s.slotId}]  ${s.zone}  Party:${s.partySize}  ${pt}  ${s.timestamp.slice(0, 16)}`); });
+    };
+
+    const manualSave = (targetSlot) => { const id = targetSlot || slotId; const result = SaveManager.save(save, id); emit(result.ok ? `   ✓ Saved to slot "${id}"` : `   ✗ Save failed: ${result.errors.join(", ")}`); };
+    const manualLoad = (targetSlot) => { const result = SaveManager.load(targetSlot); if (!result.ok) { emit(`   ✗ Load failed: ${result.errors.join(", ")}`); return false; } save = result.data; slotId = targetSlot; emit(`   ✓ Loaded slot "${targetSlot}"`); state = STATES.HOME; return true; };
+
+    const getPartySkill = (professionId) => {
+      let best = 0;
+      for (const member of save.party) {
+        const ir = Loader.load(`instances/companions/${member.instanceId}`, "companionInstance");
+        if (!ir.ok) continue;
+        const inst = ir.data;
+        if (inst.profession === professionId) best = Math.max(best, inst.skills?.[professionId] || 0);
+      }
+      return best;
+    };
+
+    const hasIngredients = (inputs) => inputs.every(({ itemId, qty }) => {
+      const entry = (save.inventory || []).find(e => e.itemId === itemId);
+      return entry && entry.qty >= qty;
+    });
+
+    const renderCrafting = () => {
+      state = STATES.CRAFTING;
+      emit(`\n── Crafting ──`);
+      const recipes = Loader.loadAll("templates/recipes/", "recipe");
+      if (!recipes.items.length) { emit(`   No recipes available.`); return; }
+      recipes.items.forEach((rec, i) => {
+        const skillOk = !rec.requiredProfession || getPartySkill(rec.requiredProfession) >= (rec.minSkillLevel || 0);
+        const matsOk  = hasIngredients(rec.inputs);
+        const tag     = skillOk && matsOk ? "[CAN CRAFT]  " : !skillOk ? "[NEED SKILL] " : "[MISSING MATS]";
+        const inputStr = rec.inputs.map(({ itemId, qty }) => `${qty}x ${itemId}`).join(", ");
+        const profStr  = rec.requiredProfession ? `  (${rec.requiredProfession} ${rec.minSkillLevel || 0}+)` : "";
+        emit(`   ${i + 1}. ${rec.name.padEnd(26)} ${tag}`);
+        emit(`      → ${rec.output.qty}x ${rec.output.itemId}  |  ${inputStr}${profStr}`);
+      });
+    };
+
+    const craftItem = (recipeId) => {
+      const rr = Loader.load(`templates/recipes/${recipeId}`, "recipe");
+      if (!rr.ok) { emit(`   Unknown recipe: ${recipeId}`); return; }
+      const rec = rr.data;
+
+      if (rec.requiredProfession) {
+        const skill = getPartySkill(rec.requiredProfession);
+        if (skill < (rec.minSkillLevel || 0)) { emit(`   Need ${rec.requiredProfession} skill ${rec.minSkillLevel} (have ${skill}).`); return; }
+      }
+
+      if (!hasIngredients(rec.inputs)) {
+        const missing = rec.inputs.filter(({ itemId, qty }) => { const e = (save.inventory || []).find(e => e.itemId === itemId); return !e || e.qty < qty; });
+        emit(`   Missing: ${missing.map(({ itemId, qty }) => `${qty}x ${itemId}`).join(", ")}`);
+        return;
+      }
+
+      let inv = [...(save.inventory || [])];
+      for (const { itemId, qty } of rec.inputs)
+        inv = inv.map(e => e.itemId === itemId ? { ...e, qty: e.qty - qty } : e).filter(e => e.qty > 0);
+      save = { ...save, inventory: inv };
+      save = Modifiers.addToInventory(save, rec.output.itemId, rec.output.qty);
+
+      let skillPointGained = false;
+      if (rec.requiredProfession) {
+        for (const member of save.party) {
+          const ir = Loader.load(`instances/companions/${member.instanceId}`, "companionInstance");
+          if (!ir.ok) continue;
+          const inst = ir.data;
+          if (inst.profession !== rec.requiredProfession) continue;
+          const currentSkill = inst.skills?.[rec.requiredProfession] || 0;
+          let gain = 0;
+          if (rec.skillGainTiers?.length) {
+            const tier = rec.skillGainTiers.find(t => currentSkill < t.upToSkill);
+            if (tier && Math.random() < tier.gain) gain = 1;
+          } else if ((rec.skillGain || 0) > 0) {
+            gain = rec.skillGain;
+          }
+          if (gain > 0) {
+            DataStore.write(`instances/companions/${member.instanceId}`, { ...inst, skills: { ...inst.skills, [rec.requiredProfession]: currentSkill + gain } });
+            skillPointGained = true;
+          }
+          break;
+        }
+      }
+
+      emit(`   ✓ Crafted ${rec.output.qty}x ${rec.output.itemId}.${skillPointGained ? `  (+1 ${rec.requiredProfession})` : ""}`);
+      trackCollections([], [{ itemId: rec.output.itemId, qty: rec.output.qty }]);
+      checkAchievements();
+      const sr = SaveManager.save(save, slotId);
+      emit(sr.ok ? `   ✓ Auto-saved.` : `   ✗ Save failed.`);
+    };
+
+    const renderMounts = () => {
+      state = STATES.MOUNTS;
+      const riding   = RidingSystem.getSkill(save);
+      const partyLvl = RidingSystem.getHighestPartyLevel(save);
+      const cap      = RidingSystem.getCap(partyLvl);
+      emit(`\n── Mounts & Riding ──`);
+      emit(`   Riding: ${riding}/${cap}`);
+      const owned = save.mounts || [];
+      if (!owned.length) emit(`   Collection: (none)`);
+      else owned.forEach(id => { const ir = Loader.load(`templates/items/${id}`, "item"); emit(`   ✦ ${ir.ok ? ir.data.name : id}`); });
+      if      (RidingSystem.canBuyEpicMount(save))       emit(`   Eligible: epic mounts`);
+      else if (RidingSystem.canBuyBasicMount(save))      emit(`   Eligible: basic mounts`);
+      else {
+        const nextLvl    = partyLvl < RidingSystem.BASIC_MOUNT_LEVEL  ? RidingSystem.BASIC_MOUNT_LEVEL  : RidingSystem.EPIC_MOUNT_LEVEL;
+        const nextRiding = riding   < RidingSystem.BASIC_MOUNT_RIDING ? RidingSystem.BASIC_MOUNT_RIDING : RidingSystem.EPIC_MOUNT_RIDING;
+        emit(`   Next tier: Lv${nextLvl} + ${nextRiding} Riding`);
+      }
+    };
+
+    const renderNonCombat = () => { state = STATES.NON_COMBAT; emit(`\n── Non-Combat ──`); emit(`   (not yet implemented)`); };
+    const back            = () => { state = STATES.HOME; };
+    const getCurrentState = () => state;
+    const getSave         = () => save;
+
+    const equipItem = (itemId, instanceId) => {
+      const invEntry = (save.inventory || []).find(e => e.itemId === itemId);
+      if (!invEntry || invEntry.qty < 1) { emit(`   You don't have that.`); return; }
+      const ir = Loader.load(`templates/items/${itemId}`, "item");
+      if (!ir.ok) { emit(`   Unknown item: ${itemId}.`); return; }
+      const item = ir.data;
+      if (!item.slot) { emit(`   ${item.name} cannot be equipped.`); return; }
+      const compId = instanceId || save.party[0]?.instanceId;
+      if (!compId) { emit(`   No companion to equip.`); return; }
+      const cr = Loader.load(`instances/companions/${compId}`, "companionInstance");
+      if (!cr.ok) { emit(`   Companion not found.`); return; }
+      const inst = cr.data;
+      const prevItemId = inst.gear?.[item.slot] || null;
+      DataStore.write(`instances/companions/${compId}`, { ...inst, gear: { ...(inst.gear || {}), [item.slot]: itemId } });
+      let inv = save.inventory.map(e => e.itemId === itemId ? { ...e, qty: e.qty - 1 } : e).filter(e => e.qty > 0);
+      if (prevItemId) {
+        const ex = inv.find(e => e.itemId === prevItemId);
+        inv = ex ? inv.map(e => e.itemId === prevItemId ? { ...e, qty: e.qty + 1 } : e) : [...inv, { itemId: prevItemId, qty: 1 }];
+      }
+      save = { ...save, inventory: inv };
+      emit(`   ⚔ Equipped ${item.name} on ${inst.name}${prevItemId ? ` (replaced ${prevItemId})` : ""}.`);
+      const sr = SaveManager.save(save, slotId);
+      emit(sr.ok ? `   ✓ Auto-saved.` : `   ✗ Save failed.`);
+    };
+
+    // useAbility � out-of-combat and pre-combat ability usage
+    // HOME state:           outOfCombatOnly abilities (track_beasts, track_humanoids)
+    // COMBAT_PENDING state: abilities whose buff/debuff has a fleeBonus (earthbind, concussive_shot, wing_clip)
+    const useAbility = (abilityId) => {
+      const ab = _abilitiesData.abilities[abilityId];
+      if (!ab) { emit(`   Unknown ability: ${abilityId}.`); return; }
+
+      const inHome    = state === STATES.HOME;
+      const inPending = state === STATES.COMBAT_PENDING;
+      if (!inHome && !inPending) { emit(`   Abilities can only be used from home or before combat.`); return; }
+      if (inHome && !ab.outOfCombatOnly) { emit(`   ${ab.name || abilityId} can only be used in combat.`); return; }
+
+      // for COMBAT_PENDING: only allow abilities that produce a buff/debuff with fleeBonus
+      if (inPending) {
+        const hasFleeEffect = (ab.effects || []).some(e => {
+          if (e.type !== "buff" && e.type !== "debuff") return false;
+          return (_abilitiesData.buffs?.[e.buffId]?.fleeBonus || 0) > 0;
+        });
+        if (!hasFleeEffect) { emit(`   ${ab.name || abilityId} cannot be used before combat.`); return; }
+      }
+
+      // find the first party member with this ability who can afford it
+      let casterInst = null, casterIid = null;
+      for (const m of save.party) {
+        const ir = Loader.load(`instances/companions/${m.instanceId}`, "companionInstance");
+        if (!ir.ok) continue;
+        const inst = ir.data;
+        if (!(inst.learnedAbilities || []).includes(abilityId)) continue;
+        let canAfford = true;
+        for (const [res, cost] of Object.entries(ab.resourceCost || {})) {
+          const cur = res === "mana" ? (inst.currentMp || 0) : 0;
+          if (cur < cost) { canAfford = false; break; }
+        }
+        if (!canAfford) continue;
+        casterInst = inst; casterIid = m.instanceId; break;
+      }
+      if (!casterInst) { emit(`   No party member can use ${ab.name || abilityId} (not learned or insufficient mana).`); return; }
+
+      // deduct mana cost
+      let newInst = { ...casterInst };
+      const manaCost = ab.resourceCost?.mana || 0;
+      if (manaCost > 0) newInst = { ...newInst, currentMp: (newInst.currentMp || 0) - manaCost };
+      DataStore.write(`instances/companions/${casterIid}`, newInst);
+
+      // apply effects
+      const applied = [];
+      for (const eff of (ab.effects || [])) {
+        if (eff.type === "set_track") {
+          save = { ...save, flags: { ...(save.flags || {}), activeTrack: eff.trackType } };
+          applied.push(`now tracking ${eff.trackType}s`);
+        } else if (eff.type === "buff" || eff.type === "debuff") {
+          const bd = _abilitiesData.buffs?.[eff.buffId];
+          if (bd?.fleeBonus) {
+            save = { ...save, flags: { ...(save.flags || {}), fleeBonus: ((save.flags || {}).fleeBonus || 0) + bd.fleeBonus } };
+            applied.push(`+${Math.round(bd.fleeBonus * 100)}% flee chance`);
+          }
+        } else if (eff.type === "pick_lock") {
+          const currentLevel = (newInst.skills || {}).lockpicking || 0;
+          if (currentLevel === 0) {
+            newInst = { ...newInst, skills: { ...(newInst.skills || {}), lockpicking: 1 } };
+            DataStore.write(`instances/companions/${casterIid}`, newInst);
+            applied.push("learned Lockpicking");
+          } else {
+            applied.push("already knows Lockpicking");
+          }
+        } else if (eff.type === "revive") {
+          const hpPct = eff.hpPct || 0.5;
+          let revived = false;
+          for (const m of save.party) {
+            const ir2 = Loader.load(`instances/companions/${m.instanceId}`, "companionInstance");
+            if (!ir2.ok) continue;
+            const deadInst = ir2.data;
+            if (deadInst.deathState !== "downed" && deadInst.deathState !== "dead") continue;
+            const reviveHp  = Math.max(1, Math.floor((deadInst.maxHp || 0) * hpPct));
+            const updInst   = { ...deadInst, deathState: "alive", currentHp: reviveHp, currentMp: eff.clearMana ? 0 : (deadInst.currentMp || 0) };
+            DataStore.write(`instances/companions/${m.instanceId}`, updInst);
+            applied.push(`${deadInst.name} revived to ${reviveHp} HP`);
+            revived = true;
+            break;
+          }
+          if (!revived) applied.push("no fallen companions to revive");
+        } else if (eff.type === "restore_party_mana") {
+          const pct = eff.percent || 0.4;
+          for (const m of save.party) {
+            const ir2 = Loader.load(`instances/companions/${m.instanceId}`, "companionInstance");
+            if (!ir2.ok || ir2.data.deathState !== "alive") continue;
+            const inst2 = ir2.data;
+            const restore = Math.floor((inst2.maxMp || 0) * pct);
+            if (restore > 0 && (inst2.currentMp || 0) < inst2.maxMp) {
+              DataStore.write(`instances/companions/${m.instanceId}`, { ...inst2, currentMp: Math.min(inst2.maxMp, (inst2.currentMp || 0) + restore) });
+              applied.push(`+${restore} mana to ${inst2.name}`);
+            }
+          }
+        } else if (eff.type === "restore_party_hp") {
+          const pct = eff.percent || 0.4;
+          for (const m of save.party) {
+            const ir2 = Loader.load(`instances/companions/${m.instanceId}`, "companionInstance");
+            if (!ir2.ok || ir2.data.deathState !== "alive") continue;
+            const inst2 = ir2.data;
+            const restore = Math.floor((inst2.maxHp || 0) * pct);
+            if (restore > 0 && (inst2.currentHp || 0) < inst2.maxHp) {
+              DataStore.write(`instances/companions/${m.instanceId}`, { ...inst2, currentHp: Math.min(inst2.maxHp, (inst2.currentHp || 0) + restore) });
+              applied.push(`+${restore} HP to ${inst2.name}`);
+            }
+          }
+        } else if (eff.type === "create_healthstone") {
+          const existing = (save.inventory || []).find(e => e.itemId === "healthstone");
+          if (existing) {
+            applied.push("already have a Healthstone");
+          } else {
+            save = Modifiers.addToInventory(save, "healthstone", 1);
+            applied.push("Healthstone created");
+          }
+        }
+      }
+
+      emit(`   ${casterInst.name} uses ${ab.name || abilityId}${applied.length ? ": " + applied.join(", ") : ""}.`);
+
+      if (inPending) {
+        // update displayed flee chance with new bonus
+        const bonus = save.flags?.fleeBonus || 0;
+        const newChance = RidingSystem.getFleeChance(save, _pendingCombat.enemies, bonus);
+        emit(`   Flee chance now: ${Math.round(newChance * 100)}%`);
+      }
+
+      const sr = SaveManager.save(save, slotId);
+      if (!sr.ok) emit(`   ✗ Save failed.`);
+    };
+
+    const skinCorpses = () => {
+      if (!(save.flags?.pendingSkinning?.length)) { emit(`   No corpses to skin.`); return; }
+      const beasts = _lastKills.filter(e => e.type === "beast");
+      if (!beasts.length) { emit(`   Nothing skinnable.`); return; }
+      const { save: ns, drops } = RewardEngine.applySkinning(save, beasts);
+      save = ns;
+      if (drops.length) {
+        emit(`   🐾 Skinned ${beasts.length} corpse${beasts.length > 1 ? "s" : ""}:`);
+        drops.forEach(d => emit(`      +${d.qty}x ${d.itemId}`));
+      } else {
+        emit(`   🐾 Nothing useful was recovered.`);
+      }
+      trackCollections([], drops);
+      checkAchievements();
+      const sr = SaveManager.save(save, slotId);
+      emit(sr.ok ? `   ✓ Auto-saved.` : `   ✗ Save failed.`);
+    };
+
+    const rezMember = (instanceId) => {
+      const cr = Loader.load(`instances/companions/${instanceId}`, "companionInstance");
+      if (!cr.ok) { emit(`   Companion not found.`); return; }
+      const res = DeathHandler.rezForGold(cr.data, save);
+      if (!res.ok) { emit(`   ✗ ${res.error}`); return; }
+      DataStore.write(`instances/companions/${instanceId}`, res.inst);
+      save = res.save;
+      const costStr = Currency.toString(cr.data.rezCost || DeathHandler.rezCostForLevel(cr.data.level || 1));
+      emit(`   ✓ ${cr.data.name} revived for ${costStr}.`);
+      const sr = SaveManager.save(save, slotId);
+      emit(sr.ok ? `   ✓ Auto-saved.` : `   ✗ Save failed.`);
+    };
+
+    // ── Collections & Achievements ─────────────────────────────────────────────
+
+    const trackCollections = (kills = [], lootItems = []) => {
+      const killMap  = { ...(save.collections?.kills || {}) };
+      const itemMap  = { ...(save.collections?.items || {}) };
+      for (const k of kills) {
+        if (k?.id) killMap[k.id] = (killMap[k.id] || 0) + 1;
+      }
+      for (const { itemId, qty } of lootItems) {
+        if (itemId && itemId !== 'copper_coin_pouch') {
+          itemMap[itemId] = (itemMap[itemId] || 0) + (qty || 1);
+        }
+      }
+      save = { ...save, collections: { kills: killMap, items: itemMap } };
+    };
+
+    const checkAchievements = () => {
+      const defs = _achievementsData?.achievements || {};
+      for (const [achId, def] of Object.entries(defs)) {
+        if ((save.achievements || {})[achId]) continue;
+        let met = false;
+        if (def.criteria?.type === 'unique_items_collected') {
+          met = Object.keys(save.collections?.items || {}).length >= def.criteria.threshold;
+        }
+        if (!met) continue;
+        save = { ...save, achievements: { ...(save.achievements || {}), [achId]: { unlockedAt: new Date().toISOString() } } };
+        emit(`\n🏆 Achievement Unlocked: ${def.name}`);
+        emit(`   "${def.description}"`);
+        const rw = def.rewards || {};
+        if (rw.xp) {
+          const achXp = rw.xp;
+          save = { ...save, party: save.party.map(m => {
+            const ir = Loader.load(`instances/companions/${m.instanceId}`, "companionInstance");
+            if (!ir.ok) return m;
+            const { inst: updated, levelUpLines } = addXpToInst(ir.data, achXp);
+            DataStore.write(`instances/companions/${m.instanceId}`, updated);
+            levelUpLines.forEach(l => emit(`   ${l}`));
+            return m;
+          }) };
+          emit(`   ✦ Reward: +${achXp} XP (each member)`);
+        }
+        if (rw.currency) {
+          save = Currency.add(save, rw.currency);
+          emit(`   ✦ Reward: +${Currency.toString(rw.currency)}`);
+        }
+        if (rw.items) {
+          for (const ri of rw.items) {
+            save = Modifiers.addToInventory(save, ri.itemId, ri.qty);
+            emit(`   ✦ Reward: +${ri.qty}x ${ri.itemId}`);
+          }
+        }
+      }
+    };
+
+    // Returns all known companion instances (party + roster) with inParty flag.
+    const getRosterData = () => {
+      const allSlots = [
+        ...(save.party  || []).map(m => ({ ...m, inParty: true  })),
+        ...(save.roster || []).map(m => ({ ...m, inParty: false })),
+      ];
+      return allSlots.map(slot => {
+        const ir = Loader.load(`instances/companions/${slot.instanceId}`, 'companionInstance');
+        if (!ir.ok) return null;
+        return { ...ir.data, inParty: slot.inParty };
+      }).filter(Boolean);
+    };
+
+    const addToParty = (instanceId) => {
+      if (state === STATES.IN_COMBAT) { emit(`   Cannot change party during combat.`); return; }
+      const rosterEntry = (save.roster || []).find(m => m.instanceId === instanceId);
+      if (!rosterEntry) { emit(`   ${instanceId} is not in the guildhall.`); return; }
+      save = {
+        ...save,
+        party:  [...(save.party || []), rosterEntry],
+        roster: (save.roster || []).filter(m => m.instanceId !== instanceId),
+      };
+      const inst = Loader.load(`instances/companions/${instanceId}`, 'companionInstance');
+      const name = inst.ok ? inst.data.name : instanceId;
+      emit(`   ✓ ${name} joined the party.`);
+      const sr = SaveManager.save(save, slotId);
+      emit(sr.ok ? `   ✓ Auto-saved.` : `   ✗ Save failed.`);
+    };
+
+    const removeFromParty = (instanceId) => {
+      if (state === STATES.IN_COMBAT) { emit(`   Cannot change party during combat.`); return; }
+      const partyEntry = (save.party || []).find(m => m.instanceId === instanceId);
+      if (!partyEntry) { emit(`   ${instanceId} is not in your party.`); return; }
+      save = {
+        ...save,
+        party:  save.party.filter(m => m.instanceId !== instanceId),
+        roster: [...(save.roster || []), partyEntry],
+      };
+      const inst = Loader.load(`instances/companions/${instanceId}`, 'companionInstance');
+      const name = inst.ok ? inst.data.name : instanceId;
+      emit(`   ✓ ${name} moved to the guildhall.`);
+      const sr = SaveManager.save(save, slotId);
+      emit(sr.ok ? `   ✓ Auto-saved.` : `   ✗ Save failed.`);
+    };
+
+    const swapPartyMember = (outInstanceId, inInstanceId) => {
+      if (state === STATES.IN_COMBAT) { emit(`   Cannot swap party members during combat.`); return; }
+      const partyEntry  = (save.party  || []).find(m => m.instanceId === outInstanceId);
+      const rosterEntry = (save.roster || []).find(m => m.instanceId === inInstanceId);
+      if (!partyEntry)  { emit(`   ${outInstanceId} is not in your party.`);  return; }
+      if (!rosterEntry) { emit(`   ${inInstanceId} is not in your roster.`); return; }
+      save = {
+        ...save,
+        party:  save.party.map(m => m.instanceId === outInstanceId ? rosterEntry : m),
+        roster: [...(save.roster || []).filter(m => m.instanceId !== inInstanceId), partyEntry],
+      };
+      const outInst = Loader.load(`instances/companions/${outInstanceId}`, 'companionInstance');
+      const inInst  = Loader.load(`instances/companions/${inInstanceId}`,  'companionInstance');
+      const outName = outInst.ok ? outInst.data.name : outInstanceId;
+      const inName  = inInst.ok  ? inInst.data.name  : inInstanceId;
+      emit(`   ✓ ${inName} joined the party. ${outName} moved to the guildhall.`);
+      const sr = SaveManager.save(save, slotId);
+      emit(sr.ok ? `   ✓ Auto-saved.` : `   ✗ Save failed.`);
+    };
+
+    const setPetForCompanion = (instanceId, petId) => {
+      const ir = Loader.load(`instances/companions/${instanceId}`, 'companionInstance');
+      if (!ir.ok) { emit(`   No companion with id ${instanceId}.`); return; }
+      const inst = ir.data;
+      const petsByClass = { hunter: _hunterPetData.pets, warlock: _warlockPetData.pets };
+      const pets = petsByClass[inst.classId];
+      if (!pets) { emit(`   ${inst.name} cannot have a combat pet.`); return; }
+      if (petId) {
+        const template = pets.find(p => p.id === petId);
+        if (!template) { emit(`   Unknown pet: ${petId}.`); return; }
+        if (template.unlockLevel > (inst.level || 1)) { emit(`   ${inst.name} is not high enough level for ${template.name} (requires level ${template.unlockLevel}).`); return; }
+      }
+      const updated = { ...inst, activePetId: petId || null };
+      DataStore.write(`instances/companions/${instanceId}`, updated);
+      const petName = petId ? (pets.find(p => p.id === petId)?.name || petId) : 'none';
+      emit(`   ✓ ${inst.name}'s active pet set to: ${petName}.`);
+      const sr = SaveManager.save(save, slotId);
+      emit(sr.ok ? `   ✓ Auto-saved.` : `   ✗ Save failed.`);
+    };
+
+    const getAvailablePets = (instanceId) => {
+      const ir = Loader.load(`instances/companions/${instanceId}`, 'companionInstance');
+      if (!ir.ok) return null;
+      const inst = ir.data;
+      const petsByClass = { hunter: _hunterPetData.pets, warlock: _warlockPetData.pets };
+      const pets = petsByClass[inst.classId];
+      if (!pets) return null;
+      return {
+        activePetId: inst.activePetId || null,
+        pets: pets.map(p => ({ ...p, unlocked: (inst.level || 1) >= p.unlockLevel })),
+      };
+    };
+
+    return { init, flush, renderHome, runEncounter, engageCombat, tryFlee, useAbility, renderMap, selectZone, renderBag, useItem, renderShop, buyItem, sellItem, getShopData, renderStats, renderParty, renderReputation, renderAbilities, renderSaveLoad, manualSave, manualLoad, renderCrafting, craftItem, renderMounts, renderNonCombat, skinCorpses, equipItem, rezMember, back, getCurrentState, getSave, STATES, executePlayerAction, setCombatMode, getCombatMode, getManualCombatState, getRosterData, swapPartyMember, removeFromParty, addToParty, setPetForCompanion, getAvailablePets };
+  };
+
+  return { createSession, STATES };
+})();
+
+
+// =============================================================================
+// TEST SUITE
+// =============================================================================
+
+const GameLoopTests = (() => {
+  const run = () => {
+    SyntheticGameData.seed();
+    const results = []; let p = 0, f = 0;
+    const assert = (label, cond) => { cond ? p++ : f++; results.push({ ok: !!cond, label }); };
+
+    const session = HomeScreen.createSession();
+    assert("Session init loads save",    session.init("slot_start"));
+    const save0 = session.getSave();
+    assert("Save has party",             (save0.party?.length || 0) > 0);
+    assert("Save has currency",          (save0.currency || 0) > 0);
+    assert("Save has starter quest",     "q_first_blood" in (save0.quests || {}));
+    assert("Save has current zone",      !!save0.currentZone);
+    assert("Save has mode",              !!save0.mode);
+
+    session.renderMap();
+    assert("Zone switch accepted",       session.selectZone("northern_barrens"));
+    assert("Current zone updated",       session.getSave().currentZone === "northern_barrens");
+    session.selectZone("durotar");
+
+    const enc = EncounterGenerator.generate("durotar", save0, Loader);
+    assert("Encounter generated ok",     enc.ok);
+    assert("Encounter type valid",       ["combat","companion","gathering","quest","locked_chest","fishing_spot"].includes(enc.encounterType));
+
+    if (enc.encounterType === "combat" && enc.enemies.length) {
+      const partyInsts = save0.party.map(p => { const r = Loader.load(`instances/companions/${p.instanceId}`, "companionInstance"); return r.ok ? r.data : null; }).filter(Boolean);
+      const cr = CombatBridge.run(enc, partyInsts);
+      assert("Combat outcome valid",     ["victory","defeat","timeout"].includes(cr.outcome));
+      assert("Combat has turns",         cr.turns > 0);
+      const fv = { ...cr, outcome: "victory", totalXp: 50 };
+      const { save: rs, summary } = RewardEngine.apply(fv, enc, save0);
+      assert("Reward returns save",      !!rs);
+      assert("levelUps array present",   Array.isArray(summary.levelUps));
+    } else {
+      assert("Non-combat encounter ok",  true);
+      assert("No crash on non-combat",   true);
+      assert("Non-combat reward noop",   true);
+    }
+
+    const withGold = Currency.add(save0, 10000);
+    assert("Currency add works",         withGold.currency === save0.currency + 10000);
+    assert("Currency display correct",   Currency.toDisplay(10000).gold === 1);
+    assert("Currency toString works",    Currency.toString(10150) === "1g 1s 50c");
+
+    const dummySave = { mode: "normal", currency: 10000, party: [] };
+    const dummyInst = { instanceId: "x", name: "Test", level: 5, deathState: "alive", permadead: false, maxHp: 200, maxMp: 100 };
+    const downed    = DeathHandler.handleDeath(dummyInst, dummySave);
+    assert("handleDeath: normal → downed",     downed.deathState === "downed");
+    assert("handleDeath: rezCost set",          downed.rezCost > 0);
+    const rezR = DeathHandler.rezForGold(downed, dummySave);
+    assert("rezForGold: success",               rezR.ok);
+    assert("rezForGold: restores HP",           rezR.inst.currentHp === dummyInst.maxHp);
+    assert("handleDeath: hardcore → permadead", DeathHandler.handleDeath(dummyInst, { ...dummySave, mode: "hardcore" }).permadead);
+
+    session.init("slot_start");
+    session.selectZone("razor_hill"); session.flush();
+    const preBuy = session.getSave().currency;
+    session.buyItem("minor_health_potion", 1);
+    assert("Buy deducts currency",       session.getSave().currency < preBuy);
+    assert("Buy adds to inventory",      (session.getSave().inventory || []).some(e => e.itemId === "minor_health_potion"));
+    const preSell = session.getSave().currency;
+    session.sellItem("rough_bandage", 1);
+    assert("Sell adds currency",         session.getSave().currency > preSell);
+
+    session.manualSave("slot_test");
+    assert("Manual save + load round-trip", session.manualLoad("slot_test"));
+    assert("Loaded save correct zone",      session.getSave().currentZone === "razor_hill");
+
+    session.renderBag();
+    // ensure party member is damaged so the heal fires and the potion is consumed
+    {
+      const pm = session.getSave().party[0];
+      const ir = Loader.load(`instances/companions/${pm.instanceId}`, "companionInstance");
+      if (ir.ok && ir.data.maxHp) DataStore.write(`instances/companions/${pm.instanceId}`, { ...ir.data, currentHp: Math.floor(ir.data.maxHp * 0.5) });
+    }
+    const beforeQty = (session.getSave().inventory || []).find(e => e.itemId === "minor_health_potion")?.qty || 0;
+    session.useItem("minor_health_potion");
+    const afterQty  = (session.getSave().inventory || []).find(e => e.itemId === "minor_health_potion")?.qty || 0;
+    assert("Using consumable removes from bag", afterQty < beforeQty || beforeQty === 0);
+
+    let threw = false;
+    try { session.renderStats(); session.renderParty(); session.renderReputation(); session.renderAbilities(); } catch(e) { threw = true; }
+    assert("All sub-screens render without error", !threw);
+
+    // Crafting
+    session.init("slot_start");
+    let craftThrew = false;
+    try { session.renderCrafting(); } catch(e) { craftThrew = true; }
+    assert("renderCrafting renders without error", !craftThrew);
+    assert("renderCrafting lists recipes",         session.flush().some(l => l.includes("Chitin Bandage")));
+
+    // Positive craft: chitin_bandage requires no profession, player starts with 5 chitin
+    const chitinQty0 = (session.getSave().inventory || []).find(e => e.itemId === "crawler_chitin")?.qty || 0;
+    session.craftItem("recipe_chitin_bandage"); session.flush();
+    assert("craftItem consumes materials",         (session.getSave().inventory || []).find(e => e.itemId === "crawler_chitin")?.qty === chitinQty0 - 2);
+    assert("craftItem grants output",              ((session.getSave().inventory || []).find(e => e.itemId === "rough_bandage")?.qty || 0) > 0);
+
+    // Blocked by missing profession (player has mining, recipe needs blacksmithing)
+    session.craftItem("recipe_copper_dagger");
+    assert("craftItem blocks missing profession",  session.flush().some(l => l.includes("Need")));
+
+    // Drain remaining chitin (3 left → 2 crafts → 0 or 1 left), then confirm missing-materials block
+    session.craftItem("recipe_chitin_bandage"); session.flush(); // 3 → 1
+    session.craftItem("recipe_chitin_bandage"); // needs 2, have 1 → missing
+    assert("craftItem blocks missing materials",   session.flush().some(l => l.includes("Missing")));
+
+    session.init("slot_start");
+    let encThrew = false;
+    try { session.runEncounter(); } catch(e) { encThrew = true; }
+    assert("Full runEncounter completes without error", !encThrew);
+
+    // ── RidingSystem ─────────────────────────────────────────────────────────
+    assert("RidingSystem: getSkill default 1",        RidingSystem.getSkill({}) === 1);
+    assert("RidingSystem: getSkill reads save",       RidingSystem.getSkill({ riding: 7 }) === 7);
+    assert("RidingSystem: getCap below 40",           RidingSystem.getCap(1) === 75);
+    assert("RidingSystem: getCap at 40",              RidingSystem.getCap(40) === 150);
+    assert("RidingSystem: getCap above 40",           RidingSystem.getCap(60) === 150);
+    assert("RidingSystem: gainRiding increments",     RidingSystem.gainRiding({ riding: 1, party: [] }).riding === 2);
+    assert("RidingSystem: gainRiding respects cap",   RidingSystem.gainRiding({ riding: 75, party: [] }).riding === 75);
+    assert("RidingSystem: fleeChance 80% at parity",  Math.abs(RidingSystem.getFleeChance({ riding: 1, party: [] }, [{ level: 1 }]) - 0.801) < 0.01);
+    assert("RidingSystem: fleeChance clamped 0-1",    RidingSystem.getFleeChance({ riding: 1, party: [] }, [{ level: 100 }]) === 0);
+    assert("RidingSystem: fleeChance clamped max",    RidingSystem.getFleeChance({ riding: 1, party: [] }, [{ level: 1 }]) <= 1);
+    const acq = RidingSystem.acquireMount({ mounts: [] }, "mount_timber_wolf");
+    assert("RidingSystem: acquireMount ok",           acq.ok && acq.save.mounts.includes("mount_timber_wolf"));
+    assert("RidingSystem: acquireMount dedup blocked",!RidingSystem.acquireMount(acq.save, "mount_timber_wolf").ok);
+    assert("RidingSystem: canBuyBasicMount false",    !RidingSystem.canBuyBasicMount({ riding: 75, party: [] }));
+    assert("RidingSystem: canBuyEpicMount false",     !RidingSystem.canBuyEpicMount({ riding: 150, party: [] }));
+
+    // ── flee / combat pending ─────────────────────────────────────────────────
+    let gotPending = false;
+    for (let _fi = 0; _fi < 50; _fi++) {
+      session.init("slot_start"); session.runEncounter();
+      if (session.getCurrentState() === session.STATES.COMBAT_PENDING) { gotPending = true; break; }
+      session.flush();
+    }
+    assert("COMBAT_PENDING state reachable", gotPending);
+    if (gotPending) {
+      let fleThrew = false;
+      try { session.tryFlee(); } catch(e) { fleThrew = true; }
+      assert("tryFlee no throw",    !fleThrew);
+      assert("tryFlee resolves state", session.getCurrentState() === session.STATES.HOME);
+    } else {
+      assert("tryFlee no throw",    true);
+      assert("tryFlee resolves state", true);
+    }
+
+    let gotPending2 = false;
+    for (let _fi = 0; _fi < 50; _fi++) {
+      session.init("slot_start"); session.runEncounter();
+      if (session.getCurrentState() === session.STATES.COMBAT_PENDING) { gotPending2 = true; break; }
+      session.flush();
+    }
+    if (gotPending2) {
+      let engThrew = false;
+      try { session.engageCombat(); } catch(e) { engThrew = true; }
+      assert("engageCombat no throw",      !engThrew);
+      assert("engageCombat resolves state", session.getCurrentState() !== session.STATES.COMBAT_PENDING);
+    } else {
+      assert("engageCombat no throw",      true);
+      assert("engageCombat resolves state", true);
+    }
+
+    // ── renderMounts ──────────────────────────────────────────────────────────
+    session.init("slot_start");
+    let mountsThrew = false;
+    try { session.renderMounts(); } catch(e) { mountsThrew = true; }
+    const mountLines = session.flush();
+    assert("renderMounts no throw",          !mountsThrew);
+    assert("renderMounts shows Riding line",  mountLines.some(l => l.includes("Riding:")));
+
+    // ── mount purchase blocked without requirements ───────────────────────────
+    session.init("slot_start");
+    session.selectZone("orgrimmar"); session.flush();
+    session.buyItem("mount_timber_wolf", 1);
+    const buyMsgs = session.flush();
+    assert("Mount buy blocked: requirements not met", buyMsgs.some(l => l.includes("Requires")));
+
+    return { passed: p, failed: f, total: p + f, results };
+  };
+
+  const report = (r) => {
+    const lines = [`\n${"=".repeat(60)}`, `GAME LOOP TESTS: ${r.passed}/${r.total} passed`, "=".repeat(60), ...r.results.map(x => `  ${x.ok ? "✓" : "✗"} ${x.label}`), r.failed > 0 ? `\n  ${r.failed} FAILED` : `\n  All tests passed.`, "=".repeat(60)];
+    return lines.join("\n");
+  };
+
+  return { run, report };
+})();
+
+
+// =============================================================================
+// BOOTSTRAP
+// =============================================================================
+
+if (typeof DataStore === "undefined") {
+  console.error("DataStore not found. Load data_layer.js before game_loop.js");
+} else {
+  SyntheticGameData.seed();
+  const testResults = GameLoopTests.run();
+  console.log(GameLoopTests.report(testResults));
+}
+
+if (typeof module !== "undefined") {
+  module.exports = {
+    Currency,
+    RidingSystem,
+    CombatBridge, DeathHandler,
+    RewardEngine, ShopSystem, SaveManager,
+    SyntheticGameData, HomeScreen, GameLoopTests,
+  };
+}

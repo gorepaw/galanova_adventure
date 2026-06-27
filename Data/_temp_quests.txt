@@ -1,0 +1,230 @@
+,
+
+    "the_balance_of_nature": {
+      "id": "the_balance_of_nature",
+      "name": "The Balance of Nature",
+      "_version": 1,
+      "description": "You've come to Aldrassil at an important time. Something is wrong in Shadowglen — imps called Grellkin have crept into our grove, and they disturb the natural balance our druids have spent years cultivating.\n\nKill seven of the Grellkin lurking in the lower grove and bring me their fangs as proof. Together we will restore what has been upset.",
+      "objectives": [
+        { "id": "obj_kill_grellkin",    "type": "kill",    "targetId": "grellkin",    "count": 7, "description": "Kill 7 Grellkin" },
+        { "id": "obj_collect_fangs",    "type": "collect", "targetItem": "grellkin_fang", "count": 5, "description": "Collect 5 Grellkin Fangs" }
+      ],
+      "rewards": {
+        "xp": 250,
+        "reputation": [{ "factionId": "darnassus", "amount": 75 }],
+        "items": [
+          { "itemId": "grellkin_smasher",  "qty": 1 },
+          { "itemId": "strigid_hunter_cape","qty": 1 }
+        ]
+      },
+      "prerequisites": [],
+      "zoneId": "shadowglen",
+      "autoAssign": false,
+      "tags": ["shadowglen", "demon"]
+    },
+
+    "webwood_venom": {
+      "id": "webwood_venom",
+      "name": "Webwood Venom",
+      "_version": 1,
+      "description": "The Webwood spiders have claimed far too much of the lower grove. The venom they inject paralyzes prey for hours, and I fear what happens if they grow bold enough to attack the young initiates.\n\nCollect seven venom sacs from the Webwood Lurkers in Shadowglen. I'll use them to develop an antidote.",
+      "objectives": [
+        { "id": "obj_collect_venom", "type": "collect", "targetItem": "webwood_venom_sac", "count": 7, "description": "Collect 7 Webwood Venom Sacs" }
+      ],
+      "rewards": {
+        "xp": 200,
+        "reputation": [{ "factionId": "darnassus", "amount": 75 }],
+        "items": [
+          { "itemId": "spidersilk_vest", "qty": 1 }
+        ]
+      },
+      "prerequisites": [],
+      "zoneId": "shadowglen",
+      "autoAssign": false,
+      "tags": ["shadowglen", "spider", "collection"]
+    },
+
+    "webwood_egg": {
+      "id": "webwood_egg",
+      "name": "Webwood Egg",
+      "_version": 1,
+      "description": "Rumors have come to Aldrassil of a spider nest deeper in the grove. I need to understand how they reproduce so we can control their numbers.\n\nBring me ten Webwood eggs from the lurkers and spiders in Shadowglen. If we can stop them from hatching, we stop the infestation.",
+      "objectives": [
+        { "id": "obj_collect_eggs", "type": "collect", "targetItem": "webwood_egg", "count": 10, "description": "Collect 10 Webwood Eggs" }
+      ],
+      "rewards": {
+        "xp": 250,
+        "reputation": [{ "factionId": "darnassus", "amount": 75 }],
+        "items": [
+          { "itemId": "oracle_sash", "qty": 1 }
+        ]
+      },
+      "prerequisites": [],
+      "zoneId": "shadowglen",
+      "autoAssign": false,
+      "tags": ["shadowglen", "spider", "collection"]
+    },
+
+    "bloodfeather_territory": {
+      "id": "bloodfeather_territory",
+      "name": "Bloodfeather Territory",
+      "_version": 1,
+      "description": "The Bloodfeather harpies have claimed Oracle Glade as their own and struck down two of our scouts this season. Their Wind Witches call down lightning on anything that moves through the clearing.\n\nWe must push them back. Kill ten Bloodfeather Harpies and five of their Wind Witches, then bring me eight of their feathers as proof of the clanflock's defeat.",
+      "objectives": [
+        { "id": "obj_kill_harpies",    "type": "kill",    "targetId": "bloodfeather_harpy",      "count": 10, "description": "Kill 10 Bloodfeather Harpies" },
+        { "id": "obj_kill_witches",    "type": "kill",    "targetId": "bloodfeather_wind_witch", "count": 5,  "description": "Kill 5 Bloodfeather Wind Witches" },
+        { "id": "obj_collect_wings",   "type": "collect", "targetItem": "bloodfeather_wing",     "count": 8,  "description": "Collect 8 Bloodfeather Wings" }
+      ],
+      "rewards": {
+        "xp": 450,
+        "reputation": [{ "factionId": "darnassus", "amount": 100 }],
+        "items": [
+          { "itemId": "bloodfeather_bracers", "qty": 1 },
+          { "itemId": "strigid_hunter_cape",  "qty": 1 }
+        ]
+      },
+      "prerequisites": [],
+      "zoneId": "oracle_glade",
+      "autoAssign": false,
+      "tags": ["oracle_glade", "harpy"]
+    },
+
+    "seek_redemption": {
+      "id": "seek_redemption",
+      "name": "Seek Redemption!",
+      "_version": 1,
+      "description": "Something is wrong with the treants of Teldrassil. The Timberlings, once gentle spirits who tended the roots of our great tree, have become hostile and mindless, attacking any who come near.\n\nThe corruption must be answered. Kill twelve Timberlings and five of the larger Timberling Mires you'll find deeper in the grove. Perhaps then the druids can begin to understand what has turned them.",
+      "objectives": [
+        { "id": "obj_kill_timberlings", "type": "kill", "targetId": "timberling",      "count": 12, "description": "Kill 12 Timberlings" },
+        { "id": "obj_kill_mires",       "type": "kill", "targetId": "timberling_mire", "count": 5,  "description": "Kill 5 Timberling Mires" }
+      ],
+      "rewards": {
+        "xp": 550,
+        "reputation": [{ "factionId": "darnassus", "amount": 150 }],
+        "items": [
+          { "itemId": "gnarlpine_fur_vest", "qty": 1 }
+        ]
+      },
+      "prerequisites": [],
+      "zoneId": "teldrassil",
+      "autoAssign": false,
+      "tags": ["teldrassil", "elemental"]
+    },
+
+    "timberling_seeds": {
+      "id": "timberling_seeds",
+      "name": "Timberling Seeds",
+      "_version": 1,
+      "description": "I have been studying the Timberlings for months, and I believe the corruption in their seeds holds the key to understanding the blight spreading through Teldrassil's roots.\n\nBring me eight Timberling Seeds. I've noticed the corrupted ones carry seeds at a later stage of corruption than the saplings. Be careful — they're much less predictable than they look.",
+      "objectives": [
+        { "id": "obj_collect_seeds", "type": "collect", "targetItem": "timberling_seed", "count": 8, "description": "Collect 8 Timberling Seeds" }
+      ],
+      "rewards": {
+        "xp": 350,
+        "reputation": [{ "factionId": "darnassus", "amount": 100 }],
+        "items": [
+          { "itemId": "spidersilk_vest", "qty": 1 },
+          { "itemId": "oracle_sash",     "qty": 1 }
+        ]
+      },
+      "prerequisites": [],
+      "zoneId": "teldrassil",
+      "autoAssign": false,
+      "tags": ["teldrassil", "elemental", "collection"]
+    },
+
+    "gnarlpine_corruption": {
+      "id": "gnarlpine_corruption",
+      "name": "Gnarlpine Corruption",
+      "_version": 1,
+      "description": "Starbreeze Village was once our peaceful home. Now the Gnarlpine furbolg, corrupted by some dark force, have driven us out and claim the village for themselves.\n\nWe cannot let this stand. Go to Gnarlpine Hold and cut down ten of their Ambushers and eight of their Hunters. Show them that the night elves will not surrender Teldrassil.",
+      "objectives": [
+        { "id": "obj_kill_ambushers", "type": "kill", "targetId": "gnarlpine_ambusher", "count": 10, "description": "Kill 10 Gnarlpine Ambushers" },
+        { "id": "obj_kill_hunters",   "type": "kill", "targetId": "gnarlpine_hunter",   "count": 8,  "description": "Kill 8 Gnarlpine Hunters" }
+      ],
+      "rewards": {
+        "xp": 650,
+        "reputation": [{ "factionId": "darnassus", "amount": 150 }],
+        "items": [
+          { "itemId": "bloodfeather_bracers", "qty": 1 },
+          { "itemId": "gnarlpine_fur_vest",   "qty": 1 }
+        ]
+      },
+      "prerequisites": [],
+      "zoneId": "gnarlpine_hold",
+      "autoAssign": false,
+      "tags": ["gnarlpine_hold", "furbolg"]
+    },
+
+    "reclaiming_starbreeze": {
+      "id": "reclaiming_starbreeze",
+      "name": "Reclaiming Starbreeze Village",
+      "_version": 1,
+      "description": "The Gnarlpine shamans and mystics are the source of the corruption flowing through our village. They perform dark rituals that twist more furbolg to their cause with each passing night.\n\nRaid their gathering grounds and put down eight Gnarlpine Mystics and six of their Shamans. Recover six of their bone totems as proof the rituals have been stopped.",
+      "objectives": [
+        { "id": "obj_kill_mystics",  "type": "kill",    "targetId": "gnarlpine_mystic",  "count": 8, "description": "Kill 8 Gnarlpine Mystics" },
+        { "id": "obj_kill_shamans",  "type": "kill",    "targetId": "gnarlpine_shaman",  "count": 6, "description": "Kill 6 Gnarlpine Shamans" },
+        { "id": "obj_collect_totems","type": "collect", "targetItem": "gnarlpine_totem", "count": 6, "description": "Collect 6 Gnarlpine Totems" }
+      ],
+      "rewards": {
+        "xp": 700,
+        "reputation": [{ "factionId": "darnassus", "amount": 150 }],
+        "items": [
+          { "itemId": "twisted_chanters_staff", "qty": 1 }
+        ]
+      },
+      "prerequisites": [],
+      "zoneId": "gnarlpine_hold",
+      "autoAssign": false,
+      "tags": ["gnarlpine_hold", "furbolg"]
+    },
+
+    "the_sleeping_druid": {
+      "id": "the_sleeping_druid",
+      "name": "The Sleeping Druid",
+      "_version": 1,
+      "description": "A druid named Oben Rageclaw entered Ban'ethil Barrow Den to sleep in the Emerald Dream and has not awakened. We believe the Gnarlpine Defenders and Ursa who have invaded the den are preventing his spirit from returning.\n\nFight your way through the Gnarlpine warriors inside and find Oben. Cut down eight Defenders and six of the hulking Ursa who block the inner passages.",
+      "objectives": [
+        { "id": "obj_kill_defenders", "type": "kill", "targetId": "gnarlpine_defender", "count": 8, "description": "Kill 8 Gnarlpine Defenders" },
+        { "id": "obj_kill_ursa",      "type": "kill", "targetId": "gnarlpine_ursa",     "count": 6, "description": "Kill 6 Gnarlpine Ursa" }
+      ],
+      "rewards": {
+        "xp": 700,
+        "reputation": [{ "factionId": "darnassus", "amount": 150 }],
+        "items": [
+          { "itemId": "ursal_hide_cloak",  "qty": 1 },
+          { "itemId": "gnarlpine_fur_vest","qty": 1 }
+        ]
+      },
+      "prerequisites": [],
+      "zoneId": "ban_ethil_barrow_den",
+      "autoAssign": false,
+      "tags": ["ban_ethil_barrow_den", "furbolg"]
+    },
+
+    "ursal_the_mauler_quest": {
+      "id": "ursal_the_mauler_quest",
+      "name": "Ursal the Mauler",
+      "_version": 1,
+      "description": "Ursal the Mauler leads the Gnarlpine deep inside Ban'ethil Barrow Den. As long as he lives, the furbolg corruption in Teldrassil will only grow stronger — he is their champion and their source of will.\n\nFight through his Ursa guard and bring Ursal down. Return to me with his paw as proof of your victory.",
+      "objectives": [
+        { "id": "obj_kill_ursa_guard",  "type": "kill", "targetId": "gnarlpine_ursa", "count": 5, "description": "Kill 5 Gnarlpine Ursa",
+          "triggersEncounter": { "enemyId": "ursal_the_mauler", "type": "combat" }, "resetOnWipe": true },
+        { "id": "obj_collect_bear_paw", "type": "collect", "targetItem": "ursal_bear_paw", "count": 1, "description": "Collect Ursal's Bear Paw", "requiresObjective": "obj_kill_ursa_guard" }
+      ],
+      "rewards": {
+        "xp": 1050,
+        "reputation": [{ "factionId": "darnassus", "amount": 250 }],
+        "items": [
+          { "itemId": "ursal_hide_cloak",     "qty": 1 },
+          { "itemId": "twisted_chanters_staff","qty": 1 }
+        ]
+      },
+      "prerequisites": [],
+      "zoneId": "ban_ethil_barrow_den",
+      "autoAssign": false,
+      "tags": ["ban_ethil_barrow_den", "furbolg", "boss"]
+    }
+
+  }
+}

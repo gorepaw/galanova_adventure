@@ -1,0 +1,95 @@
+,
+
+    "_comment_teldrassil_quest_tokens": "=== Teldrassil Quest Tokens ===",
+
+    "grellkin_fang": {
+      "id": "grellkin_fang", "name": "Grellkin Fang", "_version": 1, "type": "junk", "slot": "none",
+      "statBonuses": {}, "value": 3, "quality": "common",
+      "tags": ["quest"], "description": "A small, needle-sharp fang pulled from a Grellkin imp. The corrupt energy still tingles in it."
+    },
+    "webwood_venom_sac": {
+      "id": "webwood_venom_sac", "name": "Webwood Venom Sac", "_version": 1, "type": "junk", "slot": "none",
+      "statBonuses": {}, "value": 4, "quality": "common",
+      "tags": ["quest", "crafting"], "description": "A translucent sac of potent venom harvested from a Webwood spider. Alchemists value this highly."
+    },
+    "webwood_egg": {
+      "id": "webwood_egg", "name": "Webwood Egg", "_version": 1, "type": "junk", "slot": "none",
+      "statBonuses": {}, "value": 3, "quality": "common",
+      "tags": ["quest"], "description": "A silken-wrapped egg from a Webwood spider's nest. Carried back to be studied by Aldrassil's druids."
+    },
+    "bloodfeather_wing": {
+      "id": "bloodfeather_wing", "name": "Bloodfeather Wing", "_version": 1, "type": "junk", "slot": "none",
+      "statBonuses": {}, "value": 5, "quality": "common",
+      "tags": ["quest"], "description": "A wing-feather bundle from a Bloodfeather harpy, stained crimson at the tips. Proof of the clan's defeat."
+    },
+    "timberling_seed": {
+      "id": "timberling_seed", "name": "Timberling Seed", "_version": 1, "type": "junk", "slot": "none",
+      "statBonuses": {}, "value": 5, "quality": "common",
+      "tags": ["quest", "crafting"], "description": "A dense, resinous seed from a corrupted Timberling. Denalan studies these to understand the blight spreading through Teldrassil."
+    },
+    "gnarlpine_totem": {
+      "id": "gnarlpine_totem", "name": "Gnarlpine Totem", "_version": 1, "type": "junk", "slot": "none",
+      "statBonuses": {}, "value": 6, "quality": "common",
+      "tags": ["quest"], "description": "A crude bone totem carved by the corrupted Gnarlpine furbolg. The corruption of Teldrassil has warped even their ritual objects."
+    },
+    "ursal_bear_paw": {
+      "id": "ursal_bear_paw", "name": "Ursal's Bear Paw", "_version": 1, "type": "junk", "slot": "none",
+      "statBonuses": {}, "value": 18, "quality": "uncommon",
+      "tags": ["quest"], "description": "The enormous paw of Ursal the Mauler, hewn from the champion of the Gnarlpine. Proof presented to Athridas Bearmantle."
+    },
+
+    "_comment_teldrassil_rewards": "=== Teldrassil Quest Rewards (levels 3-12) ===",
+
+    "grellkin_smasher": {
+      "id": "grellkin_smasher", "name": "Grellkin Smasher", "_version": 1, "type": "weapon", "slot": "mainhand",
+      "weaponType": "mace_1h", "dmgMin": 5, "dmgMax": 10, "attackSpeed": 2.00,
+      "reqLevel": 3, "statBonuses": {},
+      "value": 45, "quality": "uncommon",
+      "tags": ["weapon", "mace_1h"], "description": "A short, heavy mace fashioned from Teldrassil ironwood. Light enough for an apprentice, solid enough to crack demon skulls."
+    },
+    "spidersilk_vest": {
+      "id": "spidersilk_vest", "name": "Spidersilk Vest", "_version": 1, "type": "armor", "slot": "chest",
+      "armorType": "cloth", "armor": 18, "reqLevel": 5, "statBonuses": { "spi": 2 },
+      "value": 80, "quality": "uncommon",
+      "tags": ["armor", "cloth"], "description": "A vest woven from Webwood silk threads, surprisingly supple and resistant to moisture in Teldrassil's humid canopy."
+    },
+    "oracle_sash": {
+      "id": "oracle_sash", "name": "Oracle Sash", "_version": 1, "type": "armor", "slot": "waist",
+      "armorType": "cloth", "armor": 14, "reqLevel": 6, "statBonuses": { "int": 2, "spi": 1 },
+      "value": 88, "quality": "uncommon",
+      "tags": ["armor", "cloth"], "description": "A woven sash blessed with a minor oracle enchantment at the Glade of the Pool. Worn by Teldrassil's young mages and priests."
+    },
+    "bloodfeather_bracers": {
+      "id": "bloodfeather_bracers", "name": "Bloodfeather Bracers", "_version": 1, "type": "armor", "slot": "wrist",
+      "armorType": "leather", "armor": 22, "reqLevel": 7, "statBonuses": { "agi": 2 },
+      "value": 105, "quality": "uncommon",
+      "tags": ["armor", "leather"], "description": "Bracers reinforced with crimson-tipped harpy quills. Stylish and functional among Teldrassil rangers."
+    },
+    "strigid_hunter_cape": {
+      "id": "strigid_hunter_cape", "name": "Strigid Hunter Cape", "_version": 1, "type": "armor", "slot": "back",
+      "armorType": "cloth", "armor": 10, "reqLevel": 5, "statBonuses": { "spi": 2 },
+      "value": 72, "quality": "uncommon",
+      "tags": ["armor", "cloth"], "description": "A lightweight cape stitched with Strigid owl feathers. Worn by young Sentinels tracking threats through the canopy."
+    },
+    "gnarlpine_fur_vest": {
+      "id": "gnarlpine_fur_vest", "name": "Gnarlpine Fur Vest", "_version": 1, "type": "armor", "slot": "chest",
+      "armorType": "leather", "armor": 52, "reqLevel": 9, "statBonuses": { "sta": 4 },
+      "value": 210, "quality": "uncommon",
+      "tags": ["armor", "leather"], "description": "A thick vest made from the pelts of the Gnarlpine furbolg. Dense enough to deflect most light blades."
+    },
+    "twisted_chanters_staff": {
+      "id": "twisted_chanters_staff", "name": "Twisted Chanter's Staff", "_version": 1, "type": "weapon", "slot": "mainhand",
+      "weaponType": "staff", "dmgMin": 15, "dmgMax": 29, "attackSpeed": 3.00,
+      "reqLevel": 10, "statBonuses": { "int": 4, "spi": 2 },
+      "value": 360, "quality": "uncommon",
+      "tags": ["weapon", "staff", "two_handed"], "description": "A staff of Teldrassil heartwood warped by Gnarlpine corruption. Still holds a potent enchantment despite the taint."
+    },
+    "ursal_hide_cloak": {
+      "id": "ursal_hide_cloak", "name": "Ursal Hide Cloak", "_version": 1, "type": "armor", "slot": "back",
+      "armorType": "leather", "armor": 28, "reqLevel": 10, "statBonuses": { "agi": 3 },
+      "value": 280, "quality": "uncommon",
+      "tags": ["armor", "leather"], "description": "A cloak fashioned from the hide of Ursal the Mauler. It still carries the earthy musk of the barrow den."
+    }
+
+  }
+}

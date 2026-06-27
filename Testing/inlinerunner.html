@@ -1,0 +1,659 @@
+<!DOCTYPE html><html><head><style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:#0d0d0d;color:#c8c8c8;font-family:monospace;font-size:13px;display:flex;height:100vh;overflow:hidden;}
+#sidebar{width:200px;flex-shrink:0;background:#111;border-right:1px solid #222;display:flex;flex-direction:column;padding:10px 0;}
+#sidebar h3{color:#569cd6;padding:8px 14px 10px;font-size:12px;letter-spacing:1px;text-transform:uppercase;border-bottom:1px solid #222;margin-bottom:6px;}
+.nav-btn{background:none;border:none;color:#aaa;text-align:left;padding:7px 14px;cursor:pointer;font:13px monospace;width:100%;}
+.nav-btn:hover{color:#fff;background:#1a1a1a;}
+.nav-btn.active{color:#4ec9b0;border-left:2px solid #4ec9b0;}
+.nav-btn:disabled{color:#444;cursor:default;}
+.nav-btn:disabled:hover{background:none;}
+.nav-sep{border-top:1px solid #222;margin:6px 0;}
+#main{flex:1;display:flex;flex-direction:column;overflow:hidden;}
+#terminal{flex:1;overflow-y:auto;padding:14px 16px;line-height:1.7;}
+#terminal pre{white-space:pre-wrap;word-break:break-word;}
+.line-turn{color:#569cd6;}.line-victory{color:#4ec9b0;font-weight:bold;}
+.line-defeat{color:#f44747;font-weight:bold;}.line-damage{color:#f08080;}
+.line-heal{color:#4ec9b0;}.line-reward{color:#dcdcaa;}.line-quest{color:#c586c0;}
+.line-error{color:#f44747;}.line-save{color:#608b4e;}.line-sep{color:#444;}
+.line-shop{color:#ce9178;}.line-gold{color:#ffd700;}.line-level{color:#e5c07b;font-weight:bold;}
+.line-death{color:#f44747;font-weight:bold;}.line-join{color:#56b6c2;}
+.line-skin{color:#b5cea8;}.line-boss{color:#f44747;font-weight:bold;}
+.line-lore{color:#9cdcfe;font-style:italic;}.line-fork{color:#dcdcaa;font-weight:bold;}
+.line-dungeon{color:#c586c0;font-weight:bold;}
+#input-row{border-top:1px solid #222;padding:8px 12px;display:flex;gap:8px;background:#111;}
+#cmd{flex:1;background:#0d0d0d;border:1px solid #333;color:#c8c8c8;padding:6px 10px;font:13px monospace;border-radius:3px;}
+#cmd:focus{outline:none;border-color:#569cd6;}
+#send{background:#1a3a5c;border:1px solid #2a5a8c;color:#9cdcfe;padding:6px 14px;font:13px monospace;cursor:pointer;border-radius:3px;}
+#send:hover{background:#1e4a72;}
+#test-banner{padding:6px 14px;font-size:12px;border-bottom:1px solid #222;display:none;}
+.banner-pass{background:#0d2b0d;color:#4ec9b0;}.banner-fail{background:#2b0d0d;color:#f44747;}
+</style></head><body>
+<div id="sidebar">
+  <h3>Kalimdor RPG</h3>
+  <button class="nav-btn active" onclick="nav('encounter')">⚡ Next Encounter</button>
+  <button class="nav-btn" onclick="nav('map')">🗺 Map</button>
+  <button class="nav-btn" onclick="nav('bag')">🎒 Bag</button>
+  <button id="btn-shop-buy"  class="nav-btn" onclick="shopBuy()">🛒 Shop — Buy</button>
+  <button id="btn-shop-sell" class="nav-btn" onclick="shopSell()">💰 Shop — Sell</button>
+  <div class="nav-sep"></div>
+  <button class="nav-btn" onclick="nav('stats')">📊 Stats</button>
+  <button class="nav-btn" onclick="nav('party')">👥 Party</button>
+  <button class="nav-btn" onclick="nav('abilities')">📖 Abilities</button>
+  <button class="nav-btn" onclick="nav('quests')">📜 Quests</button>
+  <button class="nav-btn" onclick="nav('reputation')">🏅 Reputation</button>
+  <div class="nav-sep"></div>
+  <button id="btn-crafting" class="nav-btn" onclick="nav('crafting')">⚒ Crafting</button>
+  <button class="nav-btn" onclick="nav('non_combat')">🌿 Non-Combat</button>
+  <div class="nav-sep"></div>
+  <button class="nav-btn" onclick="nav('save_load')">💾 Save / Load</button>
+  <div class="nav-sep"></div>
+  <button class="nav-btn" onclick="runTests()" style="color:#888;">🧪 Run Tests</button>
+  <button class="nav-btn" onclick="runEquipTests()" style="color:#888;">🧪 Equip Tests</button>
+</div>
+<div id="main">
+  <div id="test-banner"></div>
+  <div id="terminal"><pre id="out"></pre></div>
+  <div id="input-row">
+    <input id="cmd" placeholder="encounter | fork <n> | travel <zone> | buy/sell <item> | use <item> | rez <id> | save/load <slot>"/>
+    <button id="send" onclick="handleCmd()">Enter</button>
+  </div>
+</div>
+<script>
+"use strict";
+
+// =============================================================================
+// STAT TABLES
+// =============================================================================
+const RACE_BASE_STATS={orc:{str:26,agi:15,sta:22,int:17,spi:23},troll:{str:21,agi:22,sta:20,int:16,spi:21},tauren:{str:28,agi:13,sta:23,int:14,spi:22},night_elf:{str:17,agi:25,sta:19,int:20,spi:20},draenei:{str:21,agi:17,sta:20,int:24,spi:23},goblin:{str:15,agi:22,sta:17,int:25,spi:21},human:{str:20,agi:20,sta:20,int:20,spi:21},dwarf:{str:25,agi:16,sta:23,int:19,spi:19},gnome:{str:15,agi:23,sta:19,int:24,spi:20},undead:{str:19,agi:18,sta:20,int:18,spi:25},blood_elf:{str:17,agi:22,sta:18,int:24,spi:19}};
+const buildGainTable=deltas=>{const t=[[0,0,0,0,0]];let c=[0,0,0,0,0];for(const d of deltas){c=[c[0]+d[0],c[1]+d[1],c[2]+d[2],c[3]+d[3],c[4]+d[4]];t.push([...c]);}return t;};
+const CLASS_GAIN_TABLES=(()=>{
+  const wD=[[2,1,2,0,0],[2,1,1,0,1],[2,1,2,0,0],[2,1,2,0,0],[2,1,1,0,1],[2,1,2,0,0],[2,1,2,0,0],[3,1,2,0,0],[2,1,1,0,1],[2,1,2,0,0],[2,1,2,0,0],[2,1,1,0,1],[2,1,2,0,0],[3,1,2,0,0],[2,1,1,0,1],[2,1,2,0,0],[2,1,2,0,0],[2,1,1,0,1],[2,1,2,0,0],[3,1,2,0,0],[2,1,1,0,1],[2,1,2,0,0],[2,1,2,0,0],[2,1,1,0,1],[3,1,2,0,0],[2,1,2,0,0],[2,1,1,0,1],[2,1,2,0,0],[2,1,2,0,0],[3,1,1,0,1],[2,1,2,0,0],[2,1,2,0,0],[2,1,1,0,1],[3,1,2,0,0],[2,1,2,0,0],[2,1,1,0,1],[2,1,2,0,0],[2,1,2,0,0],[3,1,1,0,1],[2,1,2,0,0],[2,1,1,0,1],[2,1,2,0,0],[2,1,2,0,0],[3,1,1,0,1],[2,1,2,0,0],[2,1,1,0,1],[2,1,2,0,0],[2,1,2,0,0],[3,1,1,0,1],[2,1,2,0,0],[2,1,1,0,1],[2,1,2,0,0],[2,1,2,0,0],[3,1,1,0,1],[2,1,2,0,0],[2,1,1,0,1],[2,1,2,0,0],[2,1,2,0,0],[3,1,1,0,1]];
+  const paD=[[2,1,2,1,1],[2,1,1,1,1],[2,1,2,1,1],[2,1,2,1,0],[2,1,1,1,1],[2,1,2,1,1],[2,1,2,0,1],[2,1,1,1,1],[2,1,2,1,1],[2,1,2,1,0],[2,1,1,1,1],[2,1,2,1,1],[2,1,2,0,1],[2,1,1,1,1],[2,1,2,1,1],[2,1,2,1,0],[2,1,1,1,1],[2,1,2,1,1],[2,1,2,0,1],[2,1,1,1,1],[2,1,2,1,1],[2,1,2,1,0],[2,1,1,1,1],[2,1,2,1,1],[2,1,2,0,1],[2,1,1,1,1],[2,1,2,1,1],[2,1,2,1,0],[2,1,1,1,1],[2,1,2,1,1],[2,1,2,0,1],[2,1,1,1,1],[2,1,2,1,1],[2,1,2,1,0],[2,1,1,1,1],[2,1,2,1,1],[2,1,2,0,1],[2,1,1,1,1],[2,1,2,1,1],[2,1,2,1,0],[2,1,1,1,1],[2,1,2,1,1],[2,1,2,0,1],[2,1,1,1,1],[2,1,2,1,1],[2,1,2,1,0],[2,1,1,1,1],[2,1,2,1,1],[2,1,2,0,1],[2,1,1,1,1],[2,1,2,1,1],[2,1,2,1,0],[2,1,1,1,1],[2,1,2,1,1],[2,1,2,0,1],[2,1,1,1,1],[2,1,2,1,1],[2,1,2,1,0],[2,1,1,1,1]];
+  const huD=[[1,2,2,1,0],[1,2,1,1,1],[1,2,2,1,0],[1,2,2,0,1],[1,2,1,1,0],[1,2,2,1,1],[1,2,2,0,0],[1,2,1,1,1],[1,2,2,1,0],[1,2,2,0,1],[1,2,1,1,0],[1,2,2,1,1],[1,2,2,0,0],[1,2,1,1,1],[1,2,2,1,0],[1,2,2,0,1],[1,2,1,1,0],[1,2,2,1,1],[1,2,2,0,0],[1,2,1,1,1],[1,2,2,1,0],[1,2,2,0,1],[1,2,1,1,0],[1,2,2,1,1],[1,2,2,0,0],[1,2,1,1,1],[1,2,2,1,0],[1,2,2,0,1],[1,2,1,1,0],[1,2,2,1,1],[1,2,2,0,0],[1,2,1,1,1],[1,2,2,1,0],[1,2,2,0,1],[1,2,1,1,0],[1,2,2,1,1],[1,2,2,0,0],[1,2,1,1,1],[1,2,2,1,0],[1,2,2,0,1],[1,2,1,1,0],[1,2,2,1,1],[1,2,2,0,0],[1,2,1,1,1],[1,2,2,1,0],[1,2,2,0,1],[1,2,1,1,0],[1,2,2,1,1],[1,2,2,0,0],[1,2,1,1,1],[1,2,2,1,0],[1,2,2,0,1],[1,2,1,1,0],[1,2,2,1,1],[1,2,2,0,0],[1,2,1,1,1],[1,2,2,1,0],[1,2,2,0,1],[1,2,1,1,0]];
+  const roD=[[1,2,1,0,0],[1,3,1,0,0],[1,2,2,0,0],[1,2,1,0,1],[1,3,1,0,0],[1,2,2,0,0],[1,2,1,0,0],[1,3,1,0,1],[1,2,2,0,0],[1,2,1,0,0],[1,3,1,0,1],[1,2,2,0,0],[1,2,1,0,0],[1,3,1,0,1],[1,2,2,0,0],[1,2,1,0,0],[1,3,1,0,1],[1,2,2,0,0],[1,2,1,0,0],[1,3,1,0,1],[1,2,2,0,0],[1,2,1,0,0],[1,3,1,0,1],[1,2,2,0,0],[1,2,1,0,0],[1,3,1,0,1],[1,2,2,0,0],[1,2,1,0,0],[1,3,1,0,1],[1,2,2,0,0],[1,2,1,0,0],[1,3,1,0,1],[1,2,2,0,0],[1,2,1,0,0],[1,3,1,0,1],[1,2,2,0,0],[1,2,1,0,0],[1,3,1,0,1],[1,2,2,0,0],[1,2,1,0,0],[1,3,1,0,1],[1,2,2,0,0],[1,2,1,0,0],[1,3,1,0,1],[1,2,2,0,0],[1,2,1,0,0],[1,3,1,0,1],[1,2,2,0,0],[1,2,1,0,0],[1,3,1,0,1],[1,2,2,0,0],[1,2,1,0,0],[1,3,1,0,1],[1,2,2,0,0],[1,2,1,0,0],[1,3,1,0,1],[1,2,2,0,0],[1,2,1,0,0],[1,3,1,0,1]];
+  const prD=[[0,0,1,2,2],[0,0,1,2,2],[0,1,1,2,2],[0,0,1,2,2],[0,0,1,2,3],[0,0,1,2,2],[0,1,1,2,2],[0,0,1,2,2],[0,0,1,2,3],[0,0,1,2,2],[0,1,1,2,2],[0,0,1,2,2],[0,0,1,2,3],[0,0,1,2,2],[0,1,1,2,2],[0,0,1,2,2],[0,0,1,2,3],[0,0,1,2,2],[0,1,1,2,2],[0,0,1,2,2],[0,0,1,2,3],[0,0,1,2,2],[0,1,1,2,2],[0,0,1,2,2],[0,0,1,2,3],[0,0,1,2,2],[0,1,1,2,2],[0,0,1,2,2],[0,0,1,2,3],[0,0,1,2,2],[0,1,1,2,2],[0,0,1,2,2],[0,0,1,2,3],[0,0,1,2,2],[0,1,1,2,2],[0,0,1,2,2],[0,0,1,2,3],[0,0,1,2,2],[0,1,1,2,2],[0,0,1,2,2],[0,0,1,2,3],[0,0,1,2,2],[0,1,1,2,2],[0,0,1,2,2],[0,0,1,2,3],[0,0,1,2,2],[0,1,1,2,2],[0,0,1,2,2],[0,0,1,2,3],[0,0,1,2,2],[0,1,1,2,2],[0,0,1,2,2],[0,0,1,2,3],[0,0,1,2,2],[0,1,1,2,2],[0,0,1,2,2],[0,0,1,2,3],[0,0,1,2,2],[0,1,1,2,2]];
+  const shD=[[1,1,2,1,1],[1,1,1,1,2],[1,1,2,1,1],[1,1,2,1,1],[1,1,1,1,2],[1,1,2,1,1],[1,1,2,1,1],[2,1,2,1,1],[1,1,1,1,2],[1,1,2,1,1],[1,1,2,1,1],[1,1,1,1,2],[1,1,2,1,1],[2,1,2,1,1],[1,1,1,1,2],[1,1,2,1,1],[1,1,2,1,1],[1,1,1,1,2],[1,1,2,1,1],[2,1,2,1,1],[1,1,1,1,2],[1,1,2,1,1],[1,1,2,1,1],[1,1,1,1,2],[2,1,2,1,1],[1,1,2,1,1],[1,1,1,1,2],[1,1,2,1,1],[1,1,2,1,1],[2,1,1,1,2],[1,1,2,1,1],[1,1,2,1,1],[1,1,1,1,2],[2,1,2,1,1],[1,1,2,1,1],[1,1,1,1,2],[1,1,2,1,1],[1,1,2,1,1],[2,1,1,1,2],[1,1,2,1,1],[1,1,1,1,2],[1,1,2,1,1],[1,1,2,1,1],[2,1,1,1,2],[1,1,2,1,1],[1,1,1,1,2],[1,1,2,1,1],[1,1,2,1,1],[2,1,1,1,2],[1,1,2,1,1],[1,1,1,1,2],[1,1,2,1,1],[1,1,2,1,1],[2,1,1,1,2],[1,1,2,1,1],[1,1,1,1,2],[1,1,2,1,1],[1,1,2,1,1],[2,1,1,1,2]];
+  const maD=[[0,0,1,3,2],[0,0,1,2,2],[0,1,1,3,2],[0,0,1,2,2],[0,0,1,3,2],[0,0,1,2,2],[0,1,1,3,2],[0,0,1,2,2],[0,0,1,3,2],[0,0,1,2,2],[0,1,1,3,2],[0,0,1,2,2],[0,0,1,3,2],[0,0,1,2,2],[0,1,1,3,2],[0,0,1,2,2],[0,0,1,3,2],[0,0,1,2,2],[0,1,1,3,2],[0,0,1,2,2],[0,0,1,3,2],[0,0,1,2,2],[0,1,1,3,2],[0,0,1,2,2],[0,0,1,3,2],[0,0,1,2,2],[0,1,1,3,2],[0,0,1,2,2],[0,0,1,3,2],[0,0,1,2,2],[0,1,1,3,2],[0,0,1,2,2],[0,0,1,3,2],[0,0,1,2,2],[0,1,1,3,2],[0,0,1,2,2],[0,0,1,3,2],[0,0,1,2,2],[0,1,1,3,2],[0,0,1,2,2],[0,0,1,3,2],[0,0,1,2,2],[0,1,1,3,2],[0,0,1,2,2],[0,0,1,3,2],[0,0,1,2,2],[0,1,1,3,2],[0,0,1,2,2],[0,0,1,3,2],[0,0,1,2,2],[0,1,1,3,2],[0,0,1,2,2],[0,0,1,3,2],[0,0,1,2,2],[0,1,1,3,2],[0,0,1,2,2],[0,0,1,3,2],[0,0,1,2,2],[0,1,1,3,2]];
+  const waD=[[0,0,1,2,2],[0,0,2,2,2],[0,1,1,2,2],[0,0,1,2,2],[0,0,2,3,2],[0,0,1,2,2],[0,1,1,2,2],[0,0,2,2,2],[0,0,1,3,2],[0,0,1,2,2],[0,1,2,2,2],[0,0,1,2,2],[0,0,1,3,2],[0,0,2,2,2],[0,1,1,2,2],[0,0,1,2,2],[0,0,2,3,2],[0,0,1,2,2],[0,1,1,2,2],[0,0,2,2,2],[0,0,1,3,2],[0,0,1,2,2],[0,1,2,2,2],[0,0,1,2,2],[0,0,1,3,2],[0,0,2,2,2],[0,1,1,2,2],[0,0,1,2,2],[0,0,2,3,2],[0,0,1,2,2],[0,1,1,2,2],[0,0,2,2,2],[0,0,1,3,2],[0,0,1,2,2],[0,1,2,2,2],[0,0,1,2,2],[0,0,1,3,2],[0,0,2,2,2],[0,1,1,2,2],[0,0,1,2,2],[0,0,2,3,2],[0,0,1,2,2],[0,1,1,2,2],[0,0,2,2,2],[0,0,1,3,2],[0,0,1,2,2],[0,1,2,2,2],[0,0,1,2,2],[0,0,1,3,2],[0,0,2,2,2],[0,1,1,2,2],[0,0,1,2,2],[0,0,2,3,2],[0,0,1,2,2],[0,1,1,2,2],[0,0,2,2,2],[0,0,1,3,2],[0,0,1,2,2],[0,1,2,2,2]];
+  const drD=[[1,1,1,1,2],[1,1,2,1,2],[1,1,1,2,2],[1,1,2,1,2],[1,1,1,1,2],[1,1,2,2,2],[1,1,1,1,2],[1,1,2,1,2],[1,1,1,2,2],[1,1,2,1,2],[1,1,1,1,2],[1,1,2,2,2],[1,1,1,1,2],[1,1,2,1,2],[1,1,1,2,2],[1,1,2,1,2],[1,1,1,1,2],[1,1,2,2,2],[1,1,1,1,2],[1,1,2,1,2],[1,1,1,2,2],[1,1,2,1,2],[1,1,1,1,2],[1,1,2,2,2],[1,1,1,1,2],[1,1,2,1,2],[1,1,1,2,2],[1,1,2,1,2],[1,1,1,1,2],[1,1,2,2,2],[1,1,1,1,2],[1,1,2,1,2],[1,1,1,2,2],[1,1,2,1,2],[1,1,1,1,2],[1,1,2,2,2],[1,1,1,1,2],[1,1,2,1,2],[1,1,1,2,2],[1,1,2,1,2],[1,1,1,1,2],[1,1,2,2,2],[1,1,1,1,2],[1,1,2,1,2],[1,1,1,2,2],[1,1,2,1,2],[1,1,1,1,2],[1,1,2,2,2],[1,1,1,1,2],[1,1,2,1,2],[1,1,1,2,2],[1,1,2,1,2],[1,1,1,1,2],[1,1,2,2,2],[1,1,1,1,2],[1,1,2,1,2],[1,1,1,2,2],[1,1,2,1,2],[1,1,1,1,2]];
+  return{warrior:buildGainTable(wD),paladin:buildGainTable(paD),hunter:buildGainTable(huD),rogue:buildGainTable(roD),priest:buildGainTable(prD),shaman:buildGainTable(shD),mage:buildGainTable(maD),warlock:buildGainTable(waD),druid:buildGainTable(drD)};
+})();
+const XP_TABLE=[400,900,1400,2100,2800,3600,4500,5400,6500,7600,8800,10100,11400,12900,14400,16000,17700,19400,21300,23200,25200,27300,29400,31700,34000,36400,38900,41400,44300,47400,50800,54500,58600,62800,67100,71600,76100,80800,85700,91200,97000,103100,109200,115500,122000,128700,135700,142700,150000,157500,165200,173200,181200,189200,197500,205800,214500,223500,232800];
+const MAX_LEVEL=60;
+const getStatsAtLevel=(raceId,classId,level)=>{const base=RACE_BASE_STATS[raceId];const table=CLASS_GAIN_TABLES[classId];if(!base||!table)throw new Error(`Unknown race/class: ${raceId}/${classId}`);const l=Math.max(1,Math.min(level,MAX_LEVEL));const g=table[l-1];return{str:base.str+g[0],agi:base.agi+g[1],sta:base.sta+g[2],int:base.int+g[3],spi:base.spi+g[4]};};
+const xpToNextLevel=level=>level>=MAX_LEVEL?Infinity:XP_TABLE[level-1];
+const addXpToInst=(inst,amount)=>{let{xp,level}=inst;xp+=amount;const lines=[];while(level<MAX_LEVEL&&xp>=xpToNextLevel(level)){xp-=xpToNextLevel(level);level++;const ns=getStatsAtLevel(inst.raceId,inst.classId,level);const nHp=ns.sta*10+(CLASS_BASE_HP[inst.classId]||0);const nMp=ns.int*15+(CLASS_BASE_MP[inst.classId]||0);inst={...inst,stats:{raw:ns},maxHp:nHp,maxMp:nMp,currentHp:nHp,currentMp:nMp};lines.push(`  ✦ ${inst.name} reached level ${level}!`);}if(level>=MAX_LEVEL)xp=0;return{inst:{...inst,xp,level},levelUpLines:lines};};
+const CLASS_BASE_HP={warrior:60,paladin:45,hunter:45,rogue:40,priest:30,shaman:40,mage:25,warlock:28,druid:35};
+const CLASS_BASE_MP={warrior:0,paladin:60,hunter:40,rogue:0,priest:80,shaman:60,mage:100,warlock:90,druid:70};
+
+// =============================================================================
+// SCHEMAS
+// =============================================================================
+const SCHEMAS={
+  ability:{$id:"ability",type:"object",required:["id","name","targeting","effects"],properties:{id:{type:"string",pattern:"^[a-z0-9_]+$"},name:{type:"string",minLength:1},_version:{type:"integer",minimum:1},resourceCost:{type:"object"},cooldown:{type:"integer",minimum:0},castTime:{type:"integer",minimum:0},targeting:{type:"string",enum:["self","single_enemy","single_ally","all_enemies","all_allies","random_enemy","random_ally","lowest_hp_enemy","lowest_hp_ally"]},threatModifier:{type:"number",minimum:0},requiresComboPoints:{type:"boolean"},passive:{type:"boolean"},trigger:{type:"string",enum:["always","on_hit","on_crit_heal","on_being_hit"]},tags:{type:"array",items:{type:"string"}},description:{type:"string"},effects:{type:"array",items:{type:"object"},minItems:1}},additionalProperties:true},
+  buff:{$id:"buff",type:"object",required:["id","name","duration"],properties:{id:{type:"string",pattern:"^[a-z0-9_]+$"},name:{type:"string",minLength:1},_version:{type:"integer",minimum:1},duration:{oneOf:[{type:"integer",minimum:1},{type:"string",enum:["infinite"]}]},modifiers:{type:"object"},ccFlags:{type:"object"},tickDamage:{type:"object"},tickHeal:{type:"object"},stacks:{type:"boolean"},maxStacks:{type:"integer",minimum:1},charges:{type:"integer",minimum:1},tags:{type:"array",items:{type:"string"}},description:{type:"string"}},additionalProperties:false},
+  companion:{$id:"companion",type:"object",required:["id","name","raceId","classId"],properties:{id:{type:"string",pattern:"^[a-z0-9_]+$"},name:{type:"string",minLength:1},_version:{type:"integer",minimum:1},raceId:{type:"string"},classId:{type:"string"},profession:{type:"string"},joinLevel:{type:"integer",minimum:1},unlockZone:{type:"string"},unlockQuest:{type:["string","null"]},unlockRepFaction:{type:["string","null"]},unlockRepRequired:{type:["number","null"]},baseStats:{type:"object"},abilities:{type:"array",items:{type:"string"}},traits:{type:"array",items:{type:"string"}},quirks:{type:"array",items:{type:"string"}},gear:{type:"object"},joinDialogue:{type:"array",items:{type:"string"}},lore:{type:"string"},tags:{type:"array",items:{type:"string"}}},additionalProperties:true},
+  companionInstance:{$id:"companionInstance",type:"object",required:["instanceId","templateId"],properties:{instanceId:{type:"string"},templateId:{type:"string"},_version:{type:"integer",minimum:1},name:{type:"string"},raceId:{type:"string"},classId:{type:"string"},profession:{type:"string"},xp:{type:"number",minimum:0},level:{type:"integer",minimum:1},currentHp:{type:"number",minimum:0},currentMp:{type:"number",minimum:0},maxHp:{type:"number",minimum:0},maxMp:{type:"number",minimum:0},deathState:{type:"string",enum:["alive","downed","dead"]},permadead:{type:"boolean"},downedAt:{type:["string","null"]},rezCost:{type:"number",minimum:0},learnedAbilities:{type:"array",items:{type:"string"}},acquiredQuirks:{type:"array",items:{type:"string"}},activeBuffs:{type:"array"},relationship:{type:"integer",minimum:-100,maximum:100},gear:{type:"object"},skills:{type:"object"}},additionalProperties:true},
+  enemy:{$id:"enemy",type:"object",required:["id","name","baseStats","aiProfile","abilities"],properties:{id:{type:"string",pattern:"^[a-z0-9_]+$"},name:{type:"string",minLength:1},_version:{type:"integer",minimum:1},type:{type:"string",enum:["humanoid","beast","undead","elemental","demon","dragon","giant","mechanical","aberration"]},baseStats:{type:"object"},abilities:{type:"array",items:{type:"string"}},aiProfile:{type:"string"},loot:{type:"array"},skinningLoot:{type:"array"},killReputation:{type:"array"},xpValue:{type:"number",minimum:0},currencyDrop:{oneOf:[{type:"object"},{type:"null"}]},tags:{type:"array",items:{type:"string"}},description:{type:"string"}},additionalProperties:true},
+  item:{$id:"item",type:"object",required:["id","name","type","slot"],properties:{id:{type:"string",pattern:"^[a-z0-9_]+$"},name:{type:"string",minLength:1},_version:{type:"integer",minimum:1},type:{type:"string",enum:["weapon","armor","trinket","consumable","quest","material","recipe","held"]},slot:{type:"string",enum:["mainhand","offhand","head","chest","legs","feet","hands","back","neck","ring","trinket","none","waist","shoulders","wrist","tabard","ranged","ammo","relic"]},itemLevel:{oneOf:[{type:"integer",minimum:1},{type:"null"}]},minDamage:{oneOf:[{type:"number",minimum:0},{type:"null"}]},maxDamage:{oneOf:[{type:"number",minimum:0},{type:"null"}]},weaponType:{oneOf:[{type:"string",enum:["sword_1h","sword_2h","axe_1h","axe_2h","mace_1h","mace_2h","dagger","fist","staff","polearm","wand","bow","crossbow","gun","thrown"]},{type:"null"}]},statBonuses:{type:"object",properties:{str:{type:"number"},agi:{type:"number"},sta:{type:"number"},int:{type:"number"},spi:{type:"number"},attackPower:{type:"number"},spellPower:{type:"number"},armor:{type:"number"},meleeCrit:{type:"number"},spellCrit:{type:"number"}},additionalProperties:false},onUse:{oneOf:[{type:"object"},{type:"null"}]},allowedClasses:{type:"array",items:{type:"string"}},unlockRepFaction:{type:["string","null"]},unlockRepRequired:{type:["number","null"]},stackable:{type:"boolean"},maxStack:{type:"integer",minimum:1},value:{type:"number",minimum:0},quality:{type:"string",enum:["poor","common","uncommon","rare","epic","legendary"]},tags:{type:"array",items:{type:"string"}},description:{type:"string"}},additionalProperties:false},
+  zone:{$id:"zone",type:"object",required:["id","name","encounterTableId"],properties:{id:{type:"string",pattern:"^[a-z0-9_]+$"},name:{type:"string",minLength:1},_version:{type:"integer",minimum:1},encounterTableId:{type:"string"},minPartyLevel:{type:"integer",minimum:1},maxPartyLevel:{type:"integer",minimum:1},isDungeon:{type:"boolean"},ambientBuffs:{type:"array",items:{type:"string"}},connectedZones:{type:"array",items:{type:"string"}},shopInventory:{type:"array"},sellMultiplier:{type:"number",minimum:0},tags:{type:"array",items:{type:"string"}},lore:{type:"string"},forcedOnly:{type:"boolean"},forcedEncounterQueue:{type:"array"}},additionalProperties:true},
+  quest:{$id:"quest",type:"object",required:["id","name","objectives","rewards"],properties:{id:{type:"string",pattern:"^[a-z0-9_]+$"},name:{type:"string",minLength:1},_version:{type:"integer",minimum:1},description:{type:"string"},objectives:{type:"array",items:{type:"object"},minItems:1},rewards:{type:"object"},prerequisites:{type:"array",items:{type:"string"}},zoneId:{type:"string"},autoAssign:{type:"boolean"},tags:{type:"array",items:{type:"string"}}},additionalProperties:true},
+  encounterTable:{$id:"encounterTable",type:"object",required:["id","slots","combatPool"],properties:{id:{type:"string",pattern:"^[a-z0-9_]+$"},_version:{type:"integer",minimum:1},slots:{type:"array",items:{type:"object"}},combatPool:{type:"array",items:{type:"object"},minItems:1},exclusiveGroups:{type:"array",items:{type:"array",items:{type:"string"}}},recruitPool:{type:"array",items:{type:"string"}}},additionalProperties:true},
+  save:{$id:"save",type:"object",required:["saveId","_version","timestamp","party","quests","inventory"],properties:{saveId:{type:"string"},_version:{type:"integer",minimum:1},timestamp:{type:"string"},mode:{type:"string",enum:["normal","ironman","hardcore"]},party:{type:"array",items:{type:"object"}},quests:{type:"object"},inventory:{type:"array"},currency:{type:"number",minimum:0},reputation:{type:"object"},talentSchools:{type:"object"},flags:{type:"object"},playtime:{type:"number",minimum:0},currentZone:{type:"string"},shopStocks:{type:"object"}},additionalProperties:true}
+};
+
+// =============================================================================
+// VALIDATOR / DATASTORE / LOADER / SAVER
+// =============================================================================
+const Validator=(()=>{const tc=(v,t)=>{if(t==="integer")return Number.isInteger(v);if(t==="number")return typeof v==="number"&&!isNaN(v);if(t==="string")return typeof v==="string";if(t==="boolean")return typeof v==="boolean";if(t==="array")return Array.isArray(v);if(t==="object")return typeof v==="object"&&v!==null&&!Array.isArray(v);if(t==="null")return v===null;return false;};const validate=(data,schema,path="")=>{const errors=[];if(schema.type){const types=Array.isArray(schema.type)?schema.type:[schema.type];if(!types.some(t=>tc(data,t))){errors.push(`${path||"root"}: expected ${schema.type}, got ${Array.isArray(data)?"array":typeof data}`);return errors;}}if(schema.oneOf){const ok=schema.oneOf.some(s=>validate(data,s,path).length===0);if(!ok)errors.push(`${path}: failed oneOf`);}if(typeof data==="string"){if(schema.minLength!==undefined&&data.length<schema.minLength)errors.push(`${path}: too short`);if(schema.pattern&&!new RegExp(schema.pattern).test(data))errors.push(`${path}: pattern fail`);if(schema.enum&&!schema.enum.includes(data))errors.push(`${path}: "${data}" not in enum`);}if(typeof data==="number"){if(schema.minimum!==undefined&&data<schema.minimum)errors.push(`${path}: below min ${schema.minimum}`);if(schema.maximum!==undefined&&data>schema.maximum)errors.push(`${path}: above max ${schema.maximum}`);}if(tc(data,"object")){if(schema.required)for(const f of schema.required)if(!(f in data))errors.push(`${path}.${f}: required missing`);if(schema.properties)for(const[k,s]of Object.entries(schema.properties))if(k in data)errors.push(...validate(data[k],s,`${path}.${k}`));if(schema.additionalProperties===false&&schema.properties)for(const k of Object.keys(data))if(!(k in schema.properties))errors.push(`${path}.${k}: not allowed`);}if(Array.isArray(data)){if(schema.minItems!==undefined&&data.length<schema.minItems)errors.push(`${path}: array too short`);if(schema.items)data.forEach((item,i)=>errors.push(...validate(item,schema.items,`${path}[${i}]`)));}return errors;};const validateNamed=(data,sn)=>{const schema=SCHEMAS[sn];if(!schema)return{valid:false,errors:[`No schema: ${sn}`]};const errors=validate(data,schema);return{valid:errors.length===0,errors};};return{validate,validateNamed};})();
+const DataStore=(()=>{const _fs=new Map();const write=(p,d)=>_fs.set(p,JSON.parse(JSON.stringify(d)));const read=p=>_fs.has(p)?JSON.parse(JSON.stringify(_fs.get(p))):null;const exists=p=>_fs.has(p);const list=prefix=>[..._fs.keys()].filter(k=>k.startsWith(prefix));const remove=p=>_fs.delete(p);return{write,read,exists,list,remove};})();
+const Loader=(()=>{const DEFS={ability:{_version:1,resourceCost:{},cooldown:0,castTime:0,threatModifier:1.0,requiresComboPoints:false,tags:[],effects:[]},buff:{_version:1,modifiers:{},ccFlags:{},stacks:false,tags:[]},companion:{_version:1,statOverrides:{},abilities:[],traits:[],quirks:[],tags:[],joinDialogue:[],startingSkills:{}},companionInstance:{_version:1,xp:0,level:1,deathState:"alive",permadead:false,downedAt:null,rezCost:0,learnedAbilities:[],acquiredQuirks:[],activeBuffs:[],relationship:0,skills:{},gear:{head:null,neck:null,shoulders:null,back:null,chest:null,waist:null,tabard:null,wrist:null,hands:null,feet:null,legs:null,ring:null,trinket:null,mainhand:null,offhand:null,ranged:null,ammo:null,relic:null}},enemy:{_version:1,type:"humanoid",loot:[],skinningLoot:[],killReputation:[],currencyDrop:null,xpValue:0,tags:[]},item:{_version:1,statBonuses:{},onUse:null,itemLevel:null,minDamage:null,maxDamage:null,weaponType:null,allowedClasses:[],unlockRepFaction:null,unlockRepRequired:null,stackable:false,maxStack:1,value:0,quality:"common",tags:[]},zone:{_version:1,isDungeon:false,minPartyLevel:1,maxPartyLevel:60,ambientBuffs:[],connectedZones:[],tags:[],forcedOnly:false,forcedEncounterQueue:[]},quest:{_version:1,prerequisites:[],tags:[],autoAssign:false},encounterTable:{_version:1,exclusiveGroups:[],recruitPool:[]}};const applyDefaults=(data,type)=>({...(DEFS[type]||{}),...data});const load=(path,sn)=>{const raw=DataStore.read(path);if(raw===null)return{ok:false,data:null,errors:[`Not found: ${path}`]};const wd=applyDefaults(raw,sn);const{valid,errors}=Validator.validateNamed(wd,sn);if(!valid)return{ok:false,data:null,errors:[`Validation failed ${path}:`,...errors]};return{ok:true,data:wd,errors:[]};};const loadAll=(prefix,sn)=>{const paths=DataStore.list(prefix);const results={ok:true,items:[],errors:[]};for(const path of paths){const r=load(path,sn);if(r.ok)results.items.push(r.data);else{results.ok=false;results.errors.push(...r.errors);}}return results;};return{load,loadAll,applyDefaults};})();
+const Saver=(()=>{const save=(path,data,sn)=>{const{valid,errors}=Validator.validateNamed(data,sn);if(!valid)return{ok:false,errors:[`Pre-save validation failed:`,...errors]};if(DataStore.exists(path))DataStore.write(`${path}.backup`,DataStore.read(path));DataStore.write(path,{...data,_savedAt:new Date().toISOString()});return{ok:true,errors:[]};};const saveSave=data=>save(`saves/save_${data.saveId}`,data,"save");return{save,saveSave};})();
+const Modifiers=(()=>{const addReputation=(save,fId,amt)=>{const rep={...(save.reputation||{})};rep[fId]=Math.max(-100,Math.min(100,(rep[fId]||0)+amt));return{...save,reputation:rep};};const advanceTalent=(save,sId,amt=1)=>{const t={...(save.talentSchools||{})};t[sId]=(t[sId]||0)+amt;return{...save,talentSchools:t};};const completeQuest=(save,qId)=>{const q={...(save.quests||{})};if(!q[qId])q[qId]={objectives:{},completed:false};q[qId].completed=true;q[qId].completedAt=new Date().toISOString();return{...save,quests:q};};const addToInventory=(save,itemId,qty=1)=>{const inv=[...(save.inventory||[])];const i=inv.findIndex(e=>e.itemId===itemId);if(i>=0)inv[i]={...inv[i],qty:inv[i].qty+qty};else inv.push({itemId,qty});return{...save,inventory:inv};};const setFlag=(save,k,v=true)=>({...save,flags:{...(save.flags||{}),[k]:v}});const clearFlag=(save,k)=>{const f={...(save.flags||{})};delete f[k];return{...save,flags:f};};return{addReputation,advanceTalent,completeQuest,addToInventory,setFlag,clearFlag};})();
+const Currency=(()=>{const toString=c=>{const g=Math.floor(c/10000),s=Math.floor((c%10000)/100),co=c%100;const p=[];if(g>0)p.push(`${g}g`);if(s>0)p.push(`${s}s`);if(co>0||p.length===0)p.push(`${co}c`);return p.join(" ");};const canAfford=(save,cost)=>(save.currency||0)>=cost;const deduct=(save,amt)=>({...save,currency:Math.max(0,(save.currency||0)-amt)});const add=(save,amt)=>({...save,currency:(save.currency||0)+amt});const toDisplay=c=>({gold:Math.floor(c/10000),silver:Math.floor((c%10000)/100),copper:c%100,total:c});return{toString,canAfford,deduct,add,toDisplay};})();
+const DeathHandler=(()=>{const CONFIG={rezBaseCost:500,rezLevelMult:200,wipePenalty:0.25,wipeReturnHpMin:0.20,wipeReturnHpMax:1.00,wipeReturnHpStep:0.10};const rezCostForLevel=level=>CONFIG.rezBaseCost+level*CONFIG.rezLevelMult;const wipeReturnHpPct=level=>Math.max(CONFIG.wipeReturnHpMin,CONFIG.wipeReturnHpMax-Math.max(0,level-1)*CONFIG.wipeReturnHpStep);const handleDeath=(inst,save)=>{const mode=save.mode||"normal";if(mode==="hardcore")return{...inst,deathState:"dead",permadead:true,downedAt:new Date().toISOString()};return{...inst,deathState:"downed",downedAt:new Date().toISOString(),rezCost:rezCostForLevel(inst.level||1)};};const rezForGold=(inst,save)=>{if((save.mode||"normal")==="hardcore")return{ok:false,error:"Cannot rez in hardcore."};if(inst.deathState!=="downed")return{ok:false,error:"Not downed."};if(inst.permadead)return{ok:false,error:"Permanently dead."};const cost=inst.rezCost||rezCostForLevel(inst.level||1);if((save.currency||0)<cost)return{ok:false,error:`Need ${Currency.toString(cost)}.`};return{ok:true,save:Currency.deduct(save,cost),inst:{...inst,deathState:"alive",currentHp:inst.maxHp||999,currentMp:inst.maxMp||0,downedAt:null,rezCost:0}};};const handleWipe=save=>{const mode=save.mode||"normal";if(mode==="hardcore")return{...save,wipedOut:true,wipeTimestamp:new Date().toISOString()};const penalty=Math.floor((save.currency||0)*CONFIG.wipePenalty);let s=Currency.deduct(save,penalty);s={...s,party:s.party.map(m=>{const ir=Loader.load(`instances/companions/${m.instanceId}`,"companionInstance");if(!ir.ok)return m;const inst=ir.data;if(inst.deathState==="downed"&&!inst.permadead){const pct=wipeReturnHpPct(inst.level||1);const restored={...inst,deathState:"alive",currentHp:Math.max(1,Math.floor((inst.maxHp||999)*pct)),downedAt:null,rezCost:0};DataStore.write(`instances/companions/${m.instanceId}`,restored);}return m;})};return{...s,_wipeNote:`Lost ${Currency.toString(penalty)} on wipe`};};const isWipe=save=>save.party.every(m=>{const ir=Loader.load(`instances/companions/${m.instanceId}`,"companionInstance");return ir.ok?ir.data.deathState!=="alive":false;});return{handleDeath,rezForGold,handleWipe,isWipe,rezCostForLevel,CONFIG};})();
+const buildCompanionInstance=(template,instanceId)=>{const raw=template.baseStats||getStatsAtLevel(template.raceId,template.classId,template.joinLevel||1);const maxHp=raw.sta*10+(CLASS_BASE_HP[template.classId]||0);const maxMp=raw.int*15+(CLASS_BASE_MP[template.classId]||0);return{instanceId,templateId:template.id,_version:1,name:template.name,raceId:template.raceId,classId:template.classId,profession:template.profession||null,level:template.joinLevel||1,xp:0,currentHp:maxHp,currentMp:maxMp,maxHp,maxMp,deathState:"alive",permadead:false,downedAt:null,rezCost:0,learnedAbilities:[...(template.abilities||[])],acquiredQuirks:[],activeBuffs:[],relationship:0,skills:{...(template.startingSkills||{})},gear:{head:null,neck:null,shoulders:null,back:null,chest:null,waist:null,tabard:null,wrist:null,hands:null,feet:null,legs:null,ring:null,trinket:null,mainhand:null,offhand:null,ranged:null,ammo:null,relic:null},stats:{raw}};};
+
+// =============================================================================
+// PARTY SKILL HELPERS
+// =============================================================================
+const PartySkills=(()=>{const getInsts=save=>save.party.map(m=>{const r=Loader.load(`instances/companions/${m.instanceId}`,"companionInstance");return r.ok?r.data:null;}).filter(Boolean);const partyHasProfession=(insts,prof)=>insts.some(i=>i.profession===prof&&i.deathState==="alive");const partySkillLevel=(insts,skill)=>insts.reduce((best,i)=>{if(i.deathState!=="alive")return best;return Math.max(best,(i.skills||{})[skill]||0);},0);return{getInsts,partyHasProfession,partySkillLevel};})();
+
+// =============================================================================
+// DUNGEON MANAGER
+// =============================================================================
+const DungeonManager=(()=>{
+  const enter=(zoneId,save)=>{const existing=save.flags?.dungeonProgress;if(existing&&existing.zoneId===zoneId)return{save};const progress={zoneId,queueIndex:0,pendingFork:null};return{save:Modifiers.setFlag(save,"dungeonProgress",progress)};};
+  const getCurrentEncounter=(save)=>{const prog=save.flags?.dungeonProgress;if(!prog)return null;const zr=Loader.load(`templates/zones/${prog.zoneId}`,"zone");if(!zr.ok)return null;const queue=zr.data.forcedEncounterQueue||[];if(prog.queueIndex>=queue.length)return null;return queue[prog.queueIndex];};
+  const advance=(save)=>{const prog=save.flags?.dungeonProgress;if(!prog)return{save,fork:null,complete:false};const zr=Loader.load(`templates/zones/${prog.zoneId}`,"zone");if(!zr.ok)return{save,fork:null,complete:false};const queue=zr.data.forcedEncounterQueue||[];const entry=queue[prog.queueIndex];if(entry?.nextEncounters?.length){const fork={choices:entry.nextEncounters,labels:entry.forkLabels||entry.nextEncounters};const newProg={...prog,pendingFork:fork};return{save:Modifiers.setFlag(save,"dungeonProgress",newProg),fork,complete:false};}const nextIndex=prog.queueIndex+1;const complete=nextIndex>=queue.length;const newProg={...prog,queueIndex:nextIndex,pendingFork:null};let s=Modifiers.setFlag(save,"dungeonProgress",newProg);if(complete)s=Modifiers.clearFlag(s,"dungeonProgress");return{save:s,fork:null,complete};};
+  const chooseFork=(choice,save)=>{const prog=save.flags?.dungeonProgress;if(!prog?.pendingFork)return{save,enteredZone:null};if(choice==="continue"){const newProg={...prog,queueIndex:prog.queueIndex+1,pendingFork:null};return{save:Modifiers.setFlag(save,"dungeonProgress",newProg),enteredZone:null};}const newProg={zoneId:choice,queueIndex:0,pendingFork:null};return{save:Modifiers.setFlag({...save,currentZone:choice},"dungeonProgress",newProg),enteredZone:choice};};
+  const exit=(save,returnZoneId)=>({save:{...Modifiers.clearFlag(save,"dungeonProgress"),currentZone:returnZoneId||save.currentZone}});
+  const isInDungeon=save=>{const zr=Loader.load(`templates/zones/${save.currentZone}`,"zone");return zr.ok&&!!zr.data.isDungeon;};
+  return{enter,getCurrentEncounter,advance,chooseFork,exit,isInDungeon};
+})();
+
+// =============================================================================
+// DUNGEON ENCOUNTER BUILDER
+// =============================================================================
+const DungeonEncounterBuilder=(()=>{
+  const buildEnemyList=enemyIds=>{const enemies=[];for(const spec of(enemyIds||[])){const count=spec.count||1;for(let i=0;i<count;i++){const er=Loader.load(`templates/enemies/${spec.enemyId}`,"enemy");if(!er.ok){console.warn(`Unknown enemy: ${spec.enemyId}`);continue;}enemies.push({...er.data,instanceId:`${spec.enemyId}_${i}_${Date.now()}`});}}return enemies;};
+  const build=(entry,zoneId)=>{if(!entry)return{ok:false,errors:["No queue entry"]};if(entry.type==="combat"||entry.type==="boss")return{ok:true,zoneId,encounterType:entry.type,enemies:buildEnemyList(entry.enemyIds),gatheringNodes:[],companionRecruit:null,introDialogue:entry.introDialogue||[],midDialogue:entry.midDialogue||null,outroDialogue:entry.outroDialogue||[],guaranteedLoot:entry.guaranteedLoot||[],questFlags:entry.questFlags||[],isBoss:entry.type==="boss"};if(entry.type==="text")return{ok:true,zoneId,encounterType:"text",enemies:[],gatheringNodes:[],companionRecruit:null,lines:entry.lines||[],speaker:entry.speaker||null};return{ok:false,errors:[`Unknown dungeon encounter type: "${entry.type}"`]};};
+  return{build,buildEnemyList};
+})();
+
+// =============================================================================
+// ENCOUNTER GATE CHECKER
+// =============================================================================
+const checkReroll=(slot,save,table,partyInsts)=>{const cond=slot.rerollIf;if(!cond)return false;if(cond==="no_eligible_companions"){const existing=save.party.map(p=>p.templateId);const pool=table.recruitPool||[];return!pool.some(id=>{if(existing.includes(id))return false;const tr=Loader.load(`templates/companions/${id}`,"companion");if(!tr.ok)return false;return partyInsts.some(inst=>(inst.level||1)>=(tr.data.joinLevel||1));});}if(cond==="no_eligible_quests"){const assignedIds=Object.keys(save.quests||{});const zoneQuests=DataStore.list("templates/quests/").filter(p=>{const r=DataStore.read(p);return r&&r.zoneId===save.currentZone&&!assignedIds.includes(r.id);});return zoneQuests.length===0;}if(cond.startsWith("no_party_profession:")){const prof=cond.split(":")[1];return!PartySkills.partyHasProfession(partyInsts,prof);}if(cond.startsWith("no_party_skill:")){const skill=cond.split(":")[1];return PartySkills.partySkillLevel(partyInsts,skill)===0;}if(cond.startsWith("no_party_skill_min:")){const[,skill,minStr]=cond.split(":");return PartySkills.partySkillLevel(partyInsts,skill)<(parseInt(minStr)||0);}return false;};
+
+// =============================================================================
+// ENCOUNTER GENERATOR
+// =============================================================================
+const EncounterGenerator=(()=>{
+  const MAX_DEPTH=8;
+  const buildRollTable=(slots,save)=>{const boost=save.flags?.trackingBoost||null;const slotTotal=slots.reduce((s,sl)=>s+sl.chance,0);const combatChance=Math.max(0,1-slotTotal);const entries=[...slots.map(sl=>({...sl,_chance:sl.chance})),{type:"combat",_chance:combatChance}];if(boost){for(const e of entries){if((e.type==="gather_node"&&e.nodeId===boost.targetId)||(e.type==="combat"&&boost.targetId==="combat"))e._chance*=(boost.multiplier||1.5);}const total=entries.reduce((s,e)=>s+e._chance,0);for(const e of entries)e._chance/=total;}return entries;};
+  const rollSlot=entries=>{let r=Math.random();for(const e of entries){r-=e._chance;if(r<=0)return e;}return entries[entries.length-1];};
+  const rollCombatGroup=(table,partySize,save)=>{const pool=table.combatPool||[];if(!pool.length)return{ok:false,errors:["Empty combatPool"]};const boost=save.flags?.trackingBoost||null;const weighted=pool.map(e=>{let w=e.weight||1;if(boost&&boost.targetId===e.enemyId)w*=(boost.multiplier||1.5);return{...e,_w:w};});const totalW=weighted.reduce((s,e)=>s+e._w,0);const pickOne=()=>{let r=Math.random()*totalW;for(const e of weighted){r-=e._w;if(r<=0)return e;}return weighted[weighted.length-1];};const primary=pickOne();const exclusiveGroups=table.exclusiveGroups||[];let allowedIds=null;for(const grp of exclusiveGroups){if(grp.includes(primary.enemyId)){allowedIds=grp;break;}}const eligible=allowedIds?weighted.filter(e=>allowedIds.includes(e.enemyId)):weighted;const eligibleTotal=eligible.reduce((s,e)=>s+e._w,0);const count=1+Math.floor(Math.random()*Math.max(1,partySize));const enemies=[];for(let i=0;i<count;i++){let r=Math.random()*eligibleTotal;let chosen=eligible[eligible.length-1];for(const e of eligible){r-=e._w;if(r<=0){chosen=e;break;}}const er=Loader.load(`templates/enemies/${chosen.enemyId}`,"enemy");if(!er.ok)return{ok:false,errors:[`Enemy load failed: ${chosen.enemyId}`]};enemies.push({...er.data,instanceId:`${chosen.enemyId}_${i}_${Date.now()}`});}return{ok:true,enemies};};
+
+  const generate=(zoneId,save,_depth=0)=>{
+    if(_depth>MAX_DEPTH)return{ok:false,errors:["Max retry depth exceeded"]};
+    const zr=Loader.load(`templates/zones/${zoneId}`,"zone");if(!zr.ok)return{ok:false,errors:zr.errors};
+    const zone=zr.data;
+
+    // ── dungeon zones use the queue, not the roll table ───────────────────
+    if(zone.isDungeon){
+      let s=save;
+      if(!s.flags?.dungeonProgress||s.flags.dungeonProgress.zoneId!==zoneId){const entered=DungeonManager.enter(zoneId,save);s=entered.save;}
+      if(s.flags?.dungeonProgress?.pendingFork)return{ok:true,zoneId,encounterType:"fork",fork:s.flags.dungeonProgress.pendingFork,enemies:[],gatheringNodes:[]};
+      const entry=DungeonManager.getCurrentEncounter(s);
+      if(!entry)return{ok:true,zoneId,encounterType:"dungeon_complete",enemies:[],gatheringNodes:[]};
+      return DungeonEncounterBuilder.build(entry,zoneId);
+    }
+
+    if(save.flags?.forcedEncounter){const forced=save.flags.forcedEncounter;return{ok:true,zoneId,encounterType:forced.type,forced:true,...forced,enemies:[],gatheringNodes:[],companionRecruit:null};}
+    if(zone.forcedOnly&&(zone.forcedEncounterQueue||[]).length){const[next]=zone.forcedEncounterQueue;return{ok:true,zoneId,encounterType:next.type,forced:true,...next,enemies:[],gatheringNodes:[],companionRecruit:null};}
+    const tr=Loader.load(`templates/encounter_tables/${zone.encounterTableId}`,"encounterTable");if(!tr.ok)return{ok:false,errors:tr.errors};
+    const table=tr.data;const partyInsts=PartySkills.getInsts(save);
+    const rollTable=buildRollTable(table.slots||[],save);const slot=rollSlot(rollTable);
+    if(slot.type!=="combat"&&checkReroll(slot,save,table,partyInsts))return generate(zoneId,save,_depth+1);
+    if(slot.type==="companion"){const existing=save.party.map(p=>p.templateId);const pool=table.recruitPool||[];const avail=pool.filter(id=>{if(existing.includes(id))return false;const tr2=Loader.load(`templates/companions/${id}`,"companion");if(!tr2.ok)return false;return partyInsts.some(inst=>(inst.level||1)>=(tr2.data.joinLevel||1));});if(!avail.length)return generate(zoneId,save,_depth+1);const rid=avail[Math.floor(Math.random()*avail.length)];const rr=Loader.load(`templates/companions/${rid}`,"companion");return{ok:true,zoneId,encounterType:"companion",companionRecruit:rr.ok?rr.data:null,enemies:[],gatheringNodes:[]};}
+    if(slot.type==="quest"){const assignedIds=Object.keys(save.quests||{});const zonePaths=DataStore.list("templates/quests/").filter(p=>{const r=DataStore.read(p);return r&&r.zoneId===zoneId&&!assignedIds.includes(r.id);});if(!zonePaths.length)return generate(zoneId,save,_depth+1);const picked=DataStore.read(zonePaths[Math.floor(Math.random()*zonePaths.length)]);return{ok:true,zoneId,encounterType:"quest",quest:picked,enemies:[],gatheringNodes:[],companionRecruit:null};}
+    if(slot.type==="gather_node"){const ir=Loader.load(`templates/items/${slot.nodeId}`,"item");const name=ir.ok?ir.data.name:slot.nodeId;return{ok:true,zoneId,encounterType:"gathering",gatheringNodes:[{nodeId:slot.nodeId,name,qty:slot.qty||1}],enemies:[],companionRecruit:null};}
+    if(slot.type==="locked_chest")return{ok:true,zoneId,encounterType:"locked_chest",enemies:[],gatheringNodes:[],companionRecruit:null};
+    if(slot.type==="fishing_spot")return{ok:true,zoneId,encounterType:"fishing_spot",enemies:[],gatheringNodes:[],companionRecruit:null};
+    const cg=rollCombatGroup(table,save.party.length,save);
+    if(!cg.ok)return{ok:false,errors:cg.errors};
+    return{ok:true,zoneId,encounterType:"combat",enemies:cg.enemies,gatheringNodes:[],companionRecruit:null};
+  };
+  return{generate};
+})();
+
+// =============================================================================
+// COMBAT BRIDGE
+// =============================================================================
+const CombatBridge=(()=>{
+  const AB={
+    melee_attack:   {effects:[{type:"damage",damageType:"physical",scaling:"ap",multiplier:1.0}],resourceCost:{},cooldown:0,castTime:0,targeting:"single_enemy"},
+    strike_basic:  {effects:[{type:"damage",damageType:"physical",scaling:"ap",multiplier:1.0}],resourceCost:{rage:10},cooldown:0,castTime:0,targeting:"single_enemy"},
+    power_smash:   {effects:[{type:"damage",damageType:"physical",scaling:"ap",multiplier:1.6}],resourceCost:{rage:25},cooldown:3,castTime:0,targeting:"single_enemy"},
+    ember_bolt:    {effects:[{type:"damage",damageType:"fire",scaling:"sp",multiplier:1.0,flatBonus:15}],resourceCost:{mana:20},cooldown:0,castTime:1,targeting:"single_enemy"},
+    minor_heal:    {effects:[{type:"heal",scaling:"sp",multiplier:1.2,flatBonus:30}],resourceCost:{mana:15},cooldown:0,castTime:2,targeting:"single_ally"},
+    charge:        {effects:[{type:"damage",damageType:"physical",scaling:"ap",multiplier:1.2},{type:"debuff",buffId:"stun",chance:1.0}],resourceCost:{},cooldown:4,castTime:0,targeting:"single_enemy"},
+    scorpid_sting: {effects:[{type:"debuff",buffId:"scorpid_sting_dot",chance:1.0}],resourceCost:{},cooldown:5,castTime:0,targeting:"single_enemy"},
+    imp_fireball:  {effects:[{type:"damage",damageType:"fire",scaling:"sp",multiplier:0.8,flatBonus:10}],resourceCost:{},cooldown:2,castTime:1,targeting:"single_enemy"},
+  };
+  const BUFF_DEFS_BRIDGE={stun:{id:"stun",duration:1,modifiers:{},ccFlags:{stunned:true}},scorpid_sting_dot:{id:"scorpid_sting_dot",duration:3,tickDamage:{damageType:"nature",flat:8,scaling:"sp",multiplier:0.02},modifiers:{},ccFlags:{}}};
+  const applyAlwaysPassives=(derived,abilities)=>{const d={...derived};for(const abId of abilities){const ab=AB[abId];if(!ab||!ab.passive||ab.trigger!=="always")continue;for(const effect of(ab.effects||[])){if(effect.type!=="stat_mod")continue;const val=(effect.source?((d[effect.source]||0)*(effect.multiplier||0)):0)+(effect.flat||0);if(effect.stat in d)d[effect.stat]=(d[effect.stat]||0)+val;}}return d;};
+  const buildUnit=(cfg,isEnemy=false)=>{const classId=cfg.classId||"warrior";const raw=cfg.stats?.raw||cfg.baseStats||getStatsAtLevel(cfg.raceId||"orc",classId,cfg.level||1);const baseD={maxHp:raw.sta*10+(CLASS_BASE_HP[classId]||0),maxMana:raw.int*15+(CLASS_BASE_MP[classId]||0),attackPower:raw.str*2+raw.agi,spellPower:0,armor:raw.agi*2,critChanceMelee:raw.agi/20/100,critChanceSpell:raw.int/60/100,manaRegen:Math.floor(raw.spi/5),critMultiplier:2.0};const abilities=cfg.learnedAbilities||cfg.abilities||["melee_attack"];const derived=applyAlwaysPassives(baseD,abilities);const maxHp=cfg.maxHp||derived.maxHp;const maxMana=cfg.maxMp||derived.maxMana;const res={};if(["warrior"].includes(classId))res.rage={current:0,max:100};else if(["rogue"].includes(classId)){res.energy={current:100,max:100};res.combo_points={current:0,max:5};}else res.mana={current:maxMana,max:maxMana};return{id:cfg.instanceId||cfg.id||`u_${Math.random().toString(36).slice(2,7)}`,name:cfg.name,classId,raceId:cfg.raceId||"orc",level:cfg.level||1,hp:cfg.currentHp||maxHp,maxHp,xpValue:cfg.xpValue||0,loot:cfg.loot||[],skinningLoot:cfg.skinningLoot||[],killReputation:cfg.killReputation||[],currencyDrop:cfg.currencyDrop||null,stats:{raw,derived},resources:res,cooldowns:{},castQueue:[],buffs:[],debuffs:[],ccState:{stunned:false},abilities,isEnemy,alive:true,threatTable:{}};};
+  const rollDmg=(effect,att,tgt)=>{const aD=att.stats.derived,tD=tgt.stats.derived;let base=effect.flatBonus||0;if(effect.scaling==="ap")base+=(aD.attackPower||0)*(effect.multiplier||1);if(effect.scaling==="sp")base+=(aD.spellPower||0)*(effect.multiplier||1);const cc=effect.damageType==="physical"?aD.critChanceMelee:aD.critChanceSpell;const isCrit=Math.random()<(cc||0);if(isCrit)base*=aD.critMultiplier||2;if(effect.damageType==="physical"){const arm=Math.max(0,tD.armor||0);const armorConst=400+85*(att.level||1);base*=(1-Math.min(0.75,arm/(arm+armorConst)));}for(const b of tgt.buffs.concat(tgt.debuffs))if(b.modifiers?.damageTakenMultiplier)base*=b.modifiers.damageTakenMultiplier;return{damage:Math.max(1,Math.floor(base)),isCrit};};
+  const rollHeal=(effect,caster)=>{const d=caster.stats.derived;let base=(effect.flatBonus||0)+(d.spellPower||0)*(effect.multiplier||0);return Math.max(1,Math.floor(base));};
+  const applyBuff=(unit,buffId,sourceId)=>{const def=BUFF_DEFS_BRIDGE[buffId];if(!def)return unit;const inst={id:buffId,sourceId,duration:def.duration,modifiers:{...(def.modifiers||{})},ccFlags:{...(def.ccFlags||{})},tickDamage:def.tickDamage?{...def.tickDamage}:null};const isDebuff=Object.values(inst.ccFlags).some(Boolean)||!!inst.tickDamage;const field=isDebuff?"debuffs":"buffs";const existIdx=unit[field].findIndex(b=>b.id===buffId);const newList=existIdx>=0?unit[field].map((b,i)=>i===existIdx?{...b,duration:inst.duration,stacks:b.stacks+1}:b):[...unit[field],inst];const ccState={...unit.ccState};for(const[f,v]of Object.entries(inst.ccFlags))if(v)ccState[f]=true;return{...unit,[field]:newList,ccState};};
+  const tickBuffsUnit=unit=>{const logs=[];let u={...unit};for(const eff of[...u.buffs,...u.debuffs]){if(!eff.tickDamage)continue;const td=eff.tickDamage;let dmg=td.flat||0;if(td.scaling==="sp")dmg+=(u.stats.derived.spellPower||0)*(td.multiplier||0);dmg=Math.max(1,Math.floor(dmg));u={...u,hp:Math.max(0,u.hp-dmg)};logs.push(`    ↳ ${u.name} takes ${dmg} ${td.damageType} (${eff.id})`);}return{unit:u,logs};};
+  const expireBuffsUnit=unit=>{const process=list=>list.map(b=>({...b,duration:b.duration-1})).filter(b=>b.duration>0);const nb=process(unit.buffs),nd=process(unit.debuffs);const ccState={stunned:false};for(const d of nd)for(const[f,v]of Object.entries(d.ccFlags||{}))if(v)ccState[f]=true;return{...unit,buffs:nb,debuffs:nd,ccState};};
+  const sync=(all,upd)=>all.map(u=>u.id===upd.id?upd:u);
+  const aiChoose=(unit,targets)=>{const living=targets.filter(t=>t.alive);if(!living.length||unit.ccState.stunned)return null;const target=[...living].sort((a,b)=>{const tA=unit.threatTable[a.id]||0,tB=unit.threatTable[b.id]||0;return tB-tA||a.hp-b.hp;})[0];const avail=(unit.abilities||[]).filter(id=>{const ab=AB[id];if(!ab||(unit.cooldowns[id]||0)>0)return false;const cost=ab.resourceCost||{};for(const[r,a]of Object.entries(cost))if((unit.resources[r]?.current||0)<a)return false;return true;});if(!avail.length)return null;const dmg=avail.filter(id=>AB[id]?.effects?.some(e=>e.type==="damage"));return{abilityId:dmg.length?dmg[0]:avail[0],targetId:target.id};};
+  const fireProcAbilities=(unit,trigger,procTarget,logs)=>{let u={...unit};let pt={...procTarget};for(const abId of(u.abilities||[])){const ab=AB[abId];if(!ab||!ab.passive||ab.trigger!==trigger)continue;for(const effect of(ab.effects||[])){if(effect.type!=="proc")continue;if(Math.random()>(effect.chance||1))continue;const buffId=effect.buffId;if(!buffId)continue;const isSelfBuff=["on_hit","on_crit_heal"].includes(trigger);if(isSelfBuff){u=applyBuff(u,buffId,u.id);logs.push(`    ↳ ${u.name} procs ${buffId}`);}else{pt=applyBuff(pt,buffId,u.id);logs.push(`    ↳ ${pt.name} afflicted by ${buffId} (proc)`);}}}return{unit:u,procTarget:pt};};
+  const execAb=(abId,caster,targets,logs)=>{const ab=AB[abId];if(!ab)return{caster,targets};logs.push(`  ${caster.name} → ${abId.replace(/_/g," ")}`);let c={...caster,resources:{...caster.resources}};for(const[r,a]of Object.entries(ab.resourceCost||{}))if(c.resources[r])c.resources[r]={...c.resources[r],current:c.resources[r].current-a};if((ab.cooldown||0)>0)c={...c,cooldowns:{...c.cooldowns,[abId]:ab.cooldown}};let ts=[...targets];for(const effect of ab.effects)for(let i=0;i<ts.length;i++){let t=ts[i];if(!t.alive)continue;if(effect.type==="damage"){const{damage,isCrit}=rollDmg(effect,c,t);logs.push(`    ↳ ${t.name}: ${damage}${isCrit?" [CRIT]":""} ${effect.damageType}`);t={...t,hp:Math.max(0,t.hp-damage)};if(c.resources.rage){const rg=Math.floor(damage/5);c={...c,resources:{...c.resources,rage:{...c.resources.rage,current:Math.min(100,c.resources.rage.current+rg)}}};}if(!c.isEnemy){const th=c.threatTable||{};c={...c,threatTable:{...th,[t.id]:(th[t.id]||0)+damage}};}const hitProc=fireProcAbilities(c,"on_hit",t,logs);c=hitProc.unit;t=hitProc.procTarget;if(t.hp<=0&&t.alive){logs.push(`    ✗ ${t.name} dies`);t={...t,alive:false,hp:0};}}if(effect.type==="heal"){const h=rollHeal(effect,c);const isCrit=Math.random()<(c.stats.derived.critChanceSpell||0);const act=Math.min(t.maxHp-t.hp,isCrit?Math.floor(h*1.5):h);t={...t,hp:t.hp+act};logs.push(`    ↳ heals ${t.name}: +${act}${isCrit?" [CRIT]":""}`);}if(effect.type==="debuff"){if(Math.random()<(effect.chance||1)){t=applyBuff(t,effect.buffId,c.id);logs.push(`    ↳ ${t.name} afflicted by ${effect.buffId}`);}}ts[i]=t;}return{caster:c,targets:ts};};
+  const tickU=u=>{const cd={...u.cooldowns};for(const id of Object.keys(cd)){cd[id]=Math.max(0,cd[id]-1);if(cd[id]===0)delete cd[id];}const res={...u.resources};if(res.energy)res.energy={...res.energy,current:Math.min(res.energy.max,res.energy.current+15)};if(res.mana)res.mana={...res.mana,current:Math.min(res.mana.max,res.mana.current+(u.stats.derived.manaRegen||0))};return{...u,cooldowns:cd,resources:res};};
+  const run=(encounter,partyInsts)=>{
+    const logs=[],MAX=30;
+    let party=partyInsts.map(inst=>buildUnit(inst,false));
+    let enemies=encounter.enemies.map(e=>buildUnit(e,true));
+    logs.push(`⚔ ${encounter.zoneId.toUpperCase()} — ${party.map(u=>u.name).join(",")} vs ${enemies.map(u=>u.name).join(",")}`);
+    let turn=0,outcome=null;
+    // check boss mid-dialogue once when any boss enemy drops below threshold
+    let midDialogueFired=encounter.midDialogue?.fired||false;
+    while(turn<MAX&&!outcome){
+      turn++;logs.push(`\n── T${turn}`);
+      for(let pi=0;pi<party.length;pi++){let actor=party[pi];if(!actor.alive||actor.ccState.stunned){if(actor.ccState.stunned)logs.push(`  ${actor.name} is stunned`);continue;}if(actor.castQueue?.length){const ready=[],pending=[];for(const e of actor.castQueue){if(e.turnsRemaining<=0)ready.push(e);else pending.push({...e,turnsRemaining:e.turnsRemaining-1});}actor={...actor,castQueue:pending};for(const entry of ready){const ab=AB[entry.abilityId];if(!ab)continue;const tgts=ab.targeting==="single_ally"?party.filter(u=>u.alive):enemies.filter(u=>u.alive);const res=execAb(entry.abilityId,actor,tgts,logs);actor=res.caster;for(const t of res.targets){if(t.isEnemy)enemies=sync(enemies,t);else party=sync(party,t);}}}
+          const liveE=enemies.filter(e=>e.alive);if(!liveE.length)break;
+          const ai=aiChoose(actor,liveE);if(!ai)continue;
+          const ab=AB[ai.abilityId];if(!ab)continue;
+          if((ab.castTime||0)>0){actor={...actor,castQueue:[...(actor.castQueue||[]),{abilityId:ai.abilityId,targetId:ai.targetId,turnsRemaining:ab.castTime-1}]};logs.push(`  ${actor.name} begins casting ${ai.abilityId.replace(/_/g," ")}`);}
+          else{const tgt=liveE.find(e=>e.id===ai.targetId)||liveE[0];const res=execAb(ai.abilityId,actor,[tgt],logs);actor=res.caster;for(const t of res.targets){if(t.isEnemy)enemies=sync(enemies,t);else party=sync(party,t);}}
+          party=sync(party,actor);}
+      for(let ei=0;ei<enemies.length;ei++){let actor=enemies[ei];if(!actor.alive||actor.ccState.stunned)continue;const liveP=party.filter(p=>p.alive);if(!liveP.length)break;const ai=aiChoose(actor,liveP);if(!ai)continue;const ab=AB[ai.abilityId];if(!ab)continue;if((ab.castTime||0)>0){actor={...actor,castQueue:[...(actor.castQueue||[]),{abilityId:ai.abilityId,targetId:ai.targetId,turnsRemaining:ab.castTime-1}]};logs.push(`  ${actor.name} begins casting ${ai.abilityId.replace(/_/g," ")}`);}else{const tgt=liveP.find(p=>p.id===ai.targetId)||liveP[0];const res=execAb(ai.abilityId,actor,[tgt],logs);actor=res.caster;for(const t of res.targets)if(!t.isEnemy)party=sync(party,t);}enemies=sync(enemies,actor);}
+      // mid-dialogue check
+      if(!midDialogueFired&&encounter.midDialogue){const md=encounter.midDialogue;const bossUnit=enemies.find(e=>e.alive);if(bossUnit&&(bossUnit.hp/bossUnit.maxHp)<=md.triggerHpPct){midDialogueFired=true;for(const l of(md.lines||[]))logs.push(`  💬 "${l}"`);}}
+      for(let i=0;i<party.length;i++){const{unit:u,logs:l}=tickBuffsUnit(party[i]);logs.push(...l);party[i]=expireBuffsUnit(u);}
+      for(let i=0;i<enemies.length;i++){const{unit:u,logs:l}=tickBuffsUnit(enemies[i]);logs.push(...l);enemies[i]=expireBuffsUnit(u);}
+      party=party.map(tickU);enemies=enemies.map(tickU);
+      if(party.every(u=>!u.alive)){outcome="defeat";logs.push("\n💀 DEFEAT");}
+      if(enemies.every(u=>!u.alive)){outcome="victory";logs.push("\n🏆 VICTORY");}
+    }
+    if(!outcome){outcome="timeout";logs.push("\n⚠ TIMEOUT");}
+    const kills=enemies.filter(u=>!u.alive);
+    const totalXp=kills.reduce((s,u)=>s+(u.xpValue||0),0);
+    return{outcome,turns:turn,logs,kills,totalXp,enemies,party};
+  };
+  return{run};
+})();
+
+// =============================================================================
+// REWARD ENGINE
+// =============================================================================
+const RewardEngine=(()=>{
+  const rollLoot=kills=>{const drops=[];for(const e of kills)for(const le of(e.loot||[]))if(Math.random()<le.chance)drops.push({itemId:le.itemId,qty:le.qty||1});return drops;};
+  const rollSkinningLoot=kills=>{const drops=[];for(const e of kills)for(const le of(e.skinningLoot||[]))if(Math.random()<le.chance){const qty=le.minQty&&le.maxQty?le.minQty+Math.floor(Math.random()*(le.maxQty-le.minQty+1)):(le.qty||1);drops.push({itemId:le.itemId,qty});}return drops;};
+  const apply=(cr,encounter,save)=>{
+    let s={...save};const sum={xp:0,currency:0,loot:[],questProgress:[],weaponskill:0,levelUps:[],reputation:{},skinnableKills:[]};
+    s=Modifiers.clearFlag(s,"trackingBoost");
+    if(cr.outcome!=="victory")return{save:s,summary:sum};
+    const xp=cr.totalXp;sum.xp=xp;
+    s={...s,party:s.party.map(m=>{const ir=Loader.load(`instances/companions/${m.instanceId}`,"companionInstance");if(!ir.ok)return m;const{inst:updated,levelUpLines}=addXpToInst(ir.data,xp);DataStore.write(`instances/companions/${m.instanceId}`,updated);if(levelUpLines.length)sum.levelUps.push(...levelUpLines);return m;})};
+    const MONEY_TYPES=new Set(["humanoid","demon","undead"]);
+    for(const e of cr.kills){if(MONEY_TYPES.has(e.unitType||e.type)){const cd=e.currencyDrop;if(cd){const roll=cd.min+Math.floor(Math.random()*(cd.max-cd.min+1));s=Currency.add(s,roll);sum.currency+=roll;}}}
+    for(const e of cr.kills){for(const kr of(e.killReputation||[])){s=Modifiers.addReputation(s,kr.faction,kr.amount);sum.reputation[kr.faction]=(sum.reputation[kr.faction]||0)+kr.amount;}}
+    const drops=rollLoot(encounter.enemies);
+    for(const d of drops){s=Modifiers.addToInventory(s,d.itemId,d.qty);sum.loot.push(d);}
+    const pouches=drops.filter(d=>d.itemId==="copper_coin_pouch").length;
+    if(pouches>0){const cg=pouches*150;s=Currency.add(s,cg);sum.currency+=cg;s={...s,inventory:s.inventory.map(e=>e.itemId==="copper_coin_pouch"?{...e,qty:Math.max(0,e.qty-pouches)}:e).filter(e=>e.qty>0)};}
+    for(const node of(encounter.gatheringNodes||[])){s=Modifiers.addToInventory(s,node.nodeId||node.itemId,node.qty);sum.loot.push({itemId:node.nodeId||node.itemId,qty:node.qty,source:"gathering"});}
+    const partyInsts=PartySkills.getInsts(s);
+    const hasSkinning=PartySkills.partyHasProfession(partyInsts,"skinning");
+    if(hasSkinning){const skinnable=cr.kills.filter(e=>e.type==="beast"&&(e.skinningLoot||[]).length>0);if(skinnable.length>0){sum.skinnableKills=skinnable;s=Modifiers.setFlag(s,"pendingSkinning",skinnable.map(e=>e.id));}}
+    for(const[qId,qState]of Object.entries(s.quests||{})){if(qState.completed)continue;const qr=Loader.load(`templates/quests/${qId}`,"quest");if(!qr.ok)continue;const quest=qr.data;for(const obj of quest.objectives){if(obj.type!=="kill")continue;const prev=qState.objectives[obj.id]||0;if(prev>=obj.count)continue;const matching=encounter.enemies.filter(e=>(e.tags||[]).some(tag=>(obj.targetTags||[]).includes(tag))).length;if(matching>0){const next=Math.min(obj.count,prev+matching);s={...s,quests:{...s.quests,[qId]:{...qState,objectives:{...qState.objectives,[obj.id]:next}}}};sum.questProgress.push({questId:qId,objectiveId:obj.id,prev,next,goal:obj.count});if(next>=obj.count){s=Modifiers.completeQuest(s,qId);const rw=quest.rewards||{};if(rw.xp)sum.xp+=rw.xp;if(rw.currency){s=Currency.add(s,rw.currency);sum.currency+=rw.currency;}if(rw.items)for(const ri of rw.items){s=Modifiers.addToInventory(s,ri.itemId,ri.qty);sum.loot.push({...ri,source:"quest_reward"});}sum.questProgress.push({questId:qId,completed:true});}}}}
+    // guaranteed loot (boss encounters)
+    for(const drop of(encounter.guaranteedLoot||[])){s=Modifiers.addToInventory(s,drop.itemId,drop.qty);sum.loot.push({...drop,source:"guaranteed"});}
+    // quest flags (boss encounters)
+    for(const flag of(encounter.questFlags||[]))s=Modifiers.setFlag(s,flag,true);
+    if(cr.kills.length>0){s=Modifiers.advanceTalent(s,"weaponskill_sword",1);sum.weaponskill=1;}
+    return{save:s,summary:sum,skinnableBodies:sum.skinnableKills};
+  };
+  const applySkinning=(save,pendingEnemies)=>{const drops=[];let s={...save};for(const e of pendingEnemies)for(const le of(e.skinningLoot||[])){if(Math.random()<le.chance){const qty=le.minQty&&le.maxQty?le.minQty+Math.floor(Math.random()*(le.maxQty-le.minQty+1)):(le.qty||1);drops.push({itemId:le.itemId,qty});s=Modifiers.addToInventory(s,le.itemId,qty);}}s=Modifiers.clearFlag(s,"pendingSkinning");return{save:s,drops};};
+  return{apply,rollLoot,applySkinning};
+})();
+
+// =============================================================================
+// SHOP / SAVE MANAGER
+// =============================================================================
+const ShopSystem=(()=>{const getStock=(save,zoneId,itemId)=>{const key=`${zoneId}_${itemId}`;return save.shopStocks?.[key]??null;};const setStock=(save,zoneId,itemId,value)=>{const key=`${zoneId}_${itemId}`;return{...save,shopStocks:{...(save.shopStocks||{}),[key]:value}};};const getBuyList=(zone,save)=>(zone.shopInventory||[]).map(e=>{const ss=getStock(save,zone.id,e.itemId);return{...e,stock:ss!==null?ss:e.stock};}).filter(e=>e.stock!==0);const buy=(save,zone,itemId,qty)=>{const entry=(zone.shopInventory||[]).find(e=>e.itemId===itemId);if(!entry)return{ok:false,error:"Not in shop."};const stock=getStock(save,zone.id,itemId)??entry.stock;if(stock!==-1&&stock<qty)return{ok:false,error:`Only ${stock} in stock.`};const total=entry.buyPrice*qty;if(!Currency.canAfford(save,total))return{ok:false,error:`Need ${Currency.toString(total)}.`};let s=Currency.deduct(save,total);s=Modifiers.addToInventory(s,itemId,qty);if(stock!==-1)s=setStock(s,zone.id,itemId,stock-qty);const ir=Loader.load(`templates/items/${itemId}`,"item");return{ok:true,save:s,message:`Bought ${qty}x ${ir.ok?ir.data.name:itemId} for ${Currency.toString(total)}.`};};const sell=(save,zone,itemId,qty)=>{const inv=(save.inventory||[]).find(e=>e.itemId===itemId);if(!inv||inv.qty<qty)return{ok:false,error:"Don't have that many."};const ir=Loader.load(`templates/items/${itemId}`,"item");if(!ir.ok)return{ok:false,error:"Unknown item."};const unitP=Math.floor(ir.data.value*(zone.sellMultiplier??0.25));const total=unitP*qty;let s={...save,inventory:save.inventory.map(e=>e.itemId===itemId?{...e,qty:e.qty-qty}:e).filter(e=>e.qty>0)};s=Currency.add(s,total);return{ok:true,save:s,message:`Sold ${qty}x ${ir.data.name} for ${Currency.toString(total)}.`};};return{getBuyList,buy,sell};})();
+const SaveManager=(()=>{let _t=Date.now();const save=(data,slotId)=>{const elapsed=Math.floor((Date.now()-_t)/1000);const stamped={...data,saveId:slotId,timestamp:new Date().toISOString(),playtime:(data.playtime||0)+elapsed};_t=Date.now();return Saver.saveSave(stamped);};const listSlots=()=>DataStore.list("saves/save_").filter(p=>!p.endsWith(".backup")).map(p=>{const d=DataStore.read(p);return d?{slotId:d.saveId,timestamp:d.timestamp,playtime:d.playtime||0,zone:d.currentZone||"?",party:(d.party||[]).length}:null;}).filter(Boolean);const load=slotId=>Loader.load(`saves/save_${slotId}`,"save");return{save,listSlots,load};})();
+
+// =============================================================================
+// SEED DATA
+// =============================================================================
+const seed=async()=>{
+  for(const key of DataStore.list("templates/"))DataStore.remove(key);
+  for(const key of DataStore.list("instances/"))DataStore.remove(key);
+  for(const key of DataStore.list("saves/"))DataStore.remove(key);
+
+  DataStore.write("templates/abilities/melee_attack",{id:"melee_attack",name:"Auto Attack",_version:1,resourceCost:{},cooldown:0,castTime:0,targeting:"single_enemy",effects:[{type:"damage",damageType:"physical",scaling:"ap",multiplier:1.0}],tags:["physical"]});
+  DataStore.write("templates/abilities/strike_basic",{id:"strike_basic",name:"Basic Strike",_version:1,resourceCost:{rage:10},cooldown:0,castTime:0,targeting:"single_enemy",effects:[{type:"damage",damageType:"physical",scaling:"ap",multiplier:1.0}],tags:["physical","melee"]});
+  DataStore.write("templates/abilities/power_smash",{id:"power_smash",name:"Power Smash",_version:1,resourceCost:{rage:25},cooldown:3,castTime:0,targeting:"single_enemy",effects:[{type:"damage",damageType:"physical",scaling:"ap",multiplier:1.6}],tags:["physical"]});
+  DataStore.write("templates/abilities/ember_bolt",{id:"ember_bolt",name:"Ember Bolt",_version:1,resourceCost:{mana:20},cooldown:0,castTime:1,targeting:"single_enemy",effects:[{type:"damage",damageType:"fire",scaling:"sp",multiplier:1.0,flatBonus:15}],tags:["fire","spell"]});
+  DataStore.write("templates/abilities/minor_heal",{id:"minor_heal",name:"Minor Heal",_version:1,resourceCost:{mana:15},cooldown:0,castTime:2,targeting:"single_ally",effects:[{type:"heal",scaling:"sp",multiplier:1.2,flatBonus:30}],tags:["holy"]});
+  DataStore.write("templates/abilities/charge",{id:"charge",name:"Charge",_version:1,resourceCost:{},cooldown:4,castTime:0,targeting:"single_enemy",effects:[{type:"damage",damageType:"physical",scaling:"ap",multiplier:1.2},{type:"debuff",buffId:"stun",chance:1.0}],tags:["physical"],description:"Charges an enemy, stunning for 1 turn."});
+  DataStore.write("templates/abilities/scorpid_sting",{id:"scorpid_sting",name:"Scorpid Sting",_version:1,resourceCost:{},cooldown:5,castTime:0,targeting:"single_enemy",effects:[{type:"debuff",buffId:"scorpid_sting_dot",chance:1.0}],tags:["nature","poison"],description:"Injects venom."});
+  DataStore.write("templates/abilities/imp_fireball",{id:"imp_fireball",name:"Imp Fireball",_version:1,resourceCost:{},cooldown:2,castTime:1,targeting:"single_enemy",effects:[{type:"damage",damageType:"fire",scaling:"sp",multiplier:0.8,flatBonus:10}],tags:["fire","spell"]});
+  DataStore.write("templates/abilities/spiritual_guidance",{id:"spiritual_guidance",name:"Spiritual Guidance",_version:1,passive:true,trigger:"always",resourceCost:{},cooldown:0,castTime:0,targeting:"self",effects:[{type:"stat_mod",stat:"spellPower",source:"spi",multiplier:0.25}],tags:["passive","holy"]});
+  DataStore.write("templates/abilities/inspiration",{id:"inspiration",name:"Inspiration",_version:1,passive:true,trigger:"on_crit_heal",resourceCost:{},cooldown:0,castTime:0,targeting:"self",effects:[{type:"proc",trigger:"on_crit_heal",buffId:"inspiration_buff",chance:1.0}],tags:["passive","holy"]});
+
+  DataStore.write("templates/buffs/burning_ember",{id:"burning_ember",name:"Burning Ember",_version:1,duration:3,tickDamage:{damageType:"fire",flat:6,scaling:"sp",multiplier:0.05},modifiers:{},ccFlags:{},stacks:true,maxStacks:3,tags:["fire","dot"]});
+  DataStore.write("templates/buffs/stun",{id:"stun",name:"Stun",_version:1,duration:1,modifiers:{},ccFlags:{stunned:true},tags:["cc"]});
+  DataStore.write("templates/buffs/scorpid_sting_dot",{id:"scorpid_sting_dot",name:"Scorpid Sting",_version:1,duration:3,tickDamage:{damageType:"nature",flat:8,scaling:"sp",multiplier:0.02},modifiers:{},ccFlags:{},stacks:false,tags:["nature","poison","dot"]});
+  DataStore.write("templates/buffs/inspiration_buff",{id:"inspiration_buff",name:"Inspiration",_version:1,duration:15,modifiers:{damageTakenMultiplier:0.75},ccFlags:{},stacks:false,tags:["holy","defensive"]});
+
+  const ibase={_version:1,statBonuses:{},onUse:null,itemLevel:null,minDamage:null,maxDamage:null,weaponType:null,allowedClasses:[],unlockRepFaction:null,unlockRepRequired:null,value:5,quality:"poor",tags:[]};
+  DataStore.write("templates/items/minor_health_potion",{...ibase,id:"minor_health_potion",name:"Minor Health Potion",type:"consumable",slot:"none",onUse:{type:"heal",flat:50},value:100,quality:"common",tags:["potion"]});
+  DataStore.write("templates/items/rough_bandage",{...ibase,id:"rough_bandage",name:"Rough Bandage",type:"consumable",slot:"none",onUse:{type:"heal",flat:25},value:40,tags:["bandage"]});
+  DataStore.write("templates/items/copper_coin_pouch",{...ibase,id:"copper_coin_pouch",name:"Copper Coin Pouch",type:"consumable",slot:"none",onUse:{type:"currency",amount:150},value:0,quality:"common",tags:["currency_item"]});
+  DataStore.write("templates/items/ruined_leather_scraps",{...ibase,id:"ruined_leather_scraps",name:"Ruined Leather Scraps",type:"material",slot:"none",tags:["material","leather","skinning","trash"]});
+  DataStore.write("templates/items/tattered_hide",{...ibase,id:"tattered_hide",name:"Tattered Hide",type:"material",slot:"none",value:8,tags:["material","leather","trash"]});
+  DataStore.write("templates/items/tiger_fur",{...ibase,id:"tiger_fur",name:"Tiger Fur",type:"material",slot:"none",value:15,quality:"common",tags:["material","leather"]});
+  DataStore.write("templates/items/boar_meat",{...ibase,id:"boar_meat",name:"Boar Meat",type:"consumable",slot:"none",onUse:{type:"heal",flat:15},value:10,tags:["food","trash"]});
+  DataStore.write("templates/items/tiger_meat",{...ibase,id:"tiger_meat",name:"Tiger Meat",type:"consumable",slot:"none",onUse:{type:"heal",flat:20},value:12,tags:["food","trash"]});
+  DataStore.write("templates/items/raptor_meat",{...ibase,id:"raptor_meat",name:"Raptor Meat",type:"consumable",slot:"none",onUse:{type:"heal",flat:18},value:10,tags:["food","trash"]});
+  DataStore.write("templates/items/crawler_meat",{...ibase,id:"crawler_meat",name:"Crawler Meat",type:"consumable",slot:"none",onUse:{type:"heal",flat:12},value:8,tags:["food","trash"]});
+  DataStore.write("templates/items/boar_snout",{...ibase,id:"boar_snout",name:"Boar Snout",type:"material",slot:"none",value:5,tags:["material","trash"]});
+  DataStore.write("templates/items/scorpid_tail",{...ibase,id:"scorpid_tail",name:"Scorpid Tail",type:"material",slot:"none",value:8,tags:["material","trash"]});
+  DataStore.write("templates/items/severed_pincer",{...ibase,id:"severed_pincer",name:"Severed Pincer",type:"material",slot:"none",value:6,tags:["material","trash"]});
+  DataStore.write("templates/items/venom_sack",{...ibase,id:"venom_sack",name:"Venom Sack",type:"material",slot:"none",value:18,quality:"common",tags:["material","reagent"]});
+  DataStore.write("templates/items/torn_clothing",{...ibase,id:"torn_clothing",name:"Torn Clothing",type:"material",slot:"none",value:2,tags:["material","trash"]});
+  DataStore.write("templates/items/linen_cloth",{...ibase,id:"linen_cloth",name:"Linen Cloth",type:"material",slot:"none",value:10,quality:"common",tags:["material","cloth","tailoring"]});
+  DataStore.write("templates/items/felstalker_hoof",{...ibase,id:"felstalker_hoof",name:"Felstalker Hoof",type:"material",slot:"none",value:12,tags:["material","trash"]});
+  DataStore.write("templates/items/tattered_collar",{...ibase,id:"tattered_collar",name:"Tattered Collar",type:"material",slot:"none",value:4,tags:["material","trash"]});
+  DataStore.write("templates/items/crawler_mucus",{...ibase,id:"crawler_mucus",name:"Crawler Mucus",type:"material",slot:"none",value:5,tags:["material","reagent","trash"]});
+  DataStore.write("templates/items/intact_makura_eye",{...ibase,id:"intact_makura_eye",name:"Intact Makura Eye",type:"material",slot:"none",value:22,quality:"common",tags:["material","reagent"]});
+  DataStore.write("templates/items/broken_claw",{...ibase,id:"broken_claw",name:"Broken Claw",type:"material",slot:"none",value:5,tags:["material","trash"]});
+  DataStore.write("templates/items/taillasher_eggs",{...ibase,id:"taillasher_eggs",name:"Taillasher Eggs",type:"material",slot:"none",value:14,quality:"common",tags:["material","reagent"]});
+  DataStore.write("templates/items/broken_horn",{...ibase,id:"broken_horn",name:"Broken Horn",type:"material",slot:"none",value:6,tags:["material","trash"]});
+  DataStore.write("templates/items/worn_shortsword",{...ibase,id:"worn_shortsword",name:"Worn Shortsword",type:"weapon",slot:"mainhand",weaponType:"sword_1h",itemLevel:5,minDamage:4,maxDamage:9,statBonuses:{attackPower:4},value:60,quality:"poor",tags:["weapon"]});
+  DataStore.write("templates/items/cracked_hatchet",{...ibase,id:"cracked_hatchet",name:"Cracked Hatchet",type:"weapon",slot:"mainhand",weaponType:"axe_1h",itemLevel:5,minDamage:5,maxDamage:10,statBonuses:{attackPower:5},value:55,quality:"poor",tags:["weapon"]});
+  DataStore.write("templates/items/battered_club",{...ibase,id:"battered_club",name:"Battered Club",type:"weapon",slot:"mainhand",weaponType:"mace_1h",itemLevel:5,minDamage:5,maxDamage:11,statBonuses:{attackPower:4},value:50,quality:"poor",tags:["weapon"]});
+  DataStore.write("templates/items/rusted_spear",{...ibase,id:"rusted_spear",name:"Rusted Spear",type:"weapon",slot:"mainhand",weaponType:"polearm",itemLevel:6,minDamage:8,maxDamage:16,statBonuses:{attackPower:8},value:80,quality:"poor",tags:["weapon"]});
+  DataStore.write("templates/items/grey_dagger",{...ibase,id:"grey_dagger",name:"Dull Dagger",type:"weapon",slot:"mainhand",weaponType:"dagger",itemLevel:3,minDamage:2,maxDamage:5,statBonuses:{attackPower:2},value:30,quality:"poor",tags:["weapon"]});
+  DataStore.write("templates/items/cracked_leather_vest",{...ibase,id:"cracked_leather_vest",name:"Cracked Leather Vest",type:"armor",slot:"chest",itemLevel:5,statBonuses:{armor:18,sta:1},value:45,quality:"poor",tags:["armor","armor_type:leather"]});
+  DataStore.write("templates/items/ragged_chain_leggings",{...ibase,id:"ragged_chain_leggings",name:"Ragged Chain Leggings",type:"armor",slot:"legs",itemLevel:5,statBonuses:{armor:22,sta:1},value:55,quality:"poor",tags:["armor","armor_type:mail"]});
+  DataStore.write("templates/items/worn_cloth_robe",{...ibase,id:"worn_cloth_robe",name:"Worn Cloth Robe",type:"armor",slot:"chest",itemLevel:4,statBonuses:{armor:8,int:1},value:30,quality:"poor",tags:["armor","armor_type:cloth"]});
+  DataStore.write("templates/items/copper_ore",{...ibase,id:"copper_ore",name:"Copper Ore",type:"material",slot:"none",value:60,quality:"common",tags:["material","ore","mining"]});
+  DataStore.write("templates/items/peacebloom",{...ibase,id:"peacebloom",name:"Peacebloom",type:"material",slot:"none",value:40,quality:"common",tags:["material","herb","herbalism"]});
+  DataStore.write("templates/items/silverleaf",{...ibase,id:"silverleaf",name:"Silverleaf",type:"material",slot:"none",value:40,quality:"common",tags:["material","herb","herbalism"]});
+  DataStore.write("templates/items/earthroot",{...ibase,id:"earthroot",name:"Earthroot",type:"material",slot:"none",value:55,quality:"common",tags:["material","herb","herbalism"]});
+  DataStore.write("templates/items/mageroyal",{...ibase,id:"mageroyal",name:"Mageroyal",type:"material",slot:"none",value:70,quality:"uncommon",tags:["material","herb","herbalism"]});
+  // dungeon boss drop
+  DataStore.write("templates/items/searing_blade_pendant",{...ibase,id:"searing_blade_pendant",name:"Searing Blade Pendant",type:"trinket",slot:"trinket",itemLevel:15,statBonuses:{spellPower:8,sta:4},value:800,quality:"uncommon",tags:["jewelry","fire"]});
+
+  const durotarRep=[{faction:"orgrimmar",amount:1},{faction:"darkspear_trolls",amount:1}];
+  const echoIslesRep=[{faction:"darkspear_trolls",amount:1}];
+  const kolkarRep=[{faction:"darkspear_trolls",amount:1}];
+
+  DataStore.write("templates/enemies/boar",{id:"boar",name:"Boar",_version:1,type:"beast",baseStats:{str:16,agi:14,sta:14,int:3,spi:6},abilities:["charge","melee_attack"],aiProfile:"aggressive",loot:[{itemId:"tattered_hide",chance:0.65,qty:1},{itemId:"boar_snout",chance:0.35,qty:1},{itemId:"boar_meat",chance:0.75,qty:1}],skinningLoot:[{itemId:"ruined_leather_scraps",chance:0.9,minQty:1,maxQty:2}],killReputation:durotarRep,xpValue:50,tags:["beast","zone_durotar"]});
+  DataStore.write("templates/enemies/scorpid",{id:"scorpid",name:"Scorpid",_version:1,type:"beast",baseStats:{str:14,agi:18,sta:13,int:3,spi:5},abilities:["scorpid_sting","melee_attack"],aiProfile:"aggressive",loot:[{itemId:"scorpid_tail",chance:0.50,qty:1},{itemId:"severed_pincer",chance:0.40,qty:1},{itemId:"venom_sack",chance:0.20,qty:1}],skinningLoot:[{itemId:"ruined_leather_scraps",chance:0.9,minQty:1,maxQty:2}],killReputation:durotarRep,xpValue:60,tags:["beast","zone_durotar"]});
+  DataStore.write("templates/enemies/imp",{id:"imp",name:"Imp",_version:1,type:"demon",baseStats:{str:10,agi:16,sta:10,int:20,spi:12},abilities:["imp_fireball","melee_attack"],aiProfile:"aggressive",loot:[{itemId:"grey_dagger",chance:0.15,qty:1},{itemId:"torn_clothing",chance:0.55,qty:1}],skinningLoot:[],killReputation:durotarRep,currencyDrop:{min:20,max:60},xpValue:70,tags:["demon","zone_durotar"]});
+  DataStore.write("templates/enemies/felstalker",{id:"felstalker",name:"Felstalker",_version:1,type:"demon",baseStats:{str:20,agi:18,sta:16,int:8,spi:8},abilities:["melee_attack"],aiProfile:"aggressive",loot:[{itemId:"felstalker_hoof",chance:0.50,qty:1},{itemId:"tattered_collar",chance:0.30,qty:1}],skinningLoot:[],killReputation:durotarRep,currencyDrop:{min:15,max:45},xpValue:85,tags:["demon","zone_durotar"]});
+  DataStore.write("templates/enemies/surf_crawler",{id:"surf_crawler",name:"Surf Crawler",_version:1,type:"beast",baseStats:{str:15,agi:16,sta:12,int:4,spi:5},abilities:["melee_attack"],aiProfile:"aggressive",loot:[{itemId:"severed_pincer",chance:0.55,qty:1},{itemId:"crawler_meat",chance:0.65,qty:1},{itemId:"crawler_mucus",chance:0.35,qty:1}],skinningLoot:[],killReputation:echoIslesRep,xpValue:65,tags:["beast","zone_echo_isles"]});
+  DataStore.write("templates/enemies/makura",{id:"makura",name:"Makura",_version:1,type:"beast",baseStats:{str:16,agi:15,sta:14,int:5,spi:6},abilities:["melee_attack"],aiProfile:"aggressive",loot:[{itemId:"severed_pincer",chance:0.50,qty:1},{itemId:"intact_makura_eye",chance:0.25,qty:1}],skinningLoot:[],killReputation:echoIslesRep,xpValue:70,tags:["beast","zone_echo_isles"]});
+  DataStore.write("templates/enemies/tiger",{id:"tiger",name:"Tiger",_version:1,type:"beast",baseStats:{str:20,agi:24,sta:16,int:4,spi:7},abilities:["melee_attack"],aiProfile:"aggressive",loot:[{itemId:"tiger_fur",chance:0.60,qty:1},{itemId:"tiger_meat",chance:0.65,qty:1},{itemId:"broken_claw",chance:0.35,qty:1}],skinningLoot:[{itemId:"ruined_leather_scraps",chance:0.9,minQty:1,maxQty:2}],killReputation:echoIslesRep,xpValue:80,tags:["beast","zone_echo_isles"]});
+  DataStore.write("templates/enemies/raptor",{id:"raptor",name:"Raptor",_version:1,type:"beast",baseStats:{str:18,agi:22,sta:15,int:5,spi:6},abilities:["melee_attack"],aiProfile:"aggressive",loot:[{itemId:"taillasher_eggs",chance:0.30,qty:1},{itemId:"raptor_meat",chance:0.65,qty:1},{itemId:"broken_horn",chance:0.35,qty:1}],skinningLoot:[{itemId:"ruined_leather_scraps",chance:0.9,minQty:1,maxQty:2}],killReputation:echoIslesRep,xpValue:80,tags:["beast","zone_echo_isles"]});
+  const kolkarBase=[{itemId:"torn_clothing",chance:0.45,qty:1},{itemId:"linen_cloth",chance:0.55,qty:1}];
+  const kolkarWeapons=[{itemId:"worn_shortsword",chance:0.12,qty:1},{itemId:"cracked_hatchet",chance:0.10,qty:1},{itemId:"battered_club",chance:0.10,qty:1},{itemId:"rusted_spear",chance:0.06,qty:1}];
+  const kolkarArmor=[{itemId:"cracked_leather_vest",chance:0.10,qty:1},{itemId:"ragged_chain_leggings",chance:0.08,qty:1},{itemId:"worn_cloth_robe",chance:0.08,qty:1}];
+  DataStore.write("templates/enemies/kolkar_centaur",{id:"kolkar_centaur",name:"Kolkar Centaur",_version:1,type:"humanoid",baseStats:{str:22,agi:16,sta:18,int:8,spi:10},abilities:["strike_basic","power_smash","melee_attack"],aiProfile:"aggressive",loot:[...kolkarBase,...kolkarWeapons,...kolkarArmor],skinningLoot:[],killReputation:kolkarRep,currencyDrop:{min:30,max:80},xpValue:100,tags:["humanoid","centaur","zone_barrens"]});
+  DataStore.write("templates/enemies/kolkar_outrunner",{id:"kolkar_outrunner",name:"Kolkar Outrunner",_version:1,type:"humanoid",baseStats:{str:18,agi:22,sta:16,int:10,spi:10},abilities:["melee_attack"],aiProfile:"aggressive",loot:[...kolkarBase,...kolkarWeapons,...kolkarArmor],skinningLoot:[],killReputation:kolkarRep,currencyDrop:{min:25,max:70},xpValue:95,tags:["humanoid","centaur","zone_barrens"]});
+  // dungeon enemies
+  DataStore.write("templates/enemies/searing_blade_cultist",{id:"searing_blade_cultist",name:"Searing Blade Cultist",_version:1,type:"humanoid",baseStats:{str:18,agi:14,sta:16,int:14,spi:10},abilities:["imp_fireball","melee_attack"],aiProfile:"aggressive",loot:[{itemId:"torn_clothing",chance:0.6,qty:1},{itemId:"linen_cloth",chance:0.4,qty:1}],skinningLoot:[],killReputation:[{faction:"orgrimmar",amount:1}],currencyDrop:{min:20,max:50},xpValue:120,tags:["humanoid","demon","zone_ragefire"]});
+  DataStore.write("templates/enemies/jergosh_the_invoker",{id:"jergosh_the_invoker",name:"Jergosh the Invoker",_version:1,type:"humanoid",baseStats:{str:16,agi:12,sta:22,int:28,spi:18},abilities:["ember_bolt","imp_fireball","melee_attack"],aiProfile:"aggressive",loot:[{itemId:"searing_blade_pendant",chance:1.0,qty:1}],skinningLoot:[],killReputation:[{faction:"orgrimmar",amount:5}],currencyDrop:{min:100,max:200},xpValue:500,tags:["humanoid","demon","boss","zone_ragefire"]});
+
+  const companions=[
+    {id:"thazzril",name:"Thazz'ril",raceId:"orc",classId:"warrior",profession:"mining",joinLevel:1,unlockZone:"durotar",startingSkills:{mining:1},joinDialogue:["You fight well, stranger.","I have been working these mines alone for too long.","Let me join you. My pick and my axe are yours."],lore:"A former grunt who left Orgrimmar to work the mines of Durotar alone.",tags:["orc","warrior","mining","zone_durotar"]},
+    {id:"taijin",name:"Tai'Jin",raceId:"troll",classId:"priest",profession:"herbalism",joinLevel:2,unlockZone:"durotar",startingSkills:{herbalism:1},abilities:["melee_attack","spiritual_guidance","inspiration"],joinDialogue:["Da spirits, dey been whisperin' your name.","I been waitin' for someone worth healin'.","Stay alive long enough and maybe I keep you dat way."],lore:"A troll shadow priest who walked away from his tribe's darker practices.",tags:["troll","priest","herbalism","zone_durotar"]},
+    {id:"ulaelek",name:"Ula'Elek",raceId:"troll",classId:"rogue",profession:"blacksmithing",joinLevel:3,unlockZone:"durotar",startingSkills:{lockpicking:1},joinDialogue:["You almost didn't see me. Almost.","I forge my own blades. Better dat way.","Don't ask where I been. Just be glad I'm here now."],lore:"A troll rogue who left the Echo Isles with nothing but a knife and a grudge.",tags:["troll","rogue","blacksmithing","zone_durotar"]},
+    {id:"zevrost",name:"Zevrost",raceId:"orc",classId:"warlock",profession:"alchemy",joinLevel:4,unlockZone:"durotar",startingSkills:{},joinDialogue:["Power is just a substance. I have learned to refine it.","My concoctions are... reliable. Mostly.","The demon is under control. You have my word."],lore:"An orc warlock who turned to alchemy after realizing fel energy alone was unstable.",tags:["orc","warlock","alchemy","zone_durotar"]},
+    {id:"mukdrak",name:"Mukdrak",raceId:"orc",classId:"shaman",profession:"skinning",joinLevel:5,unlockZone:"durotar",startingSkills:{skinning:1},joinDialogue:["The elements brought you to me. Or me to you.","I skin what I kill. Waste nothing.","Walk with me. The spirits will watch over us both."],lore:"An orc shaman who communes with the earth elements of Durotar.",tags:["orc","shaman","skinning","zone_durotar"]},
+    {id:"larprowltusk",name:"Lar Prowltusk",raceId:"troll",classId:"hunter",profession:"leatherworking",joinLevel:6,unlockZone:"durotar",startingSkills:{},joinDialogue:["You're noisier than a kodo in a copper mine.","I been trackin' you for an hour. You never noticed.","I make my own armor. Means it fits right and it holds."],lore:"A troll hunter who followed prey into Durotar's harsh interior.",tags:["troll","hunter","leatherworking","zone_durotar"]},
+    {id:"zureethafargazee",name:"Zureetha Fargaze",raceId:"troll",classId:"mage",profession:"tailoring",joinLevel:7,unlockZone:"durotar",startingSkills:{},joinDialogue:["My robes? I made them. Everything I wear, I make.","Durotar is boring when you have already mapped it with your mind.","I will travel with you. Interesting things tend to happen around people like you."],lore:"A troll mage with an obsessive interest in arcane theory and practical craft.",tags:["troll","mage","tailoring","zone_durotar"]},
+    {id:"nartok",name:"Nartok",raceId:"troll",classId:"warrior",profession:"engineering",joinLevel:8,unlockZone:"durotar",startingSkills:{},joinDialogue:["That device on my belt? Don't touch it.","I fight better with something that explodes in my pocket, trust me.","Engineering and combat. One informs the other. Usually."],lore:"A troll warrior fascinated with goblin engineering.",tags:["troll","warrior","engineering","zone_durotar"]},
+    {id:"zargh",name:"Zargh",raceId:"orc",classId:"hunter",profession:"cooking",joinLevel:9,unlockZone:"durotar",startingSkills:{},joinDialogue:["I hunt it. I cook it. Simple.","You look hungry. When did you last eat a real meal?","Travel with me and you won't go hungry. That much I promise."],lore:"An orc hunter who takes as much pride in cooking as the hunt itself.",tags:["orc","hunter","cooking","zone_durotar"]},
+    {id:"gadrin",name:"Gadrin",raceId:"troll",classId:"shaman",profession:"enchanting",joinLevel:10,unlockZone:"durotar",startingSkills:{},joinDialogue:["Every weapon has a voice. I simply teach them to speak louder.","The elements and the arcane are not so different. Both respond to intent.","I have been watching you. Your equipment is... underperforming. Let me fix that."],lore:"A troll shaman who discovered elemental forces share properties with enchanting magic.",tags:["troll","shaman","enchanting","zone_durotar"]},
+  ];
+  const gearBlank={head:null,neck:null,shoulders:null,back:null,chest:null,waist:null,tabard:null,wrist:null,hands:null,feet:null,legs:null,ring:null,trinket:null,mainhand:null,offhand:null,ranged:null,ammo:null,relic:null};
+  for(const c of companions){const baseStats=getStatsAtLevel(c.raceId,c.classId,c.joinLevel);DataStore.write(`templates/companions/${c.id}`,{...c,_version:1,baseStats,traits:[],quirks:[],unlockQuest:null,unlockRepFaction:null,unlockRepRequired:null,gear:{...gearBlank}});}
+
+  const _etResp=await fetch('../Data/encounters.json');
+  const _etData=await _etResp.json();
+  for(const[id,table]of Object.entries(_etData.encounterTables))DataStore.write(`templates/encounter_tables/${id}`,table);
+
+  DataStore.write("templates/zones/durotar",{id:"durotar",name:"Durotar",_version:1,isDungeon:false,encounterTableId:"enc_durotar",minPartyLevel:1,maxPartyLevel:10,ambientBuffs:[],connectedZones:["barrens","echo_isles","ragefire_chasm"],shopInventory:[{itemId:"minor_health_potion",buyPrice:100,stock:-1},{itemId:"rough_bandage",buyPrice:40,stock:-1}],sellMultiplier:0.25,tags:["outdoor","arid"],lore:"A harsh, rocky land of red stone and burning sun.",forcedOnly:false,forcedEncounterQueue:[]});
+  DataStore.write("templates/zones/echo_isles",{id:"echo_isles",name:"Echo Isles",_version:1,isDungeon:false,encounterTableId:"enc_echo_isles",minPartyLevel:1,maxPartyLevel:10,ambientBuffs:[],connectedZones:["durotar"],shopInventory:[{itemId:"minor_health_potion",buyPrice:100,stock:-1},{itemId:"rough_bandage",buyPrice:40,stock:-1}],sellMultiplier:0.25,tags:["outdoor","jungle","island"],lore:"The island home of the Darkspear trolls.",forcedOnly:false,forcedEncounterQueue:[]});
+  DataStore.write("templates/zones/barrens",{id:"barrens",name:"The Barrens",_version:1,isDungeon:false,encounterTableId:"enc_barrens",minPartyLevel:10,maxPartyLevel:25,ambientBuffs:[],connectedZones:["durotar"],shopInventory:[{itemId:"minor_health_potion",buyPrice:100,stock:-1},{itemId:"rough_bandage",buyPrice:40,stock:-1}],sellMultiplier:0.25,tags:["outdoor","plains"],lore:"A vast, windswept expanse of dry grass.",forcedOnly:false,forcedEncounterQueue:[]});
+  DataStore.write("templates/zones/ragefire_chasm",{id:"ragefire_chasm",name:"Ragefire Chasm",_version:1,isDungeon:true,forcedOnly:true,encounterTableId:"enc_ragefire",minPartyLevel:10,maxPartyLevel:18,ambientBuffs:[],connectedZones:["durotar"],shopInventory:[],sellMultiplier:0.25,tags:["dungeon","fire","underground"],lore:"Deep beneath Orgrimmar, cultists of the Searing Blade gather around ancient flames.",forcedEncounterQueue:[
+    {type:"text",speaker:"Thrall",lines:["The air reeks of brimstone.","The Searing Blade grows bolder with each passing day.","End them."]},
+    {type:"combat",enemyIds:[{enemyId:"searing_blade_cultist",count:2}]},
+    {type:"combat",enemyIds:[{enemyId:"searing_blade_cultist",count:1}],nextEncounters:["continue","continue"],forkLabels:["Press deeper","Search the side passage"]},
+    {type:"boss",enemyIds:[{enemyId:"jergosh_the_invoker",count:1}],introDialogue:["Jergosh the Invoker raises his staff.","\"You dare interrupt the ritual?  Burn with the rest of them!\""],midDialogue:{triggerHpPct:0.4,lines:["\"Impossible...  The flames will devour you all!\""],fired:false},outroDialogue:["Jergosh collapses into the flames.","His grimoire falls open at your feet."],guaranteedLoot:[{itemId:"searing_blade_pendant",qty:1}],questFlags:["jergosh_slain"]},
+  ]});
+
+  const _qResp=await fetch('../Data/quests.json');
+  const _qData=await _qResp.json();
+  for(const[id,quest]of Object.entries({...(_qData.realQuests||{}), ...(_qData.testQuests||{})}))DataStore.write(`templates/quests/${id}`,quest);
+
+  const playerStats=getStatsAtLevel("orc","warrior",1);
+  const playerMaxHp=playerStats.sta*10+CLASS_BASE_HP.warrior;
+  DataStore.write("instances/companions/player_main",{instanceId:"player_main",templateId:"thazzril",_version:1,name:"Thazz'ril",raceId:"orc",classId:"warrior",profession:"mining",level:1,xp:0,currentHp:playerMaxHp,currentMp:0,maxHp:playerMaxHp,maxMp:0,deathState:"alive",permadead:false,downedAt:null,rezCost:0,learnedAbilities:["strike_basic","power_smash","melee_attack"],acquiredQuirks:[],activeBuffs:[],relationship:100,skills:{mining:1},stats:{raw:playerStats},gear:{...gearBlank},isPlayer:true});
+  DataStore.write("saves/save_slot_start",{saveId:"slot_start",_version:1,timestamp:new Date().toISOString(),mode:"normal",currentZone:"durotar",party:[{instanceId:"player_main",templateId:"thazzril"}],quests:{q_first_blood:{objectives:{obj_kill_3:0},completed:false}},inventory:[{itemId:"minor_health_potion",qty:2},{itemId:"rough_bandage",qty:3}],currency:1500,reputation:{orgrimmar:0,darkspear_trolls:0},talentSchools:{weaponskill_sword:0},flags:{},playtime:0,shopStocks:{}});
+};
+
+// =============================================================================
+// SESSION
+// =============================================================================
+let save,slotId="slot_start",lastCombatKills=[],lastEncounter=null;
+seed().then(()=>{save=SaveManager.load("slot_start").data;});
+
+// update sidebar disabled state based on isDungeon
+const updateSidebar=()=>{const inDungeon=DungeonManager.isInDungeon(save);document.getElementById("btn-shop-buy").disabled=inDungeon;document.getElementById("btn-shop-sell").disabled=inDungeon;document.getElementById("btn-crafting").disabled=inDungeon;};
+
+const emit=lines=>{
+  const pre=document.getElementById("out"),term=document.getElementById("terminal");
+  lines.forEach(l=>{
+    const span=document.createElement("span");
+    const cl=l.includes("VICTORY")?"line-victory":l.includes("DEFEAT")?"line-defeat":l.startsWith("──")||l.startsWith("─")?"line-sep":l.includes("⚔")||l.includes("── T")?"line-turn":l.includes("↳")&&(l.includes("physical")||l.includes("fire")||l.includes("nature"))?"line-damage":l.includes("heals")?"line-heal":l.includes("XP")||l.includes("Loot")||l.includes("Gathered")?"line-reward":l.includes("Quest")||l.includes("✓")||l.includes("☑")?"line-quest":l.includes("✗")&&l.includes("dies")?"line-death":l.includes("✗")?"line-error":l.includes("Saved")||l.includes("Loaded")||l.includes("Auto-saved")?"line-save":l.includes("Bought")||l.includes("Sold")||l.includes("Shop")?"line-shop":l.includes("Reputation")||l.includes("rep:")?"line-reward":l.includes("🐾")||l.includes("skin")?"line-skin":l.includes("💀 Boss")||l.includes("💬")?"line-boss":l.includes("📜")&&l.includes('"')?"line-lore":l.includes("⚔ The path forks")||l.includes("fork")?"line-fork":l.includes("🏆")&&l.includes("cleared")?"line-dungeon":l.includes("g ")||l.includes("gold")||l.includes("copper")||l.includes("silver")?"line-gold":l.includes("level")&&l.includes("✦")?"line-level":l.includes("✦")&&l.includes("joined")?"line-join":"";
+    span.className=cl;span.textContent=l+"\n";pre.appendChild(span);
+  });
+  term.scrollTop=term.scrollHeight;
+};
+
+const home=()=>{
+  const curr=Currency.toString(save.currency||0);
+  const qs=save.quests||{};
+  const activeQ=Object.entries(qs).filter(([,v])=>!v.completed).map(([k,v])=>{
+    const r=Loader.load(`templates/quests/${k}`,"quest");
+    const name=r.ok?r.data.name:k;
+    const obj=r.ok?r.data.objectives[0]:null;
+    const prog=obj?`${v.objectives[obj?.id]||0}/${obj?.count}`:"-";
+    return`  Q: ${name} [${prog}]`;
+  });
+  const rep=save.reputation||{};
+  const repStr=Object.entries(rep).filter(([,v])=>v!==0).map(([k,v])=>`${k}:${v}`).join(", ");
+  const dungeonProg=save.flags?.dungeonProgress;
+  const dungeonStr=dungeonProg?`  [DUNGEON: ${dungeonProg.zoneId} — room ${dungeonProg.queueIndex+1}]`:"";
+  emit([""," HOME  |  Zone: "+save.currentZone+"  |  Party: "+save.party.length+"  |  "+curr+" ["+((save.mode||"normal").toUpperCase())+"]","─".repeat(50),...activeQ,...(repStr?["  Rep: "+repStr]:[]),...(dungeonStr?[dungeonStr]:[]),""]);
+  updateSidebar();
+};
+
+const runCombatEncounter=(enc)=>{
+  const isBoss=enc.isBoss||enc.encounterType==="boss";
+  if(isBoss&&enc.introDialogue?.length){emit(["\n💀 Boss encounter!"]);for(const l of enc.introDialogue)emit([`  "${l}"`]);}
+  emit(["\n⚡ Encounter: "+enc.enemies.map(e=>e.name).join(", ")]);
+  const pinsts=save.party.map(p=>{const r=Loader.load(`instances/companions/${p.instanceId}`,"companionInstance");return r.ok?r.data:null;}).filter(Boolean);
+  const cr=CombatBridge.run(enc,pinsts);
+  emit(cr.logs);
+  if(isBoss&&cr.outcome==="victory"&&enc.outroDialogue?.length){for(const l of enc.outroDialogue)emit([`  "${l}"`]);}
+  const{save:ns,summary}=RewardEngine.apply(cr,enc,save);
+  save=ns;
+  lastCombatKills=cr.kills;
+  if(cr.outcome!=="victory"&&DeathHandler.isWipe(save)){
+    save=DeathHandler.handleWipe(save);
+    if(save.wipedOut){emit(["\n💀 GAME OVER — hardcore wipe."]);SaveManager.save(save,slotId);return;}
+    emit(["\n💀 Party wipe! "+(save._wipeNote||"")]);
+    // in a dungeon, progress persists — just note it
+    if(DungeonManager.isInDungeon(save))emit(["  Dungeon progress preserved. Continue to retry this room."]);
+  }
+  const lines=["\n── Results ──","  Outcome: "+cr.outcome.toUpperCase(),"  Turns:   "+cr.turns];
+  if(summary.xp)lines.push(`  XP:      +${summary.xp} (each member)`);
+  if(summary.levelUps.length)lines.push(...summary.levelUps);
+  if(summary.currency)lines.push(`  Gold:    +${Currency.toString(summary.currency)}`);
+  if(summary.loot.length)lines.push("  Loot:    "+summary.loot.map(l=>`${l.qty}x ${l.itemId}${l.source==="guaranteed"?" [guaranteed]":""}`).join(", "));
+  if(summary.weaponskill)lines.push("  Weaponskill +1");
+  const repGains=Object.entries(summary.reputation||{}).filter(([,v])=>v>0);
+  if(repGains.length)lines.push("  Rep:     "+repGains.map(([k,v])=>`+${v} ${k}`).join(", "));
+  for(const qp of(summary.questProgress||[])){if(qp.completed)lines.push("  ✓ Quest complete: "+qp.questId);else lines.push(`  Quest: ${qp.objectiveId} ${qp.next}/${qp.goal}`);}
+  if((summary.skinnableKills||[]).length>0)lines.push(`  🐾 Type 'skin' to collect hides.`);
+  if((save.mode||"normal")!=="hardcore"){for(const m of save.party){const ir=Loader.load(`instances/companions/${m.instanceId}`,"companionInstance");if(!ir.ok)continue;const inst=ir.data;if(inst.deathState==="downed"&&!inst.permadead){const cost=inst.rezCost||DeathHandler.rezCostForLevel(inst.level||1);lines.push(`  ${inst.name} is downed. Type 'rez ${inst.instanceId}' to resurrect for ${Currency.toString(cost)}.`);}}}
+  // advance dungeon queue on victory
+  if(cr.outcome==="victory"&&DungeonManager.isInDungeon(save)){
+    const{save:ds,fork,complete}=DungeonManager.advance(save,Loader);
+    save=ds;
+    if(complete){lines.push("");lines.push(`\n🏆 ${save.currentZone.replace(/_/g," ")} cleared!`);lines.push("  Type 'travel <zone>' to leave the dungeon.");}
+    else if(fork){lines.push("");lines.push("\n⚔ The path forks ahead.");fork.choices.forEach((c,i)=>lines.push(`  [${i+1}] ${fork.labels[i]||c}`));lines.push("  Type 'fork <number>' to choose.");}
+  }
+  const sr=SaveManager.save(save,slotId);
+  lines.push(sr.ok?"  ✓ Auto-saved":"  ✗ Save failed: "+sr.errors?.join(", "));
+  emit(lines);
+};
+
+const actions={
+  encounter:()=>{
+    const enc=EncounterGenerator.generate(save.currentZone,save);
+    if(!enc.ok){emit(["⚠ Encounter error: "+enc.errors.join(", ")]);return;}
+    if(enc.forced)save=Modifiers.clearFlag(save,"forcedEncounter");
+    lastEncounter=enc;
+
+    if(enc.encounterType==="text"){
+      emit([`\n📜 ${enc.speaker?enc.speaker+":":"Inscription:"}`]);
+      for(const l of(enc.lines||[]))emit([`  "${l}"`]);
+      // advance index NOW so the next encounter call reads the correct entry
+      const{save:ds,fork,complete}=DungeonManager.advance(save,Loader);
+      save=ds;
+      const sr=SaveManager.save(save,slotId);
+      if(complete){emit([`\n🏆 ${save.currentZone.replace(/_/g," ")} cleared!`]);}
+      else if(fork){emit(["\n⚔ The path forks ahead."]);fork.choices.forEach((c,i)=>emit([`  [${i+1}] ${fork.labels[i]||c}`]));emit(["  Type 'fork <number>' to choose."]);}
+      else{emit(["  ──  Press '⚡ Next Encounter' or type 'e' to continue."]);}
+      emit([sr.ok?"  ✓ Auto-saved":"  ✗ Save failed"]);
+      home();return;
+    }
+
+    if(enc.encounterType==="fork"){
+      emit(["\n⚔ The path forks ahead."]);
+      const fork=enc.fork;
+      fork.choices.forEach((c,i)=>emit([`  [${i+1}] ${fork.labels[i]||c}`]));
+      emit(["  Type 'fork <number>' to choose."]);
+      home();return;
+    }
+
+    if(enc.encounterType==="dungeon_complete"){
+      emit([`\n🏆 ${save.currentZone.replace(/_/g," ")} cleared!`]);
+      emit(["  Type 'travel <zone>' to leave."]);
+      home();return;
+    }
+
+    if(enc.encounterType==="gathering"){
+      const nodes=enc.gatheringNodes||[];
+      emit([`\n🌿 Gathering — ${nodes.map(n=>n.name).join(", ")}`]);
+      for(const n of nodes)save=Modifiers.addToInventory(save,n.nodeId||n.itemId,n.qty);
+      save=Modifiers.clearFlag(save,"trackingBoost");
+      const sr=SaveManager.save(save,slotId);
+      emit([`  Gathered: ${nodes.map(n=>`${n.qty}x ${n.name}`).join(", ")}`,sr.ok?"  ✓ Auto-saved":"  ✗ Save failed"]);
+      home();return;
+    }
+
+    if(enc.encounterType==="quest"){
+      const q=enc.quest;
+      if(!q){emit(["\n📜 Quest available but failed to load."]);home();return;}
+      emit([`\n📜 Quest: ${q.name}`,`  ${q.description||""}`]);
+      for(const obj of(q.objectives||[]))emit([`  ☐ ${obj.description}  [0/${obj.count}]`]);
+      const rw=q.rewards||{};const rwP=[];
+      if(rw.xp)rwP.push(`${rw.xp} XP`);if(rw.currency)rwP.push(Currency.toString(rw.currency));if(rw.items?.length)rwP.push(rw.items.map(i=>`${i.qty}x ${i.itemId}`).join(", "));
+      if(rwP.length)emit([`  Rewards: ${rwP.join(" | ")}`]);
+      const objectives={};for(const obj of(q.objectives||[]))objectives[obj.id]=0;
+      save={...save,quests:{...save.quests,[q.id]:{objectives,completed:false,assignedAt:new Date().toISOString()}}};
+      save=Modifiers.clearFlag(save,"trackingBoost");
+      const sr=SaveManager.save(save,slotId);emit([`  ✓ Quest accepted.`,sr.ok?"  ✓ Auto-saved":"  ✗ Save failed"]);
+      home();return;
+    }
+
+    if(enc.encounterType==="companion"){
+      if(enc.companionRecruit&&save.party.length<5){
+        const rec=enc.companionRecruit;const iid=`${rec.id}_${Date.now()}`;
+        const newInst=buildCompanionInstance(rec,iid);
+        DataStore.write(`instances/companions/${iid}`,newInst);
+        save={...save,party:[...save.party,{instanceId:iid,templateId:rec.id}]};
+        emit([`\n🤝 Companion encounter!`,...(rec.joinDialogue||[]).map(l=>`  "${l}"`),`  ✦ ${rec.name} (${rec.raceId} ${rec.classId} Lv${rec.joinLevel}) joined the party!`,`  Profession: ${rec.profession||"none"}`]);
+      }else{emit(["\n🤝 Your party is full. A potential companion watches you pass."]);}
+      save=Modifiers.clearFlag(save,"trackingBoost");
+      const sr=SaveManager.save(save,slotId);emit([sr.ok?"  ✓ Auto-saved":"  ✗ Save failed"]);
+      home();return;
+    }
+
+    if(enc.encounterType==="locked_chest"){emit(["\n🔒 Locked Chest — (not yet implemented)"]);save=Modifiers.clearFlag(save,"trackingBoost");home();return;}
+    if(enc.encounterType==="fishing_spot"){emit(["\n🎣 Fishing Spot — (not yet implemented)"]);save=Modifiers.clearFlag(save,"trackingBoost");home();return;}
+
+    // combat or boss — shared path
+    runCombatEncounter(enc);
+    home();
+  },
+
+  map:()=>{const zr=Loader.load(`templates/zones/${save.currentZone}`,"zone");const z=zr.ok?zr.data:null;emit(["\n── Map ──","  Current: "+save.currentZone+(z?` (level ${z.minPartyLevel}–${z.maxPartyLevel})`:""),(z?"  Connected: "+z.connectedZones.join(", "):""),"  Type 'travel <zone>' to move"]);},
+  bag:()=>{emit(["\n── Bag ──","  Currency: "+Currency.toString(save.currency||0),...(save.inventory?.length?save.inventory.map((e,i)=>`  ${i+1}. ${e.itemId.padEnd(28)} ×${e.qty}`):["  (empty)"]),"  Type 'use <itemId>' to use a consumable"]);},
+  stats:()=>{
+    const lines=["\n── Stats ──  ["+((save.mode||"normal").toUpperCase())+"]"];
+    for(const m of save.party){const ir=Loader.load(`instances/companions/${m.instanceId}`,"companionInstance");if(!ir.ok)continue;const i=ir.data;const raw=i.stats?.raw||getStatsAtLevel(i.raceId,i.classId,i.level||1);const ap=raw.str*2+raw.agi;const deathTag=i.deathState!=="alive"?` [${i.deathState.toUpperCase()}]`:"";const xpNeeded=xpToNextLevel(i.level||1);const xpStr=xpNeeded===Infinity?"MAX":`${i.xp}/${xpNeeded}`;lines.push(`  ${i.name}${deathTag} — ${i.raceId} ${i.classId} | Lv${i.level||1} | XP ${xpStr}`);lines.push(`    HP: ${i.currentHp}/${i.maxHp}  MP: ${i.currentMp}/${i.maxMp}`);lines.push(`    STR:${raw.str} AGI:${raw.agi} STA:${raw.sta} INT:${raw.int} SPI:${raw.spi}`);lines.push(`    AP:${ap}`);lines.push(`    Profession: ${i.profession||"none"}`);const sk=i.skills||{};if(Object.keys(sk).length)lines.push(`    Skills: ${Object.entries(sk).map(([k,v])=>`${k}:${v}`).join(", ")}`);}
+    const ts=save.talentSchools||{};if(Object.keys(ts).length)lines.push("  Talents: "+Object.entries(ts).map(([k,v])=>`${k}:${v}`).join(", "));
+    emit(lines);
+  },
+  party:()=>{const lines=["\n── Party ("+save.party.length+"/5) ──"];save.party.forEach((m,i)=>{const ir=Loader.load(`instances/companions/${m.instanceId}`,"companionInstance");if(!ir.ok){lines.push(`  ${i+1}. [error]`);return;}const inst=ir.data;const deathTag=inst.deathState!=="alive"?` [${inst.deathState.toUpperCase()}]`:"";lines.push(`  ${i+1}. ${inst.name}${deathTag}  ${inst.raceId} ${inst.classId}  Lv${inst.level||1}  Prof: ${inst.profession||"—"}`);});emit(lines);},
+  abilities:()=>{const lines=["\n── Abilities ──"];for(const m of save.party){const ir=Loader.load(`instances/companions/${m.instanceId}`,"companionInstance");if(!ir.ok)continue;lines.push(`  ${ir.data.name}:`);(ir.data.learnedAbilities||[]).forEach(id=>lines.push(`    - ${id}`));}emit(lines);},
+  quests:()=>{
+    const lines=["\n── Quests ──"];const qs=save.quests||{};
+    if(!Object.keys(qs).length){lines.push("  (no quests)");emit(lines);return;}
+    for(const[qId,qState]of Object.entries(qs)){const qr=Loader.load(`templates/quests/${qId}`,"quest");if(!qr.ok){lines.push(`  [${qId}] — template missing`);continue;}const q=qr.data;lines.push(`  ${qState.completed?"✓":"●"} ${q.name}`);if(q.description)lines.push(`    ${q.description}`);for(const obj of q.objectives){const prog=qState.objectives[obj.id]??0;lines.push(`    ${prog>=(obj.count||1)?"☑":"☐"} ${obj.description}  [${prog}/${obj.count}]`);}if(!qState.completed){const rw=q.rewards||{};const rwP=[];if(rw.xp)rwP.push(`${rw.xp} XP`);if(rw.currency)rwP.push(Currency.toString(rw.currency));if(rw.items?.length)rwP.push(rw.items.map(i=>`${i.qty}x ${i.itemId}`).join(", "));if(rwP.length)lines.push(`    Rewards: ${rwP.join(" | ")}`);}lines.push("");}
+    emit(lines);
+  },
+  reputation:()=>{const rep=save.reputation||{};const lines=["\n── Reputation ──"];if(!Object.keys(rep).length)lines.push("  (no standing yet)");else for(const[f,v]of Object.entries(rep)){const lbl=v>=75?"Exalted":v>=50?"Revered":v>=25?"Honored":v>=0?"Friendly":"Hostile";lines.push(`  ${f.padEnd(24)} ${v.toString().padStart(4)}  ${lbl}`);}emit(lines);},
+  save_load:()=>{const slots=SaveManager.listSlots();const lines=["\n── Save / Load ──"];if(!slots.length)lines.push("  No saves found.");else slots.forEach((s,i)=>{const pt=`${Math.floor(s.playtime/60)}m${s.playtime%60}s`;lines.push(`  ${i+1}. [${s.slotId}]  ${s.zone}  Party:${s.party}  ${pt}  ${s.timestamp.slice(0,16)}`);});lines.push("\n  Type 'save <slot>' or 'load <slot>'");emit(lines);},
+  crafting:()=>emit(["\n── Crafting ──","  (not yet implemented)"]),
+  non_combat:()=>emit(["\n── Non-Combat ──","  (not yet implemented)"]),
+};
+
+const shopBuy=()=>{if(DungeonManager.isInDungeon(save)){emit(["  No shop inside a dungeon."]);return;}const zr=Loader.load(`templates/zones/${save.currentZone}`,"zone");if(!zr.ok){emit(["  No shop."]);return;}const zone=zr.data;const list=ShopSystem.getBuyList(zone,save);const lines=[`\n── Shop: ${zone.name} — BUY ──`,`  Your gold: ${Currency.toString(save.currency||0)}`];if(!list.length)lines.push("  Nothing for sale.");else list.forEach((e,i)=>{const ir=Loader.load(`templates/items/${e.itemId}`,"item");const nm=ir.ok?ir.data.name:e.itemId;lines.push(`  ${i+1}. ${nm.padEnd(28)} ${Currency.toString(e.buyPrice).padStart(8)}  [${e.stock===-1?"∞":e.stock}]`);});lines.push("  Type 'buy <itemId> [qty]'");emit(lines);};
+const shopSell=()=>{if(DungeonManager.isInDungeon(save)){emit(["  No shop inside a dungeon."]);return;}const zr=Loader.load(`templates/zones/${save.currentZone}`,"zone");if(!zr.ok){emit(["  No shop."]);return;}const zone=zr.data;const lines=[`\n── Shop: ${zone.name} — SELL (${Math.round((zone.sellMultiplier||0.25)*100)}% value) ──`,`  Your gold: ${Currency.toString(save.currency||0)}`];if(!save.inventory?.length)lines.push("  (nothing to sell)");else save.inventory.forEach((e,i)=>{const ir=Loader.load(`templates/items/${e.itemId}`,"item");const nm=ir.ok?ir.data.name:e.itemId;const sv=ir.ok?Currency.toString(Math.floor(ir.data.value*(zone.sellMultiplier||0.25))):"?";lines.push(`  ${i+1}. ${nm.padEnd(28)} ×${e.qty}  (${sv} each)`);});lines.push("  Type 'sell <itemId> [qty]'");emit(lines);};
+const nav=screen=>{document.querySelectorAll(".nav-btn").forEach(b=>b.classList.remove("active"));event?.target?.classList.add("active");if(actions[screen])actions[screen]();};
+
+const handleCmd=()=>{
+  const raw=document.getElementById("cmd").value.trim();document.getElementById("cmd").value="";if(!raw)return;
+  emit(["> "+raw]);
+  const parts=raw.split(/\s+/);const cmd=parts[0].toLowerCase();
+  const parseItemId=(p,start,endOff=1)=>{const t=p.slice(start,p.length-endOff);if(!t.length)return null;return t.join("_").toLowerCase();};
+  const lastNum=parseInt(parts[parts.length-1]);const hasQty=!isNaN(lastNum);
+
+  if(cmd==="fork"){
+    const n=parseInt(parts[1]);
+    const prog=save.flags?.dungeonProgress;
+    if(!prog?.pendingFork){emit(["  No fork pending."]);return;}
+    const{choices,labels}=prog.pendingFork;
+    if(isNaN(n)||n<1||n>choices.length){emit([`  Choose 1–${choices.length}.`]);return;}
+    const choice=choices[n-1];
+    const{save:ds,enteredZone}=DungeonManager.chooseFork(choice,save);
+    save=ds;
+    emit([`  You chose: ${labels[n-1]||choice}`]);
+    if(enteredZone)emit([`  Entering ${enteredZone.replace(/_/g," ")}...`]);
+    const sr=SaveManager.save(save,slotId);emit([sr.ok?"  ✓ Auto-saved":"  ✗ Save failed"]);
+    home();return;
+  }
+
+  if(cmd==="travel"||cmd==="go"){
+    const zId=parts[1];if(!zId){emit(["  Usage: travel <zoneId>"]);return;}
+    const zr=Loader.load(`templates/zones/${zId}`,"zone");if(!zr.ok){emit(["  Unknown zone: "+zId]);return;}
+    const zone=zr.data;
+    // leaving a dungeon clears progress
+    if(DungeonManager.isInDungeon(save)&&zId!==save.currentZone){const{save:ds}=DungeonManager.exit(save,zId);save=ds;emit(["  You leave the dungeon. Progress cleared."]);}
+    else{save={...save,currentZone:zId};if(zone.isDungeon){const{save:ds}=DungeonManager.enter(zId,save);save=ds;}}
+    emit(["  Traveled to: "+zone.name]);
+    updateSidebar();home();
+  }
+  else if(cmd==="buy"){if(DungeonManager.isInDungeon(save)){emit(["  No shop inside a dungeon."]);return;}const qty=hasQty?lastNum:1;const itemId=parseItemId(parts,1,hasQty?1:0);if(!itemId){emit(["  Usage: buy <itemId> [qty]"]);return;}const zr=Loader.load(`templates/zones/${save.currentZone}`,"zone");if(!zr.ok){emit(["  No shop."]);return;}const res=ShopSystem.buy(save,zr.data,itemId,qty);emit(["  "+(res.ok?res.message:"✗ "+res.error)]);if(res.ok)save=res.save;}
+  else if(cmd==="sell"){if(DungeonManager.isInDungeon(save)){emit(["  No shop inside a dungeon."]);return;}const qty=hasQty?lastNum:1;const itemId=parseItemId(parts,1,hasQty?1:0);if(!itemId){emit(["  Usage: sell <itemId> [qty]"]);return;}const zr=Loader.load(`templates/zones/${save.currentZone}`,"zone");if(!zr.ok){emit(["  No shop."]);return;}const res=ShopSystem.sell(save,zr.data,itemId,qty);emit(["  "+(res.ok?res.message:"✗ "+res.error)]);if(res.ok)save=res.save;}
+  else if(cmd==="use"){const itemId=parseItemId(parts,1,0);if(!itemId){emit(["  Usage: use <itemId>"]);return;}const inv=(save.inventory||[]).find(e=>e.itemId===itemId);if(!inv||inv.qty<1){emit(["  You don't have that."]);return;}const ir=Loader.load(`templates/items/${itemId}`,"item");if(!ir.ok||!ir.data.onUse){emit(["  No use effect."]);return;}const item=ir.data;if(item.onUse.type==="heal")emit([`  Used ${item.name}: healed ${item.onUse.flat} HP`]);if(item.onUse.type==="currency"){save=Currency.add(save,item.onUse.amount);emit([`  Opened ${item.name}: +${Currency.toString(item.onUse.amount)}`]);}save={...save,inventory:save.inventory.map(e=>e.itemId===itemId?{...e,qty:e.qty-1}:e).filter(e=>e.qty>0)};}
+  else if(cmd==="skin"){
+    if(!(save.flags?.pendingSkinning||[]).length){emit(["  No corpses available to skin."]);return;}
+    const skinnableBodies=lastCombatKills.filter(e=>e.type==="beast"&&(e.skinningLoot||[]).length>0);
+    if(!skinnableBodies.length){emit(["  Nothing to skin."]);return;}
+    const{save:ns,drops}=RewardEngine.applySkinning(save,skinnableBodies);
+    save=ns;
+    if(drops.length){emit([`  🐾 Skinned ${skinnableBodies.length} corpse${skinnableBodies.length>1?"s":""}:`,...drops.map(d=>`    +${d.qty}x ${d.itemId}`)]);
+    }else{emit(["  🐾 Skinning yielded nothing this time."]);}
+    const sr=SaveManager.save(save,slotId);emit([sr.ok?"  ✓ Auto-saved":"  ✗ Save failed"]);
+  }
+  else if(cmd==="rez"){const instanceId=parts[1];if(!instanceId){emit(["  Usage: rez <instanceId>"]);return;}const ir=Loader.load(`instances/companions/${instanceId}`,"companionInstance");if(!ir.ok){emit(["  Unknown companion."]);return;}const result=DeathHandler.rezForGold(ir.data,save);emit(["  "+(result.ok?`✓ ${result.inst.name} resurrected.`:"✗ "+result.error)]);if(result.ok){save=result.save;DataStore.write(`instances/companions/${instanceId}`,result.inst);}}
+  else if(cmd==="save"){const slot=parts[1]||slotId;const r=SaveManager.save(save,slot);emit(["  "+(r.ok?"✓ Saved to slot: "+slot:"✗ Save failed: "+r.errors?.join(", "))]);if(r.ok)slotId=slot;}
+  else if(cmd==="load"){const slot=parts[1];if(!slot){emit(["  Usage: load <slotId>"]);return;}const r=SaveManager.load(slot);if(!r.ok){emit(["  ✗ Load failed: "+r.errors.join(", ")]);return;}save=r.data;slotId=slot;emit(["  ✓ Loaded slot: "+slot]);updateSidebar();home();}
+  else if(cmd==="home"||cmd==="h"){home();}
+  else if(cmd==="encounter"||cmd==="e"){actions.encounter();}
+  else{emit(["  Unknown: "+cmd,"  Commands: encounter, fork <n>, skin, travel, buy, sell, use, rez, save, load, home"]);}
+};
+document.getElementById("cmd").addEventListener("keydown",e=>{if(e.key==="Enter")handleCmd();});
+
+emit(["Kalimdor RPG","─".repeat(50),"Thazz'ril — Orc Warrior — Lv1 — Durotar","Profession: Mining  |  Skills: mining:1","Active quest: First Blood [0/3]","","  Type 'travel ragefire_chasm' to enter the dungeon",""]);
+home();
+</script></body></html>

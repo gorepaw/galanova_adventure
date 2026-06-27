@@ -1,0 +1,246 @@
+,
+
+    "_comment_teldrassil_shadowglen": "=== Teldrassil - Shadowglen (levels 1-5) ===",
+
+    "young_nightsaber": {
+      "id": "young_nightsaber", "name": "Young Nightsaber", "_version": 1, "type": "beast", "level": 1, "levelMax": 2,
+      "baseStats": { "str": 8, "agi": 12, "sta": 7, "int": 2, "spi": 4 },
+      "abilities": ["melee_attack"], "aiProfile": "neutral",
+      "loot": [{ "itemId": "light_leather", "chance": 0.40, "minQty": 1, "maxQty": 1 }],
+      "xpValue": 14, "tags": ["beast", "zone_shadowglen"],
+      "description": "A young nightsaber cub that prowls the boughs of Shadowglen. Startles easily and attacks if cornered."
+    },
+
+    "grellkin": {
+      "id": "grellkin", "name": "Grellkin", "_version": 1, "type": "demon", "level": 2, "levelMax": 4,
+      "baseStats": { "str": 10, "agi": 12, "sta": 9, "int": 10, "spi": 8 },
+      "abilities": ["melee_attack", "moonfire"], "aiProfile": "aggressive",
+      "loot": [
+        { "itemId": "linen_cloth",   "chance": 0.50, "minQty": 1, "maxQty": 1 },
+        { "itemId": "grellkin_fang", "chance": 0.40, "qty": 1 },
+        { "itemId": "copper_coin",   "chance": 0.35, "minQty": 1, "maxQty": 3 }
+      ],
+      "xpValue": 28, "tags": ["demon", "zone_shadowglen"],
+      "description": "A mischievous imp-like demon that has slipped into the lower boughs of Teldrassil. Their presence disturbs the forest balance."
+    },
+
+    "webwood_lurker": {
+      "id": "webwood_lurker", "name": "Webwood Lurker", "_version": 1, "type": "beast", "level": 2, "levelMax": 3,
+      "baseStats": { "str": 9, "agi": 13, "sta": 8, "int": 2, "spi": 4 },
+      "abilities": ["melee_attack", "rend"], "aiProfile": "aggressive",
+      "loot": [
+        { "itemId": "linen_cloth",       "chance": 0.30, "minQty": 1, "maxQty": 1 },
+        { "itemId": "webwood_venom_sac", "chance": 0.35, "qty": 1 },
+        { "itemId": "webwood_egg",       "chance": 0.45, "qty": 1 }
+      ],
+      "xpValue": 22, "tags": ["beast", "zone_shadowglen", "spider"],
+      "description": "A small spider lurking in the webbing between Shadowglen branches. Its venom sacs are valuable to alchemists."
+    },
+
+    "young_thistle_bear": {
+      "id": "young_thistle_bear", "name": "Young Thistle Bear", "_version": 1, "type": "beast", "level": 3, "levelMax": 5,
+      "baseStats": { "str": 14, "agi": 10, "sta": 14, "int": 2, "spi": 5 },
+      "abilities": ["melee_attack", "charge"], "aiProfile": "neutral",
+      "loot": [
+        { "itemId": "light_leather", "chance": 0.55, "minQty": 1, "maxQty": 1 },
+        { "itemId": "linen_cloth",   "chance": 0.20, "minQty": 1, "maxQty": 1 }
+      ],
+      "xpValue": 38, "tags": ["beast", "zone_shadowglen"],
+      "description": "A young bear native to Teldrassil lower groves. Protective of its territory but avoids conflict unless threatened."
+    },
+
+    "_comment_teldrassil_open": "=== Teldrassil - Open World (levels 5-10) ===",
+
+    "webwood_spider": {
+      "id": "webwood_spider", "name": "Webwood Spider", "_version": 1, "type": "beast", "level": 5, "levelMax": 7,
+      "baseStats": { "str": 18, "agi": 22, "sta": 16, "int": 2, "spi": 5 },
+      "abilities": ["melee_attack", "rend"], "aiProfile": "aggressive",
+      "loot": [
+        { "itemId": "linen_cloth",       "chance": 0.35, "minQty": 1, "maxQty": 1 },
+        { "itemId": "webwood_venom_sac", "chance": 0.40, "qty": 1 },
+        { "itemId": "webwood_egg",       "chance": 0.35, "qty": 1 }
+      ],
+      "xpValue": 80, "tags": ["beast", "zone_teldrassil", "spider"],
+      "description": "A mature web-spinning spider building elaborate funnel webs in the upper boughs of Teldrassil."
+    },
+
+    "webwood_venom_web_spider": {
+      "id": "webwood_venom_web_spider", "name": "Webwood Venom Web Spider", "_version": 1, "type": "beast", "level": 7, "levelMax": 9,
+      "baseStats": { "str": 22, "agi": 28, "sta": 20, "int": 2, "spi": 6 },
+      "abilities": ["melee_attack", "rend", "hamstring"], "aiProfile": "aggressive",
+      "loot": [
+        { "itemId": "linen_cloth",       "chance": 0.40, "minQty": 1, "maxQty": 2 },
+        { "itemId": "webwood_venom_sac", "chance": 0.55, "qty": 1 },
+        { "itemId": "webwood_egg",       "chance": 0.30, "qty": 1 }
+      ],
+      "xpValue": 125, "tags": ["beast", "zone_teldrassil", "spider"],
+      "description": "A large, highly venomous spider threading the deep boughs with strands strong enough to snare deer."
+    },
+
+    "thistle_bear": {
+      "id": "thistle_bear", "name": "Thistle Bear", "_version": 1, "type": "beast", "level": 5, "levelMax": 7,
+      "baseStats": { "str": 22, "agi": 14, "sta": 22, "int": 2, "spi": 6 },
+      "abilities": ["melee_attack", "charge", "rend"], "aiProfile": "neutral",
+      "loot": [
+        { "itemId": "light_leather", "chance": 0.65, "minQty": 1, "maxQty": 2 },
+        { "itemId": "linen_cloth",   "chance": 0.20, "minQty": 1, "maxQty": 1 }
+      ],
+      "xpValue": 88, "tags": ["beast", "zone_teldrassil"],
+      "description": "A stout bear covered in thistled fur that acts as natural armor. Docile unless provoked, but devastating when angered."
+    },
+
+    "strigid_screecher": {
+      "id": "strigid_screecher", "name": "Strigid Screecher", "_version": 1, "type": "beast", "level": 5, "levelMax": 7,
+      "baseStats": { "str": 16, "agi": 26, "sta": 14, "int": 3, "spi": 6 },
+      "abilities": ["melee_attack"], "aiProfile": "neutral",
+      "loot": [{ "itemId": "light_feather", "chance": 0.70, "minQty": 1, "maxQty": 3 }],
+      "xpValue": 75, "tags": ["beast", "zone_teldrassil", "zone_oracle_glade"],
+      "description": "A sharp-eyed owl native to the Teldrassil canopy. Its piercing screech can disorient prey from a hundred paces."
+    },
+
+    "bloodfeather_harpy": {
+      "id": "bloodfeather_harpy", "name": "Bloodfeather Harpy", "_version": 1, "type": "humanoid", "level": 5, "levelMax": 7,
+      "baseStats": { "str": 16, "agi": 20, "sta": 14, "int": 14, "spi": 12 },
+      "abilities": ["melee_attack", "lightning_bolt"], "aiProfile": "aggressive",
+      "loot": [
+        { "itemId": "linen_cloth",       "chance": 0.45, "minQty": 1, "maxQty": 1 },
+        { "itemId": "light_feather",     "chance": 0.60, "minQty": 1, "maxQty": 2 },
+        { "itemId": "bloodfeather_wing", "chance": 0.40, "qty": 1 },
+        { "itemId": "copper_coin",       "chance": 0.30, "minQty": 1, "maxQty": 3 }
+      ],
+      "xpValue": 85, "tags": ["humanoid", "zone_oracle_glade"],
+      "description": "A harpy of the Bloodfeather clan nesting around Oracle Glade. Territorial and hostile to all who approach their shrines."
+    },
+
+    "bloodfeather_wind_witch": {
+      "id": "bloodfeather_wind_witch", "name": "Bloodfeather Wind Witch", "_version": 1, "type": "humanoid", "level": 6, "levelMax": 8,
+      "baseStats": { "str": 14, "agi": 18, "sta": 14, "int": 20, "spi": 16 },
+      "abilities": ["melee_attack", "lightning_bolt", "moonfire"], "aiProfile": "aggressive",
+      "loot": [
+        { "itemId": "linen_cloth",       "chance": 0.50, "minQty": 1, "maxQty": 1 },
+        { "itemId": "light_feather",     "chance": 0.65, "minQty": 1, "maxQty": 2 },
+        { "itemId": "bloodfeather_wing", "chance": 0.50, "qty": 1 },
+        { "itemId": "minor_mana_potion", "chance": 0.15, "qty": 1 }
+      ],
+      "xpValue": 108, "tags": ["humanoid", "zone_oracle_glade"],
+      "description": "A harpy spellcaster who channels wind and storm magic at Oracle Glade. Her feathers crackle with static energy."
+    },
+
+    "timberling": {
+      "id": "timberling", "name": "Timberling", "_version": 1, "type": "elemental", "level": 7, "levelMax": 9,
+      "baseStats": { "str": 24, "agi": 10, "sta": 26, "int": 6, "spi": 10 },
+      "abilities": ["melee_attack", "power_smash"], "aiProfile": "aggressive",
+      "loot": [
+        { "itemId": "timberling_seed", "chance": 0.50, "qty": 1 },
+        { "itemId": "linen_cloth",     "chance": 0.20, "minQty": 1, "maxQty": 1 }
+      ],
+      "xpValue": 118, "tags": ["elemental", "zone_teldrassil"],
+      "description": "A treant-like creature twisted by corruption seeping through Teldrassil roots. Once gentle forest guardians, now mindlessly hostile."
+    },
+
+    "timberling_mire": {
+      "id": "timberling_mire", "name": "Timberling Mire", "_version": 1, "type": "elemental", "level": 8, "levelMax": 10,
+      "baseStats": { "str": 28, "agi": 10, "sta": 32, "int": 6, "spi": 10 },
+      "abilities": ["melee_attack", "power_smash", "thunder_clap"], "aiProfile": "aggressive",
+      "loot": [
+        { "itemId": "timberling_seed", "chance": 0.60, "qty": 1 },
+        { "itemId": "linen_cloth",     "chance": 0.20, "minQty": 1, "maxQty": 1 }
+      ],
+      "xpValue": 148, "tags": ["elemental", "zone_teldrassil"],
+      "description": "A larger, mud-caked timberling swollen with bog water. Its hardened sap bark makes it extremely resilient."
+    },
+
+    "_comment_teldrassil_furbolg": "=== Teldrassil - Gnarlpine Furbolg (levels 7-12) ===",
+
+    "gnarlpine_ambusher": {
+      "id": "gnarlpine_ambusher", "name": "Gnarlpine Ambusher", "_version": 1, "type": "humanoid", "level": 7, "levelMax": 8,
+      "baseStats": { "str": 22, "agi": 20, "sta": 20, "int": 8, "spi": 10 },
+      "abilities": ["melee_attack", "hamstring"], "aiProfile": "aggressive",
+      "loot": [
+        { "itemId": "linen_cloth",     "chance": 0.55, "minQty": 1, "maxQty": 2 },
+        { "itemId": "gnarlpine_totem", "chance": 0.30, "qty": 1 },
+        { "itemId": "copper_coin",     "chance": 0.40, "minQty": 1, "maxQty": 4 }
+      ],
+      "xpValue": 112, "tags": ["humanoid", "zone_gnarlpine_hold", "furbolg"],
+      "description": "A corrupted furbolg warrior who hides in dense foliage to ambush those venturing into Gnarlpine territory."
+    },
+
+    "gnarlpine_hunter": {
+      "id": "gnarlpine_hunter", "name": "Gnarlpine Hunter", "_version": 1, "type": "humanoid", "level": 8, "levelMax": 9,
+      "baseStats": { "str": 24, "agi": 22, "sta": 22, "int": 8, "spi": 10 },
+      "abilities": ["melee_attack", "hamstring", "battle_shout"], "aiProfile": "aggressive",
+      "loot": [
+        { "itemId": "linen_cloth",     "chance": 0.55, "minQty": 1, "maxQty": 2 },
+        { "itemId": "gnarlpine_totem", "chance": 0.35, "qty": 1 },
+        { "itemId": "copper_coin",     "chance": 0.40, "minQty": 2, "maxQty": 5 }
+      ],
+      "xpValue": 135, "tags": ["humanoid", "zone_gnarlpine_hold", "furbolg"],
+      "description": "A corrupted furbolg hunter stalking Starbreeze Village with primitive but effective hunting instincts."
+    },
+
+    "gnarlpine_mystic": {
+      "id": "gnarlpine_mystic", "name": "Gnarlpine Mystic", "_version": 1, "type": "humanoid", "level": 8, "levelMax": 9,
+      "baseStats": { "str": 18, "agi": 16, "sta": 20, "int": 26, "spi": 22 },
+      "abilities": ["melee_attack", "moonfire", "minor_heal"], "aiProfile": "aggressive",
+      "loot": [
+        { "itemId": "linen_cloth",      "chance": 0.55, "minQty": 1, "maxQty": 2 },
+        { "itemId": "gnarlpine_totem",  "chance": 0.35, "qty": 1 },
+        { "itemId": "minor_mana_potion","chance": 0.25, "qty": 1 }
+      ],
+      "xpValue": 138, "tags": ["humanoid", "zone_gnarlpine_hold", "furbolg"],
+      "description": "A furbolg spellcaster whose nature magic has curdled into something darker under the corruption of Teldrassil."
+    },
+
+    "gnarlpine_shaman": {
+      "id": "gnarlpine_shaman", "name": "Gnarlpine Shaman", "_version": 1, "type": "humanoid", "level": 9, "levelMax": 10,
+      "baseStats": { "str": 20, "agi": 16, "sta": 22, "int": 30, "spi": 26 },
+      "abilities": ["melee_attack", "moonfire", "earth_shock", "minor_heal"], "aiProfile": "aggressive",
+      "loot": [
+        { "itemId": "linen_cloth",      "chance": 0.55, "minQty": 1, "maxQty": 2 },
+        { "itemId": "gnarlpine_totem",  "chance": 0.40, "qty": 1 },
+        { "itemId": "minor_mana_potion","chance": 0.30, "qty": 1 }
+      ],
+      "xpValue": 162, "tags": ["humanoid", "zone_gnarlpine_hold", "furbolg"],
+      "description": "A senior Gnarlpine shaman fully given over to corruption, wielding storm and earth magic against trespassers."
+    },
+
+    "gnarlpine_defender": {
+      "id": "gnarlpine_defender", "name": "Gnarlpine Defender", "_version": 1, "type": "humanoid", "level": 9, "levelMax": 10,
+      "baseStats": { "str": 28, "agi": 20, "sta": 30, "int": 10, "spi": 12 },
+      "abilities": ["melee_attack", "battle_shout", "sunder_armor"], "aiProfile": "aggressive",
+      "loot": [
+        { "itemId": "linen_cloth",     "chance": 0.55, "minQty": 1, "maxQty": 2 },
+        { "itemId": "gnarlpine_totem", "chance": 0.40, "qty": 1 },
+        { "itemId": "silver_coin",     "chance": 0.30, "minQty": 1, "maxQty": 3 }
+      ],
+      "xpValue": 168, "tags": ["humanoid", "zone_gnarlpine_hold", "zone_ban_ethil_barrow_den", "furbolg"],
+      "description": "A hulking furbolg warrior clad in bark armor guarding the inner sanctum of Ban'ethil Barrow Den."
+    },
+
+    "gnarlpine_ursa": {
+      "id": "gnarlpine_ursa", "name": "Gnarlpine Ursa", "_version": 1, "type": "humanoid", "level": 10, "levelMax": 11,
+      "baseStats": { "str": 32, "agi": 22, "sta": 36, "int": 10, "spi": 12 },
+      "abilities": ["melee_attack", "battle_shout", "rend", "power_smash"], "aiProfile": "aggressive",
+      "loot": [
+        { "itemId": "linen_cloth",     "chance": 0.55, "minQty": 1, "maxQty": 2 },
+        { "itemId": "gnarlpine_totem", "chance": 0.50, "qty": 1 },
+        { "itemId": "silver_coin",     "chance": 0.35, "minQty": 1, "maxQty": 4 }
+      ],
+      "xpValue": 192, "tags": ["humanoid", "zone_gnarlpine_hold", "zone_ban_ethil_barrow_den", "furbolg"],
+      "description": "The most savage Gnarlpine warriors, barely distinguishable from the wild bears they once revered."
+    },
+
+    "ursal_the_mauler": {
+      "id": "ursal_the_mauler", "name": "Ursal the Mauler", "_version": 1, "type": "humanoid", "level": 11, "levelMax": 11,
+      "baseStats": { "str": 46, "agi": 28, "sta": 62, "int": 12, "spi": 14 },
+      "abilities": ["melee_attack", "battle_shout", "power_smash", "thunder_clap", "sunder_armor"], "aiProfile": "aggressive",
+      "loot": [
+        { "itemId": "ursal_bear_paw",        "chance": 1.00, "qty": 1 },
+        { "itemId": "twisted_chanters_staff", "chance": 0.35, "qty": 1 },
+        { "itemId": "silver_coin",           "chance": 1.00, "minQty": 5, "maxQty": 10 }
+      ],
+      "xpValue": 420, "tags": ["humanoid", "zone_ban_ethil_barrow_den", "furbolg", "named", "elite"],
+      "description": "The champion of the corrupted Gnarlpine furbolg, a nightmare of muscle and fury patrolling the deepest chamber of Ban'ethil Barrow Den."
+    }
+  }
+}

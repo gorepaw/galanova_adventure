@@ -1,0 +1,44 @@
+{
+  "achievements": {
+    "collector_5": {
+      "id": "collector_5",
+      "name": "Novice Collector",
+      "description": "Add 5 different items to your collection log.",
+      "category": "collections",
+      "criteria": { "type": "unique_items_collected", "threshold": 5 },
+      "rewards": { "xp": 250 }
+    },
+    "collector_10": {
+      "id": "collector_10",
+      "name": "Apprentice Collector",
+      "description": "Add 10 different items to your collection log.",
+      "category": "collections",
+      "criteria": { "type": "unique_items_collected", "threshold": 10 },
+      "rewards": { "xp": 500 }
+    },
+    "collector_25": {
+      "id": "collector_25",
+      "name": "Journeyman Collector",
+      "description": "Add 25 different items to your collection log.",
+      "category": "collections",
+      "criteria": { "type": "unique_items_collected", "threshold": 25 },
+      "rewards": { "xp": 1000 }
+    },
+    "collector_50": {
+      "id": "collector_50",
+      "name": "Expert Collector",
+      "description": "Add 50 different items to your collection log.",
+      "category": "collections",
+      "criteria": { "type": "unique_items_collected", "threshold": 50 },
+      "rewards": { "xp": 2500 }
+    },
+    "collector_100": {
+      "id": "collector_100",
+      "name": "Master Collector",
+      "description": "Add 100 different items to your collection log.",
+      "category": "collections",
+      "criteria": { "type": "unique_items_collected", "threshold": 100 },
+      "rewards": { "xp": 5000, "currency": 100000 }
+    }
+  }
+}
