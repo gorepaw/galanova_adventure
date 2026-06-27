@@ -26,7 +26,7 @@
       "guaranteedLevelUp": { "int": 1, "cha": 1 },
       "resources": ["mana"],
       "primaryResource": "mana",
-      "skills": ["staves", "wands", "daggers", "manipulation", "madness", "morale", "enchanting", "alchemy"],
+      "skills": ["staves", "wands", "daggers", "manipulation", "madness", "morale", "enchanting", "alchemy", "divination"],
       "startingBaseline": { "str": 8, "dex": 10, "con": 9, "int": 16, "spi": 12, "wis": 10, "spd": 11, "cha": 15 },
       "description": "A clothing caster who bends minds through manipulation and madness."
     },

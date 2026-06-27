@@ -16,6 +16,7 @@
     "thrown": { "id": "thrown", "name": "Thrown", "category": "combat", "type": "weapon", "weaponTypes": ["thrown"], "abilities": [{ "id": "basic_attack", "skillLevel": 1 }] },
     "staves": { "id": "staves", "name": "Staves", "category": "combat", "type": "weapon", "weaponTypes": ["staff"], "abilities": [{ "id": "basic_attack", "skillLevel": 1 }] },
     "wands": { "id": "wands", "name": "Wands", "category": "combat", "type": "weapon", "weaponTypes": ["wand"], "abilities": [{ "id": "basic_attack", "skillLevel": 1 }] },
+    "artillery": { "id": "artillery", "name": "Artillery", "category": "combat", "type": "weapon", "weaponTypes": ["artillery"], "abilities": [{ "id": "basic_attack", "skillLevel": 1 }] },
 
     "dueling": { "id": "dueling", "name": "Dueling", "category": "combat", "type": "magic", "abilities": [] },
     "manipulation": { "id": "manipulation", "name": "Manipulation", "category": "combat", "type": "magic", "abilities": [] },
@@ -29,7 +30,13 @@
     "energetics": { "id": "energetics", "name": "Energetics", "category": "combat", "type": "magic", "abilities": [] },
     "hydromancy": { "id": "hydromancy", "name": "Hydromancy", "category": "combat", "type": "magic", "abilities": [] },
     "biomancy": { "id": "biomancy", "name": "Biomancy", "category": "combat", "type": "magic", "abilities": [] },
+    "zoology": { "id": "zoology", "name": "Zoology", "category": "combat", "type": "magic", "abilities": [] },
+    "summoning": { "id": "summoning", "name": "Summoning", "category": "combat", "type": "magic", "abilities": [] },
+    "restoration": { "id": "restoration", "name": "Restoration", "category": "combat", "type": "magic", "abilities": [] },
+    "divination": { "id": "divination", "name": "Divination", "category": "combat", "type": "magic", "abilities": [] },
 
+
+    "tracking": { "id": "tracking", "name": "Tracking", "category": "non_combat", "type": "utility", "abilities": [] },
     "lockpicking": { "id": "lockpicking", "name": "Lockpicking", "category": "non_combat", "type": "utility", "abilities": [] },
     "riding": { "id": "riding", "name": "Riding", "category": "non_combat", "type": "utility", "abilities": [] },
     "trading": { "id": "trading", "name": "Trading", "category": "non_combat", "type": "utility", "abilities": [] },
@@ -43,6 +50,9 @@
     "herbalism": { "id": "herbalism", "name": "Herbalism", "category": "non_combat", "type": "profession", "abilities": [] },
     "woodcutting": { "id": "woodcutting", "name": "Woodcutting", "category": "non_combat", "type": "profession", "abilities": [] },
     "first_aid": { "id": "first_aid", "name": "First Aid", "category": "non_combat", "type": "profession", "abilities": [] },
-    "cooking": { "id": "cooking", "name": "Cooking", "category": "non_combat", "type": "profession", "abilities": [] }
+    "cooking": { "id": "cooking", "name": "Cooking", "category": "non_combat", "type": "profession", "abilities": [] },
+    "computing": { "id": "computing", "name": "Computing", "category": "non_combat", "type": "profession", "abilities": [] },
+    "fabrication": { "id": "fabrication", "name": "Fabrication", "category": "non_combat", "type": "profession", "abilities": [] },
+    "jewelcrafting": { "id": "jewelcrafting", "name": "Jewelcrafting", "category": "non_combat", "type": "profession", "abilities": []
   }
 }
