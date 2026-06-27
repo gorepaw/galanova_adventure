@@ -53,6 +53,6 @@
     "cooking": { "id": "cooking", "name": "Cooking", "category": "non_combat", "type": "profession", "abilities": [] },
     "computing": { "id": "computing", "name": "Computing", "category": "non_combat", "type": "profession", "abilities": [] },
     "fabrication": { "id": "fabrication", "name": "Fabrication", "category": "non_combat", "type": "profession", "abilities": [] },
-    "jewelcrafting": { "id": "jewelcrafting", "name": "Jewelcrafting", "category": "non_combat", "type": "profession", "abilities": []
+    "jewelcrafting": { "id": "jewelcrafting", "name": "Jewelcrafting", "category": "non_combat", "type": "profession", "abilities": [] }
   }
 }
