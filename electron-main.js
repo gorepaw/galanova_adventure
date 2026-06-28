@@ -4,6 +4,10 @@ const fs = require('fs')
 
 const isDev = !app.isPackaged
 
+// Display view-model for the character screen (single source of truth for the
+// numbers the UI shows — the renderer no longer recomputes derived stats).
+const { characterSheet } = require('./Engine/charsheet.js')
+
 // Load an engine module and merge its exports into global scope.
 // Mirrors Testing/run_tests.js bootstrap so engine files that check
 // `typeof DataStore === "undefined"` can find each other at top level.
@@ -144,7 +148,9 @@ function getSnapshot() {
 
   const partyInstances = (save?.party || []).map(m => {
     const r = Loader.load(`instances/companions/${m.instanceId}`, 'companionInstance')
-    return r.ok ? r.data : { instanceId: m.instanceId, name: m.instanceId }
+    const inst = r.ok ? r.data : { instanceId: m.instanceId, name: m.instanceId }
+    // Attach the display view-model so the UI renders numbers instead of deriving them.
+    return { ...inst, sheet: characterSheet(inst, _itemTemplates) }
   })
 
   const highestLevel = partyInstances.reduce((max, inst) => Math.max(max, inst.level || 1), 1)

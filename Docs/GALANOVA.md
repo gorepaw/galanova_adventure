@@ -124,7 +124,7 @@ all non-physical schools.
 Dodge applies to **physical** attacks only (magic ignores it). A target's effective dodge
 = `spd`-derived dodge (0.05%/pt) + any buff `dodgeChance` modifiers, **capped at 75%**.
 On a successful dodge the attack deals 0 damage and triggers no on-hit effects. Wired in
-both combat paths (combatengine `EffectDispatcher` and gameplayloop `stepTurn`).
+the combat path (gameplayloop `CombatBridge` — `run` for auto, `stepTurn` for manual).
 
 ### Progression & levels (decided)
 - **Hard level cap: 99.** Levels run 1–99; 99 is the absolute ceiling (no over-leveling

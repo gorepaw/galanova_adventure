@@ -6,6 +6,7 @@ import DungeonMap from './components/DungeonMap.jsx'
 import InventoryPanel from './components/InventoryPanel.jsx'
 import CraftingPanel from './components/CraftingPanel.jsx'
 import CharacterScreen from './components/CharacterScreen.jsx'
+import ErrorBoundary from './components/ErrorBoundary.jsx'
 import ShopPanel from './components/ShopPanel.jsx'
 import ReputationPanel from './components/ReputationPanel.jsx'
 import SkillsPanel from './components/SkillsPanel.jsx'
@@ -422,7 +423,7 @@ export default function App() {
 
         <main className="main-area">
           {!CONTENT_TABS.includes(activeTab) ? (
-            <CombatView
+            <ErrorBoundary key="combat" label="Combat view"><CombatView
               partyInstances={partyInstances}
               gameState={gameState}
               loading={loading}
@@ -433,9 +434,10 @@ export default function App() {
               onEngage={() => { handleAction('engageCombat'); setActiveTab(null); activeTabRef.current = null }}
               onFlee={() => { handleAction('tryFlee'); setActiveTab(null); activeTabRef.current = null }}
               onExecuteAction={handleExecuteAction}
-            />
+            /></ErrorBoundary>
           ) : (
             <div className="tab-content">
+              <ErrorBoundary key={activeTab} label="This panel">
               {activeTab === 'log' && (
                 <CombatLog messages={log} />
               )}
@@ -563,6 +565,7 @@ export default function App() {
                   onResetAll={resetAll}
                 />
               )}
+              </ErrorBoundary>
             </div>
           )}
         </main>

@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react'
 import ItemTooltip, { buildTipItem } from './ItemTooltip.jsx'
 import SpellBook from './SpellBook.jsx'
-import classData from '../../../Data/classes.json'
 
-const CLASS_DEFS = classData.classes || {}
+// Derived stats, gear totals, and the skill view-model are computed by the engine
+// (Engine/charsheet.js) and arrive on inst.sheet — this component only renders them.
 
 // Non-mana resources and how their (placeholder) full pools display on the sheet.
 const RESOURCE_META = {
@@ -27,19 +27,7 @@ const DISPLAY_SLOTS = [
 ]
 
 
-function gearBonuses(gear, itemCatalog) {
-  const b = {}
-  for (const itemId of Object.values(gear || {})) {
-    if (!itemId || typeof itemId !== 'string') continue
-    const sb = itemCatalog[itemId]?.statBonuses
-    if (!sb) continue
-    for (const [k, v] of Object.entries(sb)) b[k] = (b[k] || 0) + v
-  }
-  return b
-}
-
 function pct(n, digits = 2) { return `${n.toFixed(digits)}%` }
-function fmt(n) { return Math.round(n) }
 
 function fmtCopper(copper) {
   const g = Math.floor(copper / 10000)
@@ -193,17 +181,26 @@ function CharacterSheet({ inst, itemCatalog, buffCatalog, inventory = [], onEqui
 
   if (!inst) return null
 
-  const raw        = inst.stats?.raw ?? {}
-  const classId    = inst.classId ?? ''
-  const level      = inst.level ?? 1
+  // Display view-model computed by the engine (Engine/charsheet.js).
+  const sheet      = inst.sheet ?? {}
+  const tot        = sheet.totals ?? {}
+  const gb         = sheet.gearBonuses ?? {}
+  const d          = sheet.derived ?? {}
+  const resist     = d.resistances ?? {}
+  const skillsView = sheet.skills ?? {}
+  const skillMax   = sheet.skillMaxLevel ?? 99
+  const classResources = sheet.resources ?? []
+  const hasMana    = classResources.includes('mana')
+  const isCaster   = hasMana
+
   const deathState = inst.deathState ?? 'alive'
   const isDead     = deathState !== 'alive'
   const isDowned   = deathState === 'downed' && !inst.permadead
   const rezCost    = inst.rezCost ?? (500 + (inst.level ?? 1) * 200)
   const canAfford  = currency >= rezCost
   const gear       = inst.gear || {}
-  const skills     = inst.skills || {}
   const activeBuffs = inst.activeBuffs || []
+  const unspent    = inst.unspentStatPoints || 0
 
   const buffs = activeBuffs.filter(e => {
     const id = typeof e === 'string' ? e : e.id
@@ -216,48 +213,7 @@ function CharacterSheet({ inst, itemCatalog, buffCatalog, inventory = [], onEqui
     return !!(def.isDebuff || Object.values(def.ccFlags || {}).some(Boolean) || def.tickDamage)
   })
 
-  const gb = gearBonuses(gear, itemCatalog)
-
-  const tot = {
-    str: (raw.str ?? 0) + (gb.str ?? 0),
-    dex: (raw.dex ?? 0) + (gb.dex ?? 0),
-    con: (raw.con ?? 0) + (gb.con ?? 0),
-    int: (raw.int ?? 0) + (gb.int ?? 0),
-    spi: (raw.spi ?? 0) + (gb.spi ?? 0),
-    wis: (raw.wis ?? 0) + (gb.wis ?? 0),
-    spd: (raw.spd ?? 0) + (gb.spd ?? 0),
-    cha: (raw.cha ?? 0) + (gb.cha ?? 0),
-  }
-
-  // Derived — mirror engine formulas from gameplayloop.js buildUnit
-  const maxHp      = tot.con * 10 + (gb.maxHpBonus ?? 0)
-  const maxMp      = tot.int * 15
-  const attackPower = fmt(tot.str * 2 + tot.dex + (gb.attackPower ?? 0))
-  const rangedAP   = fmt(Math.max(0, 2 * level + 2 * tot.dex - 10) + (gb.rangedAttackPower ?? 0))
-  const spellPower = fmt(gb.spellPower ?? 0)
-  const armor      = fmt(tot.dex * 2 + (gb.armor ?? 0))
-  const mitPct     = armor / (armor + 1500) * 100
-  const meleeCrit  = tot.dex / 20 + (gb.critChanceMelee ?? 0) * 100
-  const spellCrit  = tot.int / 60 + (gb.critChanceSpell ?? 0) * 100
-  const dodge      = tot.spd / 20 + (gb.dodgeChance ?? 0) * 100
-  const manaRegen  = Math.floor(tot.spi / 5)
-  const classResources = CLASS_DEFS[classId]?.resources || []
-  const hasMana    = classResources.includes('mana')
-  const isCaster   = hasMana
-  const unspent    = inst.unspentStatPoints || 0
-
-  // Non-physical resistance: +0.5 per point of WIS, plus any gear bonuses
-  const resBase   = tot.wis * 0.5
-  const pyroRes   = resBase + (gb.pyroResistance   ?? 0)
-  const cryoRes   = resBase + (gb.cryoResistance   ?? 0)
-  const natureRes = resBase + (gb.natureResistance ?? 0)
-  const chaosRes  = resBase + (gb.chaosResistance  ?? 0)
-  const orderRes  = resBase + (gb.orderResistance  ?? 0)
-  const bioRes    = resBase + (gb.bioResistance    ?? 0)
-  const energyRes = resBase + (gb.energyResistance ?? 0)
-  const psychicRes = resBase + (gb.psychicResistance ?? 0)
-
-  // Mainhand weapon info
+  // Mainhand weapon info (presentation straight from the item catalog)
   const mhItem = gear.mainhand ? itemCatalog[gear.mainhand] : null
   const hasDmg = mhItem?.minDamage != null && mhItem?.maxDamage != null
 
@@ -270,7 +226,7 @@ function CharacterSheet({ inst, itemCatalog, buffCatalog, inventory = [], onEqui
           {inst.name}
           {isDead && <span className="death-tag">{deathState.toUpperCase()}</span>}
         </span>
-        <span className="char-sheet-class">{inst.raceId} {inst.classId} · Lv{level}</span>
+        <span className="char-sheet-class">{inst.raceId} {inst.classId} · Lv{inst.level ?? 1}</span>
       </div>
 
       {isDowned && (
@@ -313,9 +269,9 @@ function CharacterSheet({ inst, itemCatalog, buffCatalog, inventory = [], onEqui
 
           {/* ── Resources ── */}
           <CsSection label="Resources">
-            <CsRow label="Health" value={`${inst.currentHp ?? maxHp} / ${maxHp}`} />
+            <CsRow label="Health" value={`${inst.currentHp ?? d.maxHp} / ${d.maxHp}`} />
             {classResources.map(r => r === 'mana'
-              ? <CsRow key={r} label="Mana" value={`${inst.currentMp ?? maxMp} / ${maxMp}`} />
+              ? <CsRow key={r} label="Mana" value={`${inst.currentMp ?? d.maxMp} / ${d.maxMp}`} />
               : <CsRow key={r} label={RESOURCE_META[r]?.label || r} value={RESOURCE_META[r]?.display || ''} />
             )}
           </CsSection>
@@ -328,33 +284,33 @@ function CharacterSheet({ inst, itemCatalog, buffCatalog, inventory = [], onEqui
                 value={`${mhItem.minDamage}–${mhItem.maxDamage}${mhItem.weaponSpeed != null ? `  (${mhItem.weaponSpeed.toFixed(1)} spd)` : ''}`}
               />
             )}
-            <CsRow label="Attack Power"  value={attackPower} />
-            <CsRow label="Melee Crit"    value={pct(meleeCrit)} highlight={meleeCrit >= 10} />
-            <CsRow label="Ranged AP"     value={rangedAP} />
-            {(isCaster || spellPower > 0) && <>
-              <CsRow label="Spell Power" value={spellPower} />
-              <CsRow label="Spell Crit"  value={pct(spellCrit)} highlight={spellCrit >= 10} />
+            <CsRow label="Attack Power"  value={d.attackPower} />
+            <CsRow label="Melee Crit"    value={pct(d.meleeCrit)} highlight={d.meleeCrit >= 10} />
+            <CsRow label="Ranged AP"     value={d.rangedAP} />
+            {(isCaster || d.spellPower > 0) && <>
+              <CsRow label="Spell Power" value={d.spellPower} />
+              <CsRow label="Spell Crit"  value={pct(d.spellCrit)} highlight={d.spellCrit >= 10} />
             </>}
           </CsSection>
 
           {/* ── Defense ── */}
           <CsSection label="Defense">
-            <CsRow label="Armor"       value={armor} />
-            <CsRow label="Mitigation"  value={pct(mitPct, 1)} highlight={mitPct >= 30} />
-            <CsRow label="Dodge"       value={pct(dodge)} />
+            <CsRow label="Armor"       value={d.armor} />
+            <CsRow label="Mitigation"  value={pct(d.mitPct, 1)} highlight={d.mitPct >= 30} />
+            <CsRow label="Dodge"       value={pct(d.dodge)} />
           </CsSection>
 
           {/* ── Regeneration ── */}
           {hasMana && (
             <CsSection label="Regeneration">
-              <CsRow label="Mana Regen" value={`${manaRegen} / turn`} />
+              <CsRow label="Mana Regen" value={`${d.manaRegen} / turn`} />
             </CsSection>
           )}
 
           {/* ── Resistances ── */}
           <CsSection label="Resistances">
             <div className="cs-res-grid">
-              {[['Pyro', pyroRes],['Cryo', cryoRes],['Nature', natureRes],['Chaos', chaosRes],['Order', orderRes],['Bio', bioRes],['Energy', energyRes],['Psychic', psychicRes]].map(([label, val]) => (
+              {[['Pyro', resist.pyro],['Cryo', resist.cryo],['Nature', resist.nature],['Chaos', resist.chaos],['Order', resist.order],['Bio', resist.bio],['Energy', resist.energy],['Psychic', resist.psychic]].map(([label, val]) => (
                 <div key={label} className={`cs-res-cell${val > 0 ? ' cs-res-on' : ''}`}>
                   <span className="cs-res-label">{label}</span>
                   <span className="cs-res-val">{val}</span>
@@ -374,15 +330,34 @@ function CharacterSheet({ inst, itemCatalog, buffCatalog, inventory = [], onEqui
           )}
 
           {/* ── Skills ── */}
-          {Object.keys(skills).length > 0 && (
+          {Object.keys(skillsView).length > 0 && (
             <CsSection label="Skills">
               <div className="char-skills">
-                {Object.entries(skills).map(([k, v]) => (
-                  <div key={k} className="char-skill-row">
-                    <span className="char-skill-name">{k.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}</span>
-                    <span className="char-skill-val">{v}</span>
-                  </div>
-                ))}
+                {Object.entries(skillsView).map(([k, sk]) => {
+                  const name   = sk.name || k.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
+                  const lvlPct = Math.min(100, (sk.level / skillMax) * 100)
+                  const xpPct  = sk.atMax ? 100 : Math.min(100, (sk.xp / sk.xpToNext) * 100)
+                  return (
+                    <div key={k} className="cs-skill">
+                      <div className="cs-skill-head">
+                        <span className="cs-skill-name">{name}</span>
+                        <span className="cs-skill-lv">Lv {sk.level}</span>
+                      </div>
+                      <div className="cs-skill-bar">
+                        <div className="cs-skill-track">
+                          <div className="cs-skill-fill cs-skill-level" style={{ width: `${lvlPct}%` }} />
+                        </div>
+                        <span className="cs-skill-bar-label">{sk.level} / {skillMax}</span>
+                      </div>
+                      <div className="cs-skill-bar">
+                        <div className="cs-skill-track">
+                          <div className="cs-skill-fill cs-skill-xp" style={{ width: `${xpPct}%` }} />
+                        </div>
+                        <span className="cs-skill-bar-label">{sk.atMax ? 'MAX' : `${sk.xp} / ${sk.xpToNext} xp`}</span>
+                      </div>
+                    </div>
+                  )
+                })}
               </div>
             </CsSection>
           )}
@@ -392,7 +367,7 @@ function CharacterSheet({ inst, itemCatalog, buffCatalog, inventory = [], onEqui
             <CsSection label="Profession">
               <div className="member-prof">
                 {inst.profession.replace(/\b\w/g, c => c.toUpperCase())}
-                {skills[inst.profession] != null ? ` (${skills[inst.profession]})` : ''}
+                {skillsView[inst.profession] ? ` (Lv ${skillsView[inst.profession].level})` : ''}
               </div>
             </CsSection>
           )}

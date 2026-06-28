@@ -8,7 +8,7 @@
 //                     CLASS_BASE_HP, CLASS_BASE_MP
 //   companions.js   � buildCompanionInstance
 //   encounter.js    � PartySkills, checkReroll, EncounterGenerator
-//   combat_engine.js � processTurn, createGameState (manual turn engine)
+//   charsheet.js    � deriveCore (shared stat derivation for combat + sheet)
 // =============================================================================
 
 "use strict";
@@ -23,6 +23,10 @@ const _achievementsData   = require('../Data/achievements.json');
 const _dungeonsData       = require('../Data/dungeons.json');
 const _zoologyData        = require('../Data/zoology.json');
 const _summoningData      = require('../Data/summoning.json');
+
+// Shared stat derivation — the SAME core the character sheet uses, so combat and
+// the sheet can never disagree (Engine/charsheet.js).
+const { deriveCore } = require('./charsheet.js');
 
 
 // =============================================================================
@@ -148,23 +152,12 @@ const CombatBridge = (() => {
       : (cfg.learnedAbilities?.length ? cfg.learnedAbilities
       : (cfg.abilities?.length ? cfg.abilities : ["basic_attack"]));
 
-    const baseD = {
-      maxHp:              raw.con * 10 + (CLASS_BASE_HP[classId] || 0),
-      maxMana:            raw.int * 15 + (CLASS_BASE_MP[classId] || 0),
-      attackPower:        raw.str * 2 + raw.dex,
-      rangedAttackPower:  Math.max(0, 2 * level + 2 * raw.dex - 10),
-      spellPower:         0,
-      armor:              raw.dex * 2,
-      critChanceMelee:    raw.dex / 20 / 100,
-      critChanceSpell:    raw.int / 60 / 100,
-      dodge:              (raw.spd || 0) / 20 / 100,
-      manaRegen:          Math.floor(raw.spi / 5),
-      resistances:        (() => {
-        const rv = (raw.wis || 0) * 0.5;
-        return { pyro: rv, cryo: rv, nature: rv, chaos: rv, order: rv, bio: rv, energy: rv, psychic: rv };
-      })(),
-      critMultiplier:     2.0,
-    };
+    // Derive base stats (incl. equipped-gear bonuses) via the shared core so the
+    // character sheet and combat use identical formulas. Class flat HP/MP bonuses
+    // are layered on top (the core has no concept of them).
+    const baseD = deriveCore({ raw, level, classId, gear: cfg.gear }, _itemsData.items).derived;
+    baseD.maxHp   += (CLASS_BASE_HP[classId] || 0);
+    baseD.maxMana += (CLASS_BASE_MP[classId] || 0);
 
     const derived = applyAlwaysPassives(baseD, abilities);
 
@@ -234,30 +227,20 @@ const CombatBridge = (() => {
     for (const stat of ['str','dex','con','int','spi','wis','spd','cha']) {
       raw[stat] = Math.floor((petTemplate.baseStats[stat] || 0) + (petTemplate.statGrowthPerLevel[stat] || 0) * (level - 1));
     }
-    const maxHp = petTemplate.baseHp + petTemplate.hpPerLevel * (level - 1);
     const abilities = (petTemplate.abilities || [])
       .filter(a => (a.level || 1) <= level)
       .map(a => a.id);
     if (!abilities.length) abilities.push('pet_bite');
 
-    const baseD = {
-      maxHp,
-      maxMana:           0,
-      attackPower:       raw.str * 2 + raw.dex,
-      rangedAttackPower: 0,
-      spellPower:        raw.int * 2,
-      armor:             raw.dex * 2,
-      critChanceMelee:   raw.dex / 20 / 100,
-      critChanceSpell:   raw.int / 60 / 100,
-      dodge:             (raw.spd || 0) / 20 / 100,
-      manaRegen:         0,
-      resistances:       (() => {
-        const rv = (raw.wis || 0) * 0.5;
-        return { pyro: rv, cryo: rv, nature: rv, chaos: rv, order: rv, bio: rv, energy: rv, psychic: rv };
-      })(),
-      critMultiplier:    2.0,
-    };
+    // Pets derive ALL stats through the same shared core as everyone else
+    // (Engine/charsheet.js), including CON-based HP. The only pet-specific facts:
+    // pets have no mana resource and carry no gear. spellPower is 0 here; grant
+    // caster pets power elsewhere if needed.
+    const baseD = deriveCore({ raw, level, classId: petTemplate.id }, _itemsData.items).derived;
+    baseD.maxMana   = 0;
+    baseD.manaRegen = 0;
     const derived = applyAlwaysPassives(baseD, abilities);
+    const maxHp = derived.maxHp;
 
     return {
       id:                    `pet_${owner.id}`,
@@ -1502,7 +1485,7 @@ const RewardEngine = (() => {
 
   const apply = (combatResult, encounter, save) => {
     let s     = { ...save };
-    const sum = { xp: 0, currency: 0, loot: [], questProgress: [], weaponskill: 0, levelUps: [] };
+    const sum = { xp: 0, currency: 0, loot: [], questProgress: [], skillXp: {}, levelUps: [] };
 
     // always clear tracking/flee flags after an encounter
     s = Modifiers.clearFlag(s, "trackingBoost");
@@ -1531,8 +1514,10 @@ const RewardEngine = (() => {
         for (const [abilityId, count] of Object.entries(used)) {
           const skillId = skillForAbilityUse(abilityId, mhWeaponType);
           if (skillId && count > 0) {
-            const sx = addSkillXp(updated, skillId, count * 10);
+            const amount = count * 10;
+            const sx = addSkillXp(updated, skillId, amount);
             updated = sx.inst;
+            sum.skillXp[skillId] = (sum.skillXp[skillId] || 0) + amount;
             for (const lu of sx.levelUps) sum.levelUps.push(`    ✧ ${m.instanceId}'s ${skillId} skill reached ${lu.level}`);
           }
         }
@@ -1641,29 +1626,6 @@ const RewardEngine = (() => {
         if (rw.items)      for (const ri of rw.items) { s = Modifiers.addToInventory(s, ri.itemId, ri.qty); sum.loot.push({ ...ri, source: "quest_reward" }); }
         if (rw.reputation) for (const rf of rw.reputation) { s = Modifiers.addReputation(s, rf.factionId, rf.amount); (sum.reputation = sum.reputation || []).push(rf); }
         sum.questProgress.push({ questId, completed: true });
-      }
-    }
-
-    if (combatResult.kills.length > 0) {
-      const WEAPON_SKILL_MAP = {
-        sword_1h: "weaponskill_sword", sword_2h: "weaponskill_sword",
-        axe_1h:   "weaponskill_axe",   axe_2h:   "weaponskill_axe",
-        mace_1h:  "weaponskill_mace",  mace_2h:  "weaponskill_mace",
-        dagger:   "weaponskill_dagger", fist:     "weaponskill_fist",
-        staff:    "weaponskill_staff",  polearm:  "weaponskill_polearm",
-      };
-      for (const m of s.party) {
-        const ir = Loader.load(`instances/companions/${m.instanceId}`, "companionInstance");
-        if (!ir.ok) continue;
-        const mainhandId = ir.data.gear?.mainhand;
-        let school = "weaponskill_unarmed";
-        if (mainhandId) {
-          const wr = Loader.load(`templates/items/${mainhandId}`, "item");
-          school = (wr.ok && wr.data.weaponType && WEAPON_SKILL_MAP[wr.data.weaponType]) || "weaponskill_unarmed";
-        }
-        s = Modifiers.advanceTalent(s, school, 1);
-        sum.weaponskill = school;
-        break;
       }
     }
 
@@ -2178,7 +2140,7 @@ const HomeScreen = (() => {
       if ((cr.pickpocketGold || 0) > 0) emit(`   Pickpocket: +${Currency.toString(cr.pickpocketGold)}`);
       if ((cr.soulShardsGained || 0) > 0) emit(`   Soul Shard: +${cr.soulShardsGained} added to bag`);
       if (summary.loot.length)     emit(`   Loot:      ${summary.loot.map(l => `${l.qty}x ${l.itemId}`).join(", ")}`);
-      if (summary.weaponskill)     emit(`   ${summary.weaponskill.replace("weaponskill_", "")} skill +1`);
+      for (const [skillId, amount] of Object.entries(summary.skillXp || {})) emit(`   ${skillId} skill +${amount} xp`);
       for (const qp of (summary.questProgress || [])) { if (qp.completed) emit(`   ✓ Quest complete: ${qp.questId}`); else emit(`   Quest "${qp.questId}" � ${qp.objectiveId}: ${qp.next}/${qp.goal}`); }
       if (summary.reputation?.length) for (const rr of summary.reputation) emit(`   Rep: +${rr.amount} ${rr.factionId}`);
       if ((summary.butcherableKills || []).length > 0) emit(`   🐾 ${summary.butcherableKills.length} beast corpse${summary.butcherableKills.length > 1 ? "s" : ""} can be butchered. Type 'butcher'.`);

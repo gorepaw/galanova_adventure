@@ -1,4 +1,26 @@
 /* ── Reset & base ───────────────────────────────────────────────────────────── */
+@font-face {
+  font-family: 'Audiowide';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('../assets/fonts/audiowide.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'IBM Plex Mono';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('../assets/fonts/ibm-plex-mono-400.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'IBM Plex Mono';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('../assets/fonts/ibm-plex-mono-700.woff2') format('woff2');
+}
+
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 :root {
@@ -16,11 +38,23 @@
   --text:        #c8c8d8;
   --text-dim:    #6a6a8a;
   --text-bright: #e8e8f8;
-  font-family: 'Consolas', 'Courier New', monospace;
+  --font-display: 'Audiowide', 'Consolas', 'Courier New', monospace;
+  --font-mono:    'IBM Plex Mono', 'Consolas', 'Courier New', monospace;
+  font-family: var(--font-mono);
   font-size: 13px;
   color: var(--text);
   background: var(--bg);
 }
+
+/* ── Display font (Audiowide) for headings/titles ─────────────────────────────── */
+.header-logo,
+.panel-title,
+.spellbook-title,
+.placeholder-title {
+  font-family: var(--font-display);
+}
+/* keep descriptive subtitle in the readable mono */
+.spellbook-subtitle { font-family: var(--font-mono); }
 
 html, body, #root { height: 100%; overflow: hidden; }
 
@@ -145,6 +179,18 @@ html, body, #root { height: 100%; overflow: hidden; }
 }
 
 .panel-empty { color: var(--text-dim); padding: 8px 0; font-size: 12px; }
+
+.panel-error {
+  margin: 16px; padding: 14px 16px;
+  background: rgba(255,80,80,0.08); border: 1px solid rgba(255,80,80,0.3);
+  border-radius: 6px; display: flex; flex-direction: column; gap: 6px;
+}
+.panel-error-title { color: var(--red); font-weight: 700; font-size: 13px; }
+.panel-error-msg {
+  font-family: var(--mono, monospace); font-size: 11px; color: var(--text-bright);
+  word-break: break-word;
+}
+.panel-error-hint { font-size: 11px; color: var(--text-dim); }
 
 /* ── Member card ─────────────────────────────────────────────────────────────── */
 .member-card {
@@ -522,13 +568,24 @@ html, body, #root { height: 100%; overflow: hidden; }
 
 .char-bars { display: flex; flex-direction: column; gap: 4px; }
 
-.char-skills { display: flex; flex-direction: column; gap: 2px; }
-.char-skill-row {
-  display: flex; justify-content: space-between; align-items: center;
-  gap: 6px; padding: 2px 0;
+.char-skills { display: flex; flex-direction: column; gap: 8px; }
+.cs-skill { display: flex; flex-direction: column; gap: 3px; }
+.cs-skill-head { display: flex; justify-content: space-between; align-items: baseline; }
+.cs-skill-name { font-size: 11px; color: var(--text); }
+.cs-skill-lv   { font-size: 11px; color: var(--gold); font-weight: 600; }
+
+.cs-skill-bar { display: flex; align-items: center; gap: 6px; }
+.cs-skill-track {
+  flex: 1; height: 6px; background: rgba(255,255,255,0.07);
+  border-radius: 3px; overflow: hidden;
 }
-.char-skill-name { font-size: 11px; color: var(--text); }
-.char-skill-val  { font-size: 11px; color: var(--gold); font-weight: 600; min-width: 28px; text-align: right; }
+.cs-skill-fill { height: 100%; border-radius: 3px; transition: width 0.4s ease; }
+.cs-skill-level { background: var(--gold);   box-shadow: 0 0 4px rgba(200,169,81,0.35); }
+.cs-skill-xp    { background: var(--purple); box-shadow: 0 0 4px rgba(155,89,182,0.35); }
+.cs-skill-bar-label {
+  font-size: 10px; color: var(--text-dim); font-variant-numeric: tabular-nums;
+  min-width: 64px; text-align: right;
+}
 
 .effect-list  { display: flex; flex-direction: column; gap: 4px; }
 /* ── Character stat sections ──────────────────────────────────────────────── */

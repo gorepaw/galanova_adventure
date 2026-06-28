@@ -14,6 +14,9 @@ function xpToNext(level) {
   return Math.floor(400 * Math.pow(level, 1.6))
 }
 
+// Skills are stored as { level, xp } (legacy: plain number). Read the level safely.
+const skillLevel = (v) => (typeof v === 'number' ? v : (v?.level ?? null))
+
 function fmtCopper(copper) {
   const g = Math.floor(copper / 10000)
   const s = Math.floor((copper % 10000) / 100)
@@ -115,7 +118,7 @@ function MemberCard({ inst, currency, onRez }) {
 
       {inst.profession && inst.profession !== 'none' && (
         <div className="member-prof">
-          {inst.profession}{inst.skills?.[inst.profession] != null ? ` (${inst.skills[inst.profession]})` : ''}
+          {inst.profession}{skillLevel(inst.skills?.[inst.profession]) != null ? ` (Lv ${skillLevel(inst.skills[inst.profession])})` : ''}
         </div>
       )}
     </div>
