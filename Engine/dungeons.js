@@ -62,8 +62,14 @@ const DUNGEON_SCHEMA_PATCHES = {
     properties: {
       type: {
         type: "string",
-        enum: ["combat", "boss", "text"],
+        enum: ["combat", "boss", "text", "trap"],
       },
+
+      // ── trap ──────────────────────────────────────────────────────────────
+      // References a trap template (Data/traps.json → templates/traps/<id>).
+      // Resolution (detection rolls, dungeoneering XP, effect) is shared with
+      // world traps via TrapSystem.resolve in the gameplay loop.
+      trapId: { type: "string" },
 
       // ── combat ────────────────────────────────────────────────────────────
       // Explicit enemy list instead of pool rolling.
@@ -381,6 +387,21 @@ const DungeonEncounterBuilder = (() => {
     isBoss:           entry.type === "boss",
   });
 
+  // Builds a trap encounter packet from a "trap" queue entry. Loads the trap
+  // template so the shared TrapSystem resolver (gameplay loop) can run it.
+  const buildTrapEncounter = (entry, zoneId, Loader) => {
+    const tr = Loader.load(`templates/traps/${entry.trapId}`, "trap");
+    return {
+      ok:               true,
+      zoneId,
+      encounterType:    "trap",
+      trap:             tr.ok ? tr.data : null,
+      enemies:          [],
+      gatheringNodes:   [],
+      companionRecruit: null,
+    };
+  };
+
   // Builds a text encounter packet.
   const buildTextEncounter = (entry, zoneId) => ({
     ok:               true,
@@ -400,6 +421,8 @@ const DungeonEncounterBuilder = (() => {
       return buildCombatEncounter(entry, zoneId, Loader);
     if (entry.type === "text")
       return buildTextEncounter(entry, zoneId);
+    if (entry.type === "trap")
+      return buildTrapEncounter(entry, zoneId, Loader);
     return { ok: false, errors: [`Unknown dungeon encounter type: "${entry.type}"`] };
   };
 
@@ -788,6 +811,12 @@ const runDungeonTests = (DataStore, Loader) => {
   assert("builder: boss isBoss flag",             bossEnc.isBoss          === true);
   assert("builder: boss introDialogue present",   bossEnc.introDialogue?.length > 0);
   assert("builder: boss guaranteedLoot present",  bossEnc.guaranteedLoot?.length > 0);
+
+  // ── trap encounter entry ──────────────────────────────────────────────────
+  const trapEntry = { type: "trap", trapId: "template_spike_trap" };
+  const trapEnc   = DungeonEncounterBuilder.build(trapEntry, "test_dungeon", Loader);
+  assert("builder: trap encounterType",           trapEnc.encounterType === "trap");
+  assert("builder: trap template loaded",         trapEnc.trap?.id === "template_spike_trap");
 
   // ── exit ──────────────────────────────────────────────────────────────────
   const { save: sExit } = DungeonManager.exit(s2, "colonial_sewers");

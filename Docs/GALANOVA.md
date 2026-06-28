@@ -194,6 +194,14 @@ combat sim using basic_attack.
   calculations, the **party average** of all members' riding is used.
 - **Trading** — the primary interaction point of **charisma**; governs buy/sell prices.
   The **party average** of all members' trading is what applies.
+- **Dungeoneering** — held by every class; the party's backup sense for **traps**.
+  Traps appear in dungeons (`forcedEncounterQueue` `trap` entries) and in the world
+  (encounter-table `trap` slots), each referencing a trap template in `Data/traps.json`.
+  On encounter, **each living member rolls to detect**: first a `classLevel/100`
+  chance, then — only if that fails — a `dungeoneeringLevel/100` backup chance. The
+  trap is avoided if **any** member detects it. **Every** living member gains
+  dungeoneering XP for the encounter, detected or not. An undetected trap fires its
+  configured `effect` (damage by default; `target: party | random`).
 
 ### Systems to build (engineering to-do)
 - ✅ **Class schema** — `armorTier`, `coreStats`, `guaranteedLevelUp`, `resources[]`,
@@ -212,7 +220,7 @@ combat sim using basic_attack.
   constants retired (now read `classes.json`). raceId made nullable for decoupled races.
 - ✅ **Skills system** — `Engine/skills.js` (XP curve to 99, `addSkillXp`, `abilitiesFromSkills`,
   weaponType↔skill maps, `canEquipWeaponType`, unlockable skills via `grantSkill`). Starting
-  skills = class list + universal (riding/trading). Combat derives abilities from skills;
+  skills = class list + universal (riding/trading/dungeoneering). Combat derives abilities from skills;
   professions converted to XP-based; skills UI panel (combat/non-combat, XP bars).
   **Per-action combat skill XP:** both auto-combat (`run`/`runEncounter`) and manual combat
   (`startCombat`/`stepTurn`/`executePlayerAction`) track each party member's ability uses and

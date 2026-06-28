@@ -1,0 +1,31 @@
+{
+  "_note": "Galanova traps. Encountered in dungeons (forcedEncounterQueue 'trap' entries) and in the world (encounter-table 'trap' slots). On encounter, each living party member rolls to detect: first a classLevel/100 chance, then a dungeoneeringLevel/100 backup chance. The trap is avoided if ANY member detects it. Every living member gains dungeoneering XP regardless. An undetected trap fires its 'effect'. effect.type: damage (only type implemented; others authored later). effect.target: party | random. effect.damage.mode: percentMaxHp (amount = fraction of maxHp) | flat (amount = raw HP). xp = dungeoneering XP per member (omit to use TrapSystem default).",
+  "traps": {
+    "template_spike_trap": {
+      "id": "template_spike_trap",
+      "name": "TEMPLATE Spike Trap",
+      "_version": 1,
+      "xp": 15,
+      "detectText": "TEMPLATE — placeholder line shown when the trap is spotted and stepped around.",
+      "triggerText": "TEMPLATE — placeholder line shown when the trap springs on the party.",
+      "effect": {
+        "type": "damage",
+        "target": "party",
+        "damage": { "mode": "percentMaxHp", "amount": 0.15 }
+      }
+    },
+    "template_dart_trap": {
+      "id": "template_dart_trap",
+      "name": "TEMPLATE Dart Trap",
+      "_version": 1,
+      "xp": 12,
+      "detectText": "TEMPLATE — placeholder detect line.",
+      "triggerText": "TEMPLATE — placeholder trigger line.",
+      "effect": {
+        "type": "damage",
+        "target": "random",
+        "damage": { "mode": "flat", "amount": 40 }
+      }
+    }
+  }
+}

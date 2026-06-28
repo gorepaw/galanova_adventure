@@ -187,9 +187,9 @@
       "description": "Grilled meat from a rat. Restores 50 health. Cannot be used in combat."
     },
 
-    "mheader6": "////////////////////////////////////////////////////////////////////////////",
+    "mheader6": "/////////////////////////////////////////////////////////////////////////////",
     "mheader7": "////// MATERIALS /// MATERIALS /// MATERIALS /// MATERIALS /// MATERIALS ////",
-    "mheader8": "////////////////////////////////////////////////////////////////////////////",
+    "mheader8": "/////////////////////////////////////////////////////////////////////////////",
 
     "------Butchery------": "material",
 
@@ -230,6 +230,139 @@
       "quality": "common",
       "tags": ["material", "feather"],
       "description": "A soft down feather plucked from a winged creature."
+    },
+
+    "------Woodcutting------": "material",
+
+    "softwood_log": {
+      "id": "softwood_log",
+      "name": "Softwood Log",
+      "_version": 1,
+      "type": "material",
+      "slot": "none",
+      "statBonuses": {},
+      "value": 4,
+      "quality": "common",
+      "tags": ["material", "wood"],
+      "description": "A log of softwood, suitable for crafting and construction."
+    },
+
+    "hardwood_log": {
+      "id": "hardwood_log",
+      "name": "Hardwood Log",
+      "_version": 1,
+      "type": "material",
+      "slot": "none",
+      "statBonuses": {},
+      "value": 40,
+      "quality": "common",
+      "tags": ["material", "wood"],
+      "description": "A log of hardwood, suitable for crafting and construction."
+    },
+
+    "ironwood_log": {
+      "id": "ironwood_log",
+      "name": "Ironwood Log",
+      "_version": 1,
+      "type": "material",
+      "slot": "none",
+      "statBonuses": {},
+      "value": 400,
+      "quality": "common",
+      "tags": ["material", "wood"],
+      "description": "A log of ironwood, suitable for crafting and construction."
+    },
+
+    "elderwood_log": {
+      "id": "elderwood_log",
+      "name": "Elderwood Log",
+      "_version": 1,
+      "type": "material",
+      "slot": "none",
+      "statBonuses": {},
+      "value": 4000,
+      "quality": "common",
+      "tags": ["material", "wood"],
+      "description": "A log of elderwood, suitable for crafting and construction."
+    },
+
+    "titanwood_log": {
+      "id": "titanwood_log",
+      "name": "Titanwood Log",
+      "_version": 1,
+      "type": "material",
+      "slot": "none",
+      "statBonuses": {},
+      "value": 40000,
+      "quality": "common",
+      "tags": ["material", "wood"],
+      "description": "A log of titanwood, suitable for crafting and construction."
+    },
+
+    "softwood_sapling": {
+      "id": "softwood_sapling",
+      "name": "Softwood Sapling",
+      "_version": 1,
+      "type": "material",
+      "slot": "none",
+      "statBonuses": {},
+      "value": 2,
+      "quality": "common",
+      "tags": ["material", "wood"],
+      "description": "A small sapling of softwood, suitable for planting and growth."
+    },
+
+    "hardwood_sapling": {
+      "id": "hardwood_sapling",
+      "name": "Hardwood Sapling",
+      "_version": 1,
+      "type": "material",
+      "slot": "none",
+      "statBonuses": {},
+      "value": 3,
+      "quality": "common",
+      "tags": ["material", "wood"],
+      "description": "A small sapling of hardwood, suitable for planting and growth."
+    },
+
+    "ironwood_sapling": {
+      "id": "ironwood_sapling",
+      "name": "Ironwood Sapling",
+      "_version": 1,
+      "type": "material",
+      "slot": "none",
+      "statBonuses": {},
+      "value": 4,
+      "quality": "common",
+      "tags": ["material", "wood"],
+      "description": "A small sapling of ironwood, suitable for planting and growth."
+    },
+
+    "elderwood_sapling": {
+      "id": "elderwood_sapling",
+      "name": "Elderwood Sapling",
+      "_version": 1,
+      "type": "material",
+      "slot": "none",
+      "statBonuses": {},
+      "value": 5,
+      "quality": "common",
+      "tags": ["material", "wood"],
+      "description": "A small sapling of elderwood, suitable for planting and growth."
+    },
+
+    "titanwood_sapling": {
+      "id": "titanwood_sapling",
+      "name": "Titanwood Sapling",
+      "_version": 1,
+      "type": "material",
+      "slot": "none",
+      "statBonuses": {},
+      "value": 6,
+      "quality": "common",
+      "tags": ["material", "wood"],
+      "description": "A small sapling of titanwood, suitable for planting and growth."
     }
+
   }
 }

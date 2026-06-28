@@ -385,6 +385,22 @@ const EncounterGenerator = (() => {
       };
     }
 
+    // ── trap ─────────────────────────────────────────────────────────────
+    // slot carries trapId → loaded trap template. Resolution (detection rolls,
+    // dungeoneering XP, effect) happens in the gameplay loop via TrapSystem.
+    if (slot.type === "trap") {
+      const trr = Loader.load(`templates/traps/${slot.trapId}`, "trap");
+      if (!trr.ok) return generate(zoneId, save, Loader, _depth + 1);
+      return {
+        ok: true, zoneId,
+        encounterType:    "trap",
+        trap:             trr.data,
+        enemies:          [],
+        gatheringNodes:   [],
+        companionRecruit: null,
+      };
+    }
+
     // ── fishing_spot ─────────────────────────────────────────────────────
     if (slot.type === "fishing_spot") {
       return {

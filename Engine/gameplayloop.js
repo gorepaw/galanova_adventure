@@ -1788,6 +1788,137 @@ const RidingSystem = (() => {
 
 
 // =============================================================================
+// DUNGEONEERING — TRAP SYSTEM
+// Dungeoneering is a universal skill (every class has it). It is the party's
+// backup sense for traps, which appear in dungeons (forcedEncounterQueue "trap"
+// entries) and out in the world (encounter-table "trap" slots).
+//
+// On encounter, EACH living party member rolls to detect the trap:
+//   1. a classLevel/100 chance (their primary instincts), then — only if that
+//      fails — 2. a dungeoneeringLevel/100 chance (the trained backup sense).
+// The trap is avoided if ANY member detects it. Either way, EVERY living member
+// gains dungeoneering XP for the encounter. An undetected trap fires its
+// configured effect (damage by default; see Data/traps.json).
+// =============================================================================
+const TrapSystem = (() => {
+  const DEFAULT_XP         = 15;   // dungeoneering XP per member per trap (tune later)
+  const DEFAULT_DAMAGE_PCT = 0.15; // fraction of maxHp when a damage trap omits its amount
+
+  // Living party members as { member, inst }.
+  const livingParty = (save) =>
+    (save.party || [])
+      .map(m => {
+        const ir = Loader.load(`instances/companions/${m.instanceId}`, "companionInstance");
+        return ir.ok ? { member: m, inst: ir.data } : null;
+      })
+      .filter(x => x && x.inst.deathState === "alive");
+
+  // One member's detection roll: classLevel/100, then dungeoneeringLevel/100 backup.
+  const memberDetects = (inst) => {
+    const classLvl = inst.level || 1;
+    const dungLvl  = (typeof getSkillLevel === "function") ? getSkillLevel(inst, "dungeoneering") : 0;
+    const byClass = Math.random() < classLvl / 100;
+    const byDungeoneering = byClass ? false : (Math.random() < dungLvl / 100);
+    return { byClass, byDungeoneering, detected: byClass || byDungeoneering };
+  };
+
+  // Roll detection across the party. Detected if any member detects; reports the
+  // first detector and whether it was their class instinct or dungeoneering.
+  const rollDetection = (party) => {
+    let detected = false, detectedBy = null, via = null;
+    const rolls = [];
+    for (const { member, inst } of party) {
+      const r = memberDetects(inst);
+      rolls.push({ instanceId: member.instanceId, name: inst.name, ...r });
+      if (r.detected && !detected) {
+        detected   = true;
+        detectedBy = inst.name;
+        via        = r.byClass ? "class" : "dungeoneering";
+      }
+    }
+    return { detected, detectedBy, via, rolls };
+  };
+
+  // Damage from a trap effect against one instance's maxHp.
+  const damageFor = (inst, effect) => {
+    const d = effect?.damage || {};
+    if (d.mode === "flat") return Math.max(0, Math.floor(d.amount || 0));
+    return Math.max(1, Math.floor((inst.maxHp || 1) * (d.amount != null ? d.amount : DEFAULT_DAMAGE_PCT)));
+  };
+
+  // Resolve a trap encounter against the current save. Pure-ish: persists the
+  // affected companion instances to DataStore and returns the (unchanged) save
+  // for chaining, plus narration lines and the detection outcome.
+  const resolve = (save, trap) => {
+    const party = livingParty(save);
+    const name  = (trap && trap.name) || "a hidden trap";
+    const lines = [];
+
+    if (!party.length)
+      return { save, detected: false, triggered: false, lines: [`   The mechanism clicks, but no one is left to spring it.`] };
+
+    const det = rollDetection(party);
+
+    // Working copies keyed by instanceId so XP and damage merge into one write.
+    const work = new Map(party.map(p => [p.member.instanceId, { member: p.member, inst: { ...p.inst } }]));
+
+    // XP to every member who met the trap (alive at encounter time), detected or not.
+    const xpAmount = (trap && trap.xp != null) ? trap.xp : DEFAULT_XP;
+    const levelUps = [];
+    for (const w of work.values()) {
+      const sx = addSkillXp(w.inst, "dungeoneering", xpAmount);
+      w.inst = sx.inst;
+      for (const lu of sx.levelUps)
+        levelUps.push(`    ✧ ${w.inst.name}'s dungeoneering skill reached ${lu.level}`);
+    }
+
+    // Narrate detection / spring; apply the effect when undetected.
+    let triggered = false;
+    if (det.detected) {
+      lines.push(`   🪤 ${det.detectedBy} spots ${name}${det.via === "dungeoneering" ? " (dungeoneering)" : ""}!`);
+      if (trap && trap.detectText) lines.push(`   "${trap.detectText}"`);
+    } else {
+      triggered = true;
+      lines.push(`   🪤 ${name} springs — no one saw it coming!`);
+      if (trap && trap.triggerText) lines.push(`   "${trap.triggerText}"`);
+
+      const effect = (trap && trap.effect) || { type: "damage" };
+      if (effect.type === "damage") {
+        const ids     = [...work.keys()];
+        const targets = effect.target === "random"
+          ? (ids.length ? [ids[Math.floor(Math.random() * ids.length)]] : [])
+          : ids; // default: whole party
+        for (const id of targets) {
+          const w   = work.get(id);
+          const dmg = damageFor(w.inst, effect);
+          const hp  = Math.max(0, (w.inst.currentHp != null ? w.inst.currentHp : w.inst.maxHp) - dmg);
+          w.inst = { ...w.inst, currentHp: hp };
+          if (hp <= 0 && typeof DeathHandler !== "undefined") {
+            w.inst = DeathHandler.handleDeath(w.inst, save);
+            lines.push(`   ✗ ${w.inst.name} takes ${dmg} damage and is downed!`);
+          } else {
+            lines.push(`   ✗ ${w.inst.name} takes ${dmg} damage. (${hp}/${w.inst.maxHp})`);
+          }
+        }
+      }
+      // Non-damage effect types are authored later; XP + narration still apply.
+    }
+
+    // Persist every touched instance once.
+    for (const w of work.values())
+      DataStore.write(`instances/companions/${w.member.instanceId}`, w.inst);
+
+    lines.push(`   ✦ The party gains dungeoneering experience.`);
+    lines.push(...levelUps);
+
+    return { save, detected: det.detected, triggered, lines };
+  };
+
+  return { resolve, rollDetection, memberDetects, livingParty, damageFor, DEFAULT_XP, DEFAULT_DAMAGE_PCT };
+})();
+
+
+// =============================================================================
 // SHOP SYSTEM
 // =============================================================================
 
@@ -2196,6 +2327,18 @@ const HomeScreen = (() => {
         state = STATES.HOME; return;
       }
       if (enc.encounterType === "fishing_spot") { emit(`\n🎣 Fishing Spot � (fishing not yet implemented)`);    save = Modifiers.clearFlag(save, "trackingBoost"); save = Modifiers.clearFlag(save, "activeTrack"); save = Modifiers.clearFlag(save, "fleeBonus"); state = STATES.HOME; return; }
+
+      if (enc.encounterType === "trap") {
+        emit(`\n🪤 Trap!`);
+        const res = TrapSystem.resolve(save, enc.trap || null);
+        save = res.save;
+        for (const line of res.lines) emit(line);
+        save = Modifiers.clearFlag(save, "trackingBoost");
+        save = Modifiers.clearFlag(save, "activeTrack");
+        save = Modifiers.clearFlag(save, "fleeBonus");
+        const srTr = SaveManager.save(save, slotId); emit(srTr.ok ? `   ✓ Auto-saved.` : `   ✗ Save failed.`);
+        state = STATES.HOME; return;
+      }
 
       // Combat: surface enemies then wait for engageCombat() or tryFlee()
       const _fleeBonus  = save.flags?.fleeBonus || 0;
@@ -3101,6 +3244,56 @@ const GameLoopTests = (() => {
     assert("RidingSystem: gainRiding increments",   RidingSystem.gainRiding({ riding: 1, party: [] }).riding === 2);
     assert("RidingSystem: gainRiding respects cap", RidingSystem.gainRiding({ riding: 75, party: [] }).riding === 75);
 
+    // ── TrapSystem / Dungeoneering ────────────────────────────────────────────
+    // damage helpers are data-independent
+    assert("TrapSystem: flat damage",    TrapSystem.damageFor({ maxHp: 200 }, { damage: { mode: "flat", amount: 40 } }) === 40);
+    assert("TrapSystem: percent damage", TrapSystem.damageFor({ maxHp: 200 }, { damage: { mode: "percentMaxHp", amount: 0.15 } }) === 30);
+    assert("TrapSystem: default damage", TrapSystem.damageFor({ maxHp: 100 }, { damage: {} }) === 15);
+
+    const _rand = Math.random;
+    try {
+      const mkTrapInst = (iid, lvl, dungLvl) => DataStore.write(`instances/companions/${iid}`, {
+        instanceId: iid, templateId: "template_companion", _version: 1, name: iid,
+        classId: "armsman", level: lvl, maxHp: 100, currentHp: 100, maxMp: 0, currentMp: 0,
+        deathState: "alive", permadead: false, downedAt: null, rezCost: 0,
+        skills: { dungeoneering: { level: dungLvl, xp: 0 } },
+      });
+      const trapSave = (iid) => ({ mode: "normal", party: [{ instanceId: iid, templateId: "template_companion" }], inventory: [], flags: {}, currency: 0 });
+      const partyTrap = { id: "t_party", name: "Test Trap", effect: { type: "damage", target: "party", damage: { mode: "percentMaxHp", amount: 0.15 } }, xp: 15 };
+
+      // detection: class roll always succeeds (rand=0, level 5) → avoided, no damage
+      Math.random = () => 0;
+      mkTrapInst("gl_trap_a", 5, 1);
+      const detRes = TrapSystem.resolve(trapSave("gl_trap_a"), partyTrap);
+      const aAfter = Loader.load("instances/companions/gl_trap_a", "companionInstance").data;
+      assert("TrapSystem: detected trap reports detection", detRes.detected === true && detRes.triggered === false);
+      assert("TrapSystem: detected trap deals no damage",   aAfter.currentHp === 100);
+      assert("TrapSystem: detection awards dungeoneering XP", aAfter.skills.dungeoneering.xp === 15);
+
+      // no detection: both rolls fail (rand=0.999, low levels) → trap springs, damage applied
+      Math.random = () => 0.999;
+      mkTrapInst("gl_trap_b", 5, 1);
+      const trigRes = TrapSystem.resolve(trapSave("gl_trap_b"), partyTrap);
+      const bAfter = Loader.load("instances/companions/gl_trap_b", "companionInstance").data;
+      assert("TrapSystem: undetected trap springs",          trigRes.triggered === true && trigRes.detected === false);
+      assert("TrapSystem: undetected trap deals damage",     bAfter.currentHp === 85);
+      assert("TrapSystem: sprung trap still awards XP",       bAfter.skills.dungeoneering.xp === 15);
+
+      // dungeoneering as backup: class fails (level 0 path) but dungeoneering 99 succeeds
+      // rand sequence: first call (class) = 0.5 fails for level 1; second (dungeoneering) = 0 succeeds for 99
+      const seq = [0.5, 0.0]; let si = 0;
+      Math.random = () => seq[si++ % seq.length];
+      mkTrapInst("gl_trap_c", 1, 99);
+      const backupRes = TrapSystem.resolve(trapSave("gl_trap_c"), partyTrap);
+      assert("TrapSystem: dungeoneering is the backup detector", backupRes.detected === true && backupRes.triggered === false);
+
+      DataStore.remove("instances/companions/gl_trap_a");
+      DataStore.remove("instances/companions/gl_trap_b");
+      DataStore.remove("instances/companions/gl_trap_c");
+    } finally {
+      Math.random = _rand;
+    }
+
     return { passed: p, failed: f, total: p + f, results };
   };
 
@@ -3130,7 +3323,7 @@ if (typeof DataStore === "undefined") {
 if (typeof module !== "undefined") {
   module.exports = {
     Currency,
-    RidingSystem,
+    RidingSystem, TrapSystem,
     CombatBridge, DeathHandler,
     RewardEngine, ShopSystem, SaveManager,
     SyntheticGameData, HomeScreen, GameLoopTests,

@@ -101,7 +101,7 @@ const skillForAbilityUse = (abilityId, equippedWeaponType) => {
 };
 
 // Universal skills every character has (not listed per class).
-const UNIVERSAL_SKILLS = ["riding", "trading"];
+const UNIVERSAL_SKILLS = ["riding", "trading", "dungeoneering"];
 
 // Trainable skills = class list (+ universal + narrative-unlocked skills on the instance).
 const trainableSkills = (classId, inst) => {

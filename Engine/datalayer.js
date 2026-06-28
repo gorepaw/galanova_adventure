@@ -8,6 +8,7 @@
 const _mobsData = require('../Data/mobs.json');
 const _questsData        = require('../Data/quests.json');
 const _encounterTablesData = require('../Data/encounters.json');
+const _trapsData         = require('../Data/traps.json');
 
 // =============================================================================
 // SCHEMAS
@@ -22,7 +23,7 @@ const SCHEMAS = {
   // Current status:
   //   LOCKED:  resourceCost, statBlock, effectEntry, buff, item
   //   OPEN:    ability, class, companion, companionInstance, enemy,
-  //            zone, quest, encounterTable, trait, quirk, save
+  //            zone, quest, encounterTable, trait, quirk, trap, save
 
   resourceCost: {
     type: "object",
@@ -424,6 +425,25 @@ const SCHEMAS = {
       rolls:              { type: "integer", minimum: 1 },
       drops:              { type: "array", items: { type: "object" }, minItems: 1 },
       tags:               { type: "array", items: { type: "string" } },
+    },
+    additionalProperties: true, // OPEN
+  },
+
+  // --- trap --- OPEN
+  // Dungeoneering trap definition. See Data/traps.json for the field contract.
+  trap: {
+    $id: "trap",
+    type: "object",
+    required: ["id","name"],
+    properties: {
+      id:          { type: "string", pattern: "^[a-z0-9_]+$" },
+      name:        { type: "string", minLength: 1 },
+      _version:    { type: "integer", minimum: 1 },
+      xp:          { type: "number",  minimum: 0 },
+      detectText:  { type: "string" },
+      triggerText: { type: "string" },
+      effect:      { type: "object" },
+      tags:        { type: "array", items: { type: "string" } },
     },
     additionalProperties: true, // OPEN
   },
@@ -1063,6 +1083,9 @@ const SyntheticData = (() => {
 
     for (const [id, mob] of Object.entries(_mobsData.mobs))
       DataStore.write(`templates/enemies/${id}`, mob);
+
+    for (const [id, trap] of Object.entries(_trapsData.traps || {}))
+      DataStore.write(`templates/traps/${id}`, trap);
 
     DataStore.write("templates/items/item_test_sword", {
       id: "item_test_sword", name: "Test Sword", _version: 1,

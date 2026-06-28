@@ -42,12 +42,15 @@
     "summoning": { "id": "summoning", "name": "Summoning", "category": "combat", "type": "magic", "abilities": [] },
     "restoration": { "id": "restoration", "name": "Restoration", "category": "combat", "type": "magic", "abilities": [] },
     "divination": { "id": "divination", "name": "Divination", "category": "combat", "type": "magic", "abilities": [] },
+    "shapeshifting": { "id": "shapeshifting", "name": "Shapeshifting", "category": "combat", "type": "magic", "abilities": [] },
 
 
+    
     "tracking": { "id": "tracking", "name": "Tracking", "category": "non_combat", "type": "utility", "abilities": [] },
     "lockpicking": { "id": "lockpicking", "name": "Lockpicking", "category": "non_combat", "type": "utility", "abilities": [] },
     "riding": { "id": "riding", "name": "Riding", "category": "non_combat", "type": "utility", "abilities": [] },
     "trading": { "id": "trading", "name": "Trading", "category": "non_combat", "type": "utility", "abilities": [] },
+    "dungeoneering": { "id": "dungeoneering", "name": "Dungeoneering", "category": "non_combat", "type": "utility", "abilities": [] },
 
     "blacksmithing": { "id": "blacksmithing", "name": "Blacksmithing", "category": "non_combat", "type": "profession", "abilities": [] },
     "engineering": { "id": "engineering", "name": "Engineering", "category": "non_combat", "type": "profession", "abilities": [] },
@@ -62,6 +65,9 @@
     "computing": { "id": "computing", "name": "Computing", "category": "non_combat", "type": "profession", "abilities": [] },
     "fabrication": { "id": "fabrication", "name": "Fabrication", "category": "non_combat", "type": "profession", "abilities": [] },
     "metallurgy": { "id": "metallurgy", "name": "Metallurgy", "category": "non_combat", "type": "profession", "abilities": [] },
+    "tailoring": { "id": "tailoring", "name": "Tailoring", "category": "non_combat", "type": "profession", "abilities": [] },
+    "construction": { "id": "construction", "name": "Construction", "category": "non_combat", "type": "profession", "abilities": [] },
+    "farming": { "id": "farming", "name": "Farming", "category": "non_combat", "type": "profession", "abilities": [] },
     "jewelcrafting": { "id": "jewelcrafting", "name": "Jewelcrafting", "category": "non_combat", "type": "profession", "abilities": [] }
   }
 }
