@@ -7,8 +7,10 @@ const _abilitiesData = require('../Data/abilities.json');
 
 const CombatBridge = (() => {
 
-  const CLASS_BASE_HP = { warrior:60, paladin:45, hunter:45, rogue:40, priest:30, shaman:40, mage:25, warlock:28, druid:35 };
-  const CLASS_BASE_MP = { warrior:0,  paladin:60, hunter:40, rogue:0,  priest:80, shaman:60, mage:100, warlock:90, druid:70 };
+  // Per-class flat HP/MP bonuses — TBD for the Galanova classes; empty for now
+  // so maxHp/maxMana derive purely from stats (con*10 / int*15).
+  const CLASS_BASE_HP = {};
+  const CLASS_BASE_MP = {};
 
   const ABILITY_DATA     = _abilitiesData.abilities;
   const BUFF_DEFS_BRIDGE = _abilitiesData.buffs;
@@ -30,12 +32,12 @@ const CombatBridge = (() => {
   };
 
   const buildUnit = (cfg, isEnemy = false) => {
-    const classId  = cfg.classId || "warrior";
+    const classId  = cfg.classId || "armsman";
     const minLevel = cfg.level || 1;
     const level    = isEnemy
       ? minLevel + Math.floor(Math.random() * ((cfg.levelMax ?? minLevel + 1) - minLevel + 1))
       : minLevel;
-    const raw      = cfg.stats?.raw || cfg.baseStats || getStatsAtLevel(cfg.raceId || "orc", classId, level);
+    const raw      = cfg.stats?.raw || cfg.baseStats || getStatsAtLevel(cfg.raceId || "sephir", classId, level);
     const abilities = cfg.learnedAbilities || cfg.abilities || ["basic_attack"];
 
     const baseD = {
@@ -69,13 +71,13 @@ const CombatBridge = (() => {
       id:           cfg.instanceId || cfg.id || `u_${Math.random().toString(36).slice(2, 7)}`,
       name:         cfg.name,
       classId,
-      raceId:       cfg.raceId || "orc",
+      raceId:       cfg.raceId || "sephir",
       level,
       hp:           cfg.currentHp || maxHp,
       maxHp,
       xpValue:      cfg.xpValue   || 0,
       loot:         cfg.loot      || [],
-      skinningLoot: cfg.skinningLoot  || [],
+      butcheryLoot: cfg.butcheryLoot  || [],
       killReputation: cfg.killReputation || [],
       currencyDrop: cfg.currencyDrop  || null,
       stats:        { raw, derived },

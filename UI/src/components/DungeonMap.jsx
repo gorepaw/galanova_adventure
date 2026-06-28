@@ -33,14 +33,14 @@ function ZoneBtn({ zone, onSelectZone }) {
 }
 
 export default function DungeonMap({
-  currentZone, zoneData, connectedZones,
+  currentZone, zoneData, travelZones,
   onSelectZone,
   filterTypes = null,
   showCurrent = true,
 }) {
   const allZones = filterTypes
-    ? (connectedZones || []).filter(z => filterTypes.includes(z.type))
-    : (connectedZones || [])
+    ? (travelZones || []).filter(z => filterTypes.includes(z.type))
+    : (travelZones || [])
 
   // Split: same-region (free) vs cross-region (grouped by region)
   const nearby = allZones.filter(z => (z.travelCost ?? 0) === 0)

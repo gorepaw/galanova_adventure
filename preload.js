@@ -16,7 +16,7 @@ contextBridge.exposeInMainWorld('gameAPI', {
   renderParty:    ()           => ipcRenderer.invoke('game:renderParty'),
   getCraftingData: ()           => ipcRenderer.invoke('game:getCraftingData'),
   craftItem:       (recipeId)  => ipcRenderer.invoke('game:craftItem', recipeId),
-  skinCorpses:    ()           => ipcRenderer.invoke('game:skinCorpses'),
+  butcherCorpses:    ()           => ipcRenderer.invoke('game:butcherCorpses'),
   equipItem:      (id, iid)   => ipcRenderer.invoke('game:equipItem', id, iid),
   rezMember:      (instanceId) => ipcRenderer.invoke('game:rezMember', instanceId),
   allocateStat:   (instanceId, stat) => ipcRenderer.invoke('game:allocateStat', instanceId, stat),

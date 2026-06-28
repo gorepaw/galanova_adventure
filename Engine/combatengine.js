@@ -1,5 +1,5 @@
 // =============================================================================
-// COMBAT ENGINE — Kalimdor RPG
+// COMBAT ENGINE — Galanova
 // Pure simulation. No UI. No DOM. No rendering.
 //
 // PRIMARY API:
@@ -61,7 +61,7 @@ const PASSIVE_HOOKS = {
     healSelf: Math.floor(unit.maxHp * 0.01), logs: [],
   }),
   endurance: (unit, _ctx) => ({
-    statBonus: { sta: Math.floor(unit.stats.raw.sta * 0.05) }, logs: [],
+    statBonus: { con: Math.floor(unit.stats.raw.con * 0.05) }, logs: [],
   }),
   hardiness: (_unit, ctx) => {
     const resisted = ctx.ccApplied && Math.random() < 0.25;
@@ -227,8 +227,8 @@ const createGameState = ({ partyConfigs, enemyConfigs }) => {
     const defId = cfg.enemyDefId;
     const def   = defId ? ENEMY_DEFS[defId] : null;
 
-    const raceId  = cfg.raceId  || def?.raceId  || "orc";
-    const classId = cfg.classId || def?.classId || "warrior";
+    const raceId  = cfg.raceId  || def?.raceId  || "sephir";
+    const classId = cfg.classId || def?.classId || "armsman";
     const cls     = CLASSES[classId];
     const race    = RACES[raceId];
 
@@ -1283,13 +1283,13 @@ const runTestHarness = () => {
 
   let state = createGameState({
     partyConfigs: [
-      { id: "p0", name: "Grak",    raceId: "orc",       classId: "warrior", abilities: ["heroic_strike","shield_wall","melee_attack"] },
-      { id: "p1", name: "Zin'ara", raceId: "troll",     classId: "mage",    abilities: ["fireball","moonfire"] },
-      { id: "p2", name: "Shayla",  raceId: "night_elf", classId: "priest",  abilities: ["heal","melee_attack"] },
+      { id: "p0", name: "Test Armsman",     raceId: "sephir", classId: "armsman",     abilities: ["basic_attack"] },
+      { id: "p1", name: "Test Elementalist", raceId: "sephir", classId: "elementalist", abilities: ["basic_attack"] },
+      { id: "p2", name: "Test Survivalist",  raceId: "sephir", classId: "survivalist",  abilities: ["basic_attack"] },
     ],
     enemyConfigs: [
-      { id: "e0", enemyDefId: "defias_bandit",   raceId: "orc",    classId: "rogue" },
-      { id: "e1", enemyDefId: "kultiran_sailor",  raceId: "tauren", classId: "warrior" },
+      { id: "e0", enemyDefId: "enemy_test_grunt",  raceId: "sephir", classId: "armsman" },
+      { id: "e1", enemyDefId: "enemy_test_caster", raceId: "sephir", classId: "elementalist" },
     ],
   });
 

@@ -1,6 +1,6 @@
 // =============================================================================
-// COMPANION TEMPLATES — First Ten
-// All unlock in Durotar. joinLevel = min party level to encounter them.
+// COMPANION TEMPLATES
+// joinLevel = min party level to encounter them.
 // baseStats are derived via getStatsAtLevel(raceId, classId, joinLevel)
 // from stat_tables.js — do not hand-edit these numbers.
 //
@@ -24,8 +24,6 @@ const COMPANIONS = Object.fromEntries(
   ])
 );
 
-const CLASS_RESTRICTIONS = _companionData.classRestrictions;
-
 // Index of class ability lists: classId → [{ id, level }, ...]
 const CLASS_ABILITIES = Object.fromEntries(
   Object.entries(_classData.classes).map(([id, c]) => [id, c.abilities || []])
@@ -38,17 +36,8 @@ const getAbilitiesForClass = (classId, upToLevel) =>
     .map(a => a.id);
 
 // Sensible starting loadout per class. Slots not listed default to null.
-const STARTER_GEAR = {
-  warrior: { mainhand: 'worn_blade' },
-  paladin: { mainhand: 'cudgel',           offhand: 'wooden_shield' },
-  hunter:  { mainhand: 'copper_dagger',    ranged:  'feeble_shortbow', ammo: 'rough_arrow' },
-  rogue:   { mainhand: 'copper_dagger' },
-  priest:  { mainhand: 'walking_stick' },
-  shaman:  { mainhand: 'orcish_hand_mace' },
-  mage:    { mainhand: 'walking_stick' },
-  warlock: { mainhand: 'walking_stick' },
-  druid:   { mainhand: 'durotar_quarterstaff' },
-};
+// Cleared during the Galanova conversion — starter loadouts are TBD per class.
+const STARTER_GEAR = {};
 
 
 // =============================================================================
@@ -57,7 +46,7 @@ const STARTER_GEAR = {
 
 const buildCompanionInstance = (template, instanceId) => {
   const raw   = template.baseStats;
-  const maxHp = raw.sta * 10 + (CLASS_BASE_HP[template.classId] || 0);
+  const maxHp = raw.con * 10 + (CLASS_BASE_HP[template.classId] || 0);
   const maxMp = raw.int * 15 + (CLASS_BASE_MP[template.classId] || 0);
 
   return {
@@ -119,7 +108,6 @@ const canEncounterCompanion = (companionTemplate, partyInstances) => {
 if (typeof module !== "undefined") {
   module.exports = {
     COMPANIONS,
-    CLASS_RESTRICTIONS,
     CLASS_ABILITIES,
     getAbilitiesForClass,
     buildCompanionInstance,

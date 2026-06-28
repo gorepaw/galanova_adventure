@@ -1,10 +1,10 @@
 import React from 'react'
 
 export default function AbilityBar({
-  gameState, loading, canSkin,
+  gameState, loading, canButcher,
   autoRun, autoEngage, autoFlee,
   bindings = {}, formatKeyLabel = k => k,
-  onRunEncounter, onEngage, onFlee, onSkin,
+  onRunEncounter, onEngage, onFlee, onButcher,
   onToggleAutoRun, onToggleAutoEngage, onToggleAutoFlee,
 }) {
   const disabled  = loading
@@ -44,11 +44,11 @@ export default function AbilityBar({
                 Auto-Encounter
               </button>
             </div>
-            {canSkin && (
+            {canButcher && (
               <>
                 <div className="bar-separator" />
-                <button className="btn btn-skin bar-btn-fill" onClick={onSkin} disabled={disabled}>
-                  🐾 Skin
+                <button className="btn btn-butcher bar-btn-fill" onClick={onButcher} disabled={disabled}>
+                  🐾 Butcher
                 </button>
               </>
             )}

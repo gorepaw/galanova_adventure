@@ -38,8 +38,8 @@ export default function App() {
   const [save, setSave]                   = useState(null)
   const [partyInstances, setPartyInstances] = useState([])
   const [zoneData, setZoneData]           = useState(null)
-  const [connectedZones, setConnectedZones] = useState([])
-  const [canSkin, setCanSkin]             = useState(false)
+  const [travelZones, setTravelZones] = useState([])
+  const [canButcher, setCanButcher]             = useState(false)
   const [log, setLog]                     = useState([])
   const [activeTab, setActiveTab]         = useState(null)
   const [loading, setLoading]             = useState(false)
@@ -70,8 +70,8 @@ export default function App() {
     setSave(result.save)
     setPartyInstances(result.partyInstances || [])
     setZoneData(result.zoneData)
-    setConnectedZones(result.connectedZones || [])
-    setCanSkin(result.canSkin || false)
+    setTravelZones(result.travelZones || [])
+    setCanButcher(result.canButcher || false)
     if (result.combatMode !== undefined) setCombatMode(result.combatMode)
     setManualCombat(result.manualCombat ?? null)
     if (result.activeSlotId) setActiveSlotId(result.activeSlotId)
@@ -368,7 +368,7 @@ export default function App() {
   return (
     <div className="app">
       <header className="app-header">
-        <div className="header-logo">Kalimdor Adventures</div>
+        <div className="header-logo">Galanova Adventure</div>
         {save && (
           <div className="header-meta">
             <span className="header-zone">{zoneName}</span>
@@ -404,7 +404,7 @@ export default function App() {
           <AbilityBar
             gameState={gameState}
             loading={loading}
-            canSkin={canSkin}
+            canButcher={canButcher}
             autoRun={autoRun}
             autoEngage={autoEngage}
             autoFlee={autoFlee}
@@ -413,7 +413,7 @@ export default function App() {
             onRunEncounter={() => { handleAction('runEncounter'); setActiveTab(null); activeTabRef.current = null }}
             onEngage={() => { handleAction('engageCombat'); setActiveTab(null); activeTabRef.current = null }}
             onFlee={() => { handleAction('tryFlee'); setActiveTab(null); activeTabRef.current = null }}
-            onSkin={() => { handleAction('skinCorpses'); setActiveTab(null); activeTabRef.current = null }}
+            onButcher={() => { handleAction('butcherCorpses'); setActiveTab(null); activeTabRef.current = null }}
             onToggleAutoRun={() => setAutoRun(v => !v)}
             onToggleAutoEngage={handleToggleAutoEngage}
             onToggleAutoFlee={handleToggleAutoFlee}
@@ -457,7 +457,7 @@ export default function App() {
                 <DungeonMap
                   currentZone={save?.currentZone}
                   zoneData={zoneData}
-                  connectedZones={connectedZones}
+                  travelZones={travelZones}
                   onSelectZone={handleSelectZone}
                   filterTypes={['combat']}
                   showCurrent={true}
@@ -480,7 +480,7 @@ export default function App() {
                   <DungeonMap
                     currentZone={save?.currentZone}
                     zoneData={zoneData}
-                    connectedZones={connectedZones}
+                    travelZones={travelZones}
                     onSelectZone={handleSelectZone}
                     filterTypes={['shop']}
                     showCurrent={isShopZone}
@@ -491,7 +491,7 @@ export default function App() {
                 <DungeonMap
                   currentZone={save?.currentZone}
                   zoneData={zoneData}
-                  connectedZones={connectedZones}
+                  travelZones={travelZones}
                   onSelectZone={handleSelectZone}
                   filterTypes={['dungeon']}
                   showCurrent={isDungeon}

@@ -1,5 +1,5 @@
 // =============================================================================
-// JSON DATA LAYER — Kalimdor RPG
+// JSON DATA LAYER — Galanova
 // Modular, versioned, validated, patchable, mergeable.
 // =============================================================================
 
@@ -309,7 +309,7 @@ const SCHEMAS = {
       minPartyLevel:        { type: "integer", minimum: 1 },
       maxPartyLevel:        { type: "integer", minimum: 1 },
       ambientBuffs:         { type: "array",   items: { type: "string" } },
-      connectedZones:       { type: "array",   items: { type: "string" } },
+
       shopInventory:        { type: "array" },
       sellMultiplier:       { type: "number",  minimum: 0 },
       tags:                 { type: "array",   items: { type: "string" } },
@@ -631,7 +631,7 @@ const Loader = (() => {
     },
     zone: {
       _version: 1, minPartyLevel: 1, maxPartyLevel: 60,
-      ambientBuffs: [], connectedZones: [], tags: [],
+      ambientBuffs: [], tags: [],
       forcedOnly: false, forcedEncounterQueue: [],
     },
     quest: {
@@ -1009,29 +1009,29 @@ const SyntheticData = (() => {
       tags: ["pyro","dot"], description: "Deals pyro damage each turn.",
     });
 
-    DataStore.write("templates/classes/class_alpha_warrior", {
-      id: "class_alpha_warrior", name: "Alpha Warrior", _version: 1,
+    DataStore.write("templates/classes/class_alpha", {
+      id: "class_alpha", name: "Alpha Class", _version: 1,
       baseHp: 50, baseMana: 0,
-      resources: ["rage"], primaryResource: "rage",
-      statContribution: { str: 2, agi: 1, sta: 2, int: -1, spi: -1 },
+      resources: ["stamina"], primaryResource: "stamina",
+      statContribution: { str: 2, dex: 1, con: 2, int: -1, spi: -1 },
       passiveHooks: ["rage_on_hit"],
       startingAbilities: ["ability_alpha"],
-      description: "A synthetic warrior class for testing.",
+      description: "A synthetic class for testing.",
     });
 
-    DataStore.write("templates/classes/class_beta_mage", {
-      id: "class_beta_mage", name: "Beta Mage", _version: 1,
+    DataStore.write("templates/classes/class_beta", {
+      id: "class_beta", name: "Beta Class", _version: 1,
       baseHp: 20, baseMana: 80,
       resources: ["mana"], primaryResource: "mana",
-      statContribution: { str: -1, agi: 0, sta: -1, int: 3, spi: 2 },
+      statContribution: { str: -1, dex: 0, con: -1, int: 3, spi: 2 },
       passiveHooks: [],
       startingAbilities: ["ability_beta"],
-      description: "A synthetic mage class for testing.",
+      description: "A synthetic class for testing.",
     });
 
     DataStore.write("templates/companions/companion_unit_01", {
       id: "companion_unit_01", name: "Unit-01", _version: 1,
-      raceId: "orc", classId: "class_alpha_warrior",
+      raceId: "sephir", classId: "class_alpha",
       statOverrides: { str: 20, dex: 18, con: 20, int: 10, spi: 12 },
       abilities: ["ability_alpha","ability_gamma"],
       traits: ["trait_stubborn"], quirks: [],
@@ -1042,7 +1042,7 @@ const SyntheticData = (() => {
 
     DataStore.write("templates/companions/companion_unit_02", {
       id: "companion_unit_02", name: "Unit-02", _version: 1,
-      raceId: "troll", classId: "class_beta_mage",
+      raceId: "sephir", classId: "class_beta",
       statOverrides: { str: 12, dex: 15, con: 14, int: 22, spi: 18 },
       abilities: ["ability_beta"],
       traits: [], quirks: ["quirk_nervous"],
@@ -1101,8 +1101,7 @@ const SyntheticData = (() => {
       id: "zone_test_plains", name: "Test Plains", _version: 1,
       encounterTableId: "encounter_test_plains",
       minPartyLevel: 1, maxPartyLevel: 10,
-      ambientBuffs: [], connectedZones: ["zone_test_forest"],
-      tags: ["test","outdoor"],
+      ambientBuffs: [], tags: ["test","outdoor"],
       lore: "Featureless synthetic plains for testing.",
     });
 
@@ -1307,9 +1306,13 @@ const TestSuite = (() => {
 // BOOTSTRAP
 // =============================================================================
 
+// seed() is the app's data bootstrap (encounter tables, templates) — always runs.
+// The self-test only runs under the harness (Testing/run_tests.js sets the flag).
 SyntheticData.seed();
-const results = TestSuite.run();
-console.log(TestSuite.report(results));
+if (typeof process !== "undefined" && process.env.GALANOVA_RUN_TESTS) {
+  const results = TestSuite.run();
+  console.log(TestSuite.report(results));
+}
 
 if (typeof module !== "undefined") {
   module.exports = {

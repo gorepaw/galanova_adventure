@@ -460,13 +460,13 @@ html, body, #root { height: 100%; overflow: hidden; }
 .btn-danger   { background: rgba(255,68,68,0.15);  border-color: var(--red);      color: var(--red); }
 .btn-secondary{ background: rgba(255,255,255,0.05); border-color: var(--border2); color: var(--text-dim); }
 .btn-nav      { background: transparent; border-color: var(--border2); color: var(--text-dim); padding: 5px 10px; font-weight: normal; }
-.btn-skin     { background: rgba(155,89,182,0.12); border-color: var(--purple);   color: var(--purple); }
+.btn-butcher     { background: rgba(155,89,182,0.12); border-color: var(--purple);   color: var(--purple); }
 
 .btn-primary:hover:not(:disabled)   { background: rgba(74,144,217,0.28); }
 .btn-danger:hover:not(:disabled)    { background: rgba(255,68,68,0.28); }
 .btn-secondary:hover:not(:disabled) { background: rgba(255,255,255,0.1); color: var(--text); }
 .btn-nav:hover:not(:disabled)       { border-color: var(--gold-dim); color: var(--gold); }
-.btn-skin:hover:not(:disabled)      { background: rgba(155,89,182,0.25); }
+.btn-butcher:hover:not(:disabled)      { background: rgba(155,89,182,0.25); }
 
 .btn-sm    { font-size: 10px; padding: 3px 8px; }
 .btn-use   { background: rgba(30,255,0,0.08);   border-color: var(--green);    color: var(--green); }

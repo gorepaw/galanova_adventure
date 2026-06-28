@@ -52,7 +52,7 @@ const makeEnemy = (overrides = {}) => ({
   level: 1,
   baseStats: { str: 10, agi: 10, sta: 10, int: 5, spi: 5 },
   abilities: ["melee_attack"],
-  loot: [], skinningLoot: [], killReputation: [], currencyDrop: null,
+  loot: [], butcheryLoot: [], killReputation: [], currencyDrop: null,
   ...overrides,
 });
 
@@ -1829,7 +1829,7 @@ drAssert("lightning_shield_buff: retaliationLabel",  !!BUFFS.lightning_shield_bu
   const bearDruid = makeDruid({ instanceId: "test_dr_bear", learnedAbilities: ["bear_form", "maul"], tags: ["humanoid"] });
   const mageFoe   = { id: "mage_foe", name: "Mage", classId: "mage", raceId: "orc", level: 10,
     baseStats: { str: 5, agi: 5, sta: 50, int: 20, spi: 5 }, abilities: ["polymorph"],
-    loot: [], skinningLoot: [], killReputation: [], currencyDrop: null, tags: ["humanoid"] };
+    loot: [], butcheryLoot: [], killReputation: [], currencyDrop: null, tags: ["humanoid"] };
   const enc = { zoneId: "test", enemies: [mageFoe] };
   const cr = CombatBridge.run(enc, [bearDruid], {});
   drAssert("polymorph immunity: immune log in bear form", cr.logs.some(l => l.includes("immune (shapeshift)")));

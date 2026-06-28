@@ -1,5 +1,5 @@
 // =============================================================================
-// RANDOM ITEM SUFFIX SYSTEM — Kalimdor RPG
+// RANDOM ITEM SUFFIX SYSTEM — Galanova
 //
 // Implements Classic WoW's "random enchantment" items — the world-drop greens
 // that can be looted plain, or with a randomly rolled suffix like "of the

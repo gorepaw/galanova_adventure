@@ -128,8 +128,8 @@ function initEngine() {
   loadGlobal(path.join(__dirname, 'Engine/companions.js'))
   loadGlobal(path.join(__dirname, 'Engine/encounters.js'))
   loadGlobal(path.join(__dirname, 'Engine/gameplayloop.js'))
-  // The module bootstrap above auto-runs GameLoopTests which mutates DataStore
-  // (skill gains, crafted items, etc.). Re-seed now to restore a clean game state.
+  // Seed the real game data (zones, enemies, items, the starting character/save).
+  // Self-tests do NOT run on launch — they are gated behind GALANOVA_RUN_TESTS.
   SyntheticGameData.seed()
   loadRecipeTemplates()
   loadItemTemplates()
@@ -138,7 +138,7 @@ function initEngine() {
 
 function getSnapshot() {
   if (!session) {
-    return { state: null, save: null, partyInstances: [], zoneData: null, connectedZones: [], canSkin: false }
+    return { state: null, save: null, partyInstances: [], zoneData: null, travelZones: [], canButcher: false }
   }
   const save = session.getSave()
 
@@ -150,7 +150,7 @@ function getSnapshot() {
   const highestLevel = partyInstances.reduce((max, inst) => Math.max(max, inst.level || 1), 1)
 
   let zoneData = null
-  let connectedZones = []
+  let travelZones = []
   if (save?.currentZone) {
     const zr = Loader.load(`templates/zones/${save.currentZone}`, 'zone')
     const currentRegion = zr.ok ? zr.data.regionId : null
@@ -169,7 +169,7 @@ function getSnapshot() {
     }
 
     const allZoneKeys = DataStore.list('templates/zones/')
-    connectedZones = allZoneKeys
+    travelZones = allZoneKeys
       .map(key => { const r = Loader.load(key, 'zone'); return r.ok ? r.data : null })
       .filter(z => z && z.id !== save.currentZone && highestLevel >= (z.minPartyLevel || 1))
       .sort((a, b) => (a.minPartyLevel || 0) - (b.minPartyLevel || 0) || a.name.localeCompare(b.name))
@@ -203,8 +203,8 @@ function getSnapshot() {
     } : null,
     partyInstances,
     zoneData,
-    connectedZones,
-    canSkin: !!(save?.flags?.pendingSkinning?.length),
+    travelZones,
+    canButcher: !!(save?.flags?.pendingButchery?.length),
     combatMode: session?.getCombatMode?.() ?? 'auto',
     manualCombat: session?.getManualCombatState?.() ?? null,
     activeSlotId: _activeSlotId,
@@ -251,7 +251,7 @@ ipcMain.handle('game:sellItem', (_, id, qty) => { session.sellItem(id, qty); ret
 ipcMain.handle('game:renderParty',    () => { session.renderParty();    return respond() })
 ipcMain.handle('game:renderCrafting', () => { session.renderCrafting(); return respond() })
 ipcMain.handle('game:craftItem', (_, id)     => { session.craftItem(id);     return respond() })
-ipcMain.handle('game:skinCorpses',    () => { session.skinCorpses();    return respond() })
+ipcMain.handle('game:butcherCorpses',    () => { session.butcherCorpses();    return respond() })
 ipcMain.handle('game:equipItem', (_, itemId, instanceId) => { session.equipItem(itemId, instanceId); return respond() })
 ipcMain.handle('game:rezMember', (_, instanceId)        => { session.rezMember(instanceId);        return respond() })
 ipcMain.handle('game:allocateStat', (_, instanceId, stat) => { session.allocateStat(instanceId, stat); return respond() })

@@ -1,145 +1,16 @@
 {
   "recipes": {
-
-    "recipe_smelt_copper": {
-      "id": "recipe_smelt_copper",
+    "template_recipe": {
+      "id": "template_recipe",
       "_version": 1,
-      "name": "Smelt Copper",
-      "requiredProfession": "mining",
-      "minSkillLevel": 1,
-      "skillGainTiers": [
-        { "upToSkill": 25, "gain": 1.00 },
-        { "upToSkill": 47, "gain": 0.50 },
-        { "upToSkill": 70, "gain": 0.25 }
-      ],
-      "inputs": [{ "itemId": "copper_ore", "qty": 1 }],
-      "output": { "itemId": "copper_bar", "qty": 1 },
-      "tags": ["mining", "smelting"],
-      "description": "Smelt a copper ore into a usable copper bar."
-    },
-
-    "recipe_chitin_bandage": {
-      "id": "recipe_chitin_bandage",
-      "_version": 1,
-      "name": "Chitin Bandage",
+      "name": "Template Recipe",
       "requiredProfession": null,
       "minSkillLevel": 0,
       "skillGain": 0,
-      "inputs": [{ "itemId": "crawler_chitin", "qty": 2 }],
-      "output": { "itemId": "rough_bandage", "qty": 1 },
-      "tags": ["field_craft"],
-      "description": "Fashion a crude bandage from crawler chitin."
-    },
-
-    "recipe_minor_potion": {
-      "id": "recipe_minor_potion",
-      "_version": 1,
-      "name": "Minor Health Potion",
-      "requiredProfession": "herbalism",
-      "minSkillLevel": 1,
-      "skillGain": 5,
-      "inputs": [
-        { "itemId": "peacebloom", "qty": 1 },
-        { "itemId": "silverleaf", "qty": 1 }
-      ],
-      "output": { "itemId": "minor_health_potion", "qty": 1 },
-      "tags": ["alchemy"],
-      "description": "Brew a restorative potion from common herbs."
-    },
-
-    "recipe_linen_bandage": {
-      "id": "recipe_linen_bandage",
-      "_version": 1,
-      "name": "Linen Bandage",
-      "requiredProfession": "first_aid",
-      "minSkillLevel": 1,
-      "skillGain": 1,
-      "inputs": [{ "itemId": "linen_cloth", "qty": 1 }],
-      "output": { "itemId": "linen_bandage", "qty": 1 },
-      "tags": ["first_aid"],
-      "description": "Bandage a wound with clean linen cloth."
-    },
-
-    "recipe_rough_copper_vest": {
-      "id": "recipe_rough_copper_vest",
-      "_version": 1,
-      "name": "Rough Copper Vest",
-      "requiredProfession": "blacksmithing",
-      "minSkillLevel": 1,
-      "skillGainTiers": [
-        { "upToSkill": 15, "gain": 1.00 },
-        { "upToSkill": 35, "gain": 0.50 },
-        { "upToSkill": 55, "gain": 0.25 }
-      ],
-      "inputs": [{ "itemId": "copper_bar", "qty": 4 }],
-      "output": { "itemId": "rough_copper_vest", "qty": 1 },
-      "tags": ["blacksmithing"],
-      "description": "Hammer copper bars into a protective chest piece."
-    },
-
-    "recipe_copper_chain_pants": {
-      "id": "recipe_copper_chain_pants",
-      "_version": 1,
-      "name": "Copper Chain Pants",
-      "requiredProfession": "blacksmithing",
-      "minSkillLevel": 1,
-      "skillGainTiers": [
-        { "upToSkill": 50, "gain": 1.00 },
-        { "upToSkill": 70, "gain": 0.50 },
-        { "upToSkill": 90, "gain": 0.25 }
-      ],
-      "inputs": [{ "itemId": "copper_bar", "qty": 4 }],
-      "output": { "itemId": "copper_chain_pants", "qty": 1 },
-      "tags": ["blacksmithing"],
-      "description": "Forge copper bars into a suit of interlocking leg armor."
-    },
-
-    "recipe_copper_bracers": {
-      "id": "recipe_copper_bracers",
-      "_version": 1,
-      "name": "Copper Bracers",
-      "requiredProfession": "blacksmithing",
-      "minSkillLevel": 1,
-      "skillGainTiers": [
-        { "upToSkill": 20, "gain": 1.00 },
-        { "upToSkill": 40, "gain": 0.50 },
-        { "upToSkill": 60, "gain": 0.25 }
-      ],
-      "inputs": [{ "itemId": "copper_bar", "qty": 2 }],
-      "output": { "itemId": "copper_bracers", "qty": 1 },
-      "tags": ["blacksmithing"],
-      "description": "Hammer copper bars into protective wrist guards."
-    },
-
-    "recipe_rough_sharpening_stone": {
-      "id": "recipe_rough_sharpening_stone",
-      "_version": 1,
-      "name": "Rough Sharpening Stone",
-      "requiredProfession": "blacksmithing",
-      "minSkillLevel": 1,
-      "skillGainTiers": [
-        { "upToSkill": 15, "gain": 1.00 },
-        { "upToSkill": 35, "gain": 0.50 },
-        { "upToSkill": 55, "gain": 0.25 }
-      ],
-      "inputs": [{ "itemId": "rough_stone", "qty": 1 }],
-      "output": { "itemId": "rough_sharpening_stone", "qty": 1 },
-      "tags": ["blacksmithing"],
-      "description": "Grind a rough stone into a sharpening stone that hones a blade's edge."
-    },
-
-    "recipe_copper_dagger": {
-      "id": "recipe_copper_dagger",
-      "_version": 1,
-      "name": "Copper Dagger",
-      "requiredProfession": "blacksmithing",
-      "minSkillLevel": 1,
-      "skillGain": 10,
-      "inputs": [{ "itemId": "copper_ore", "qty": 3 }],
-      "output": { "itemId": "copper_dagger", "qty": 1 },
-      "tags": ["blacksmithing"],
-      "description": "Forge a dagger from smelted copper ore."
+      "inputs": [],
+      "output": { "itemId": "basic_utility_knife", "qty": 1 },
+      "tags": ["template"],
+      "description": "TEMPLATE — placeholder recipe. Replace with Galanova content."
     }
-
   }
 }

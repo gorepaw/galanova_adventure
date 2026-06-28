@@ -1,5 +1,5 @@
 // =============================================================================
-// ENCOUNTER SYSTEM — Kalimdor RPG
+// ENCOUNTER SYSTEM — Galanova
 //
 // Handles all encounter generation logic:
 //   - Slot-based encounter table resolution
@@ -190,7 +190,7 @@ const EncounterGenerator = (() => {
     const pool = table.combatPool || [];
     if (!pool.length) return { ok: false, errors: ["combatPool is empty"] };
 
-    // activeTrack filter: when hunter used track_beasts or track_humanoids,
+    // activeTrack filter: when a party member used track_beasts or track_humanoids,
     // restrict the pool to enemies whose type or tags match the tracked type
     const activeTrack = save.flags?.activeTrack || null;
     let filteredPool = pool;
@@ -426,8 +426,8 @@ const runEncounterTests = (DataStore, Loader, save) => {
   assert("PartySkills: fishing = 0",                 PartySkills.partySkillLevel(pInsts, "fishing") === 0);
 
   // ── checkReroll ────────────────────────────────────────────────────────
-  const etR    = Loader.load("templates/encounter_tables/enc_durotar", "encounterTable");
-  assert("enc_durotar loads",                        etR.ok);
+  const etR    = Loader.load("templates/encounter_tables/enc_colonial_sewers", "encounterTable");
+  assert("enc_colonial_sewers loads",                        etR.ok);
   const etData = etR.ok ? etR.data : { slots: [], recruitPool: [] };
 
   const oreSlot   = etData.slots?.find(sl => sl.nodeId === "copper_ore");
@@ -463,7 +463,7 @@ const runEncounterTests = (DataStore, Loader, save) => {
   const VALID_TYPES = ["combat","companion","gathering","quest","locked_chest","fishing_spot"];
   let gotCompanionNone = false;
   for (let i = 0; i < 20; i++) {
-    const e = EncounterGenerator.generate("durotar", save, Loader);
+    const e = EncounterGenerator.generate("colonial_sewers", save, Loader);
     assert(`generate #${i+1}: ok`,          e.ok);
     assert(`generate #${i+1}: type valid`,  VALID_TYPES.includes(e.encounterType));
     if (e.encounterType === "companion_none") gotCompanionNone = true;
@@ -474,7 +474,7 @@ const runEncounterTests = (DataStore, Loader, save) => {
   const GATED_HERB_NODES = ["peacebloom","silverleaf","earthroot","mageroyal"];
   let gotGatedNode = false;
   for (let i = 0; i < 40; i++) {
-    const e = EncounterGenerator.generate("durotar", save, Loader);
+    const e = EncounterGenerator.generate("colonial_sewers", save, Loader);
     if (e.encounterType === "gathering" && e.gatheringNodes?.some(n => GATED_HERB_NODES.includes(n.nodeId || n.itemId)))
       gotGatedNode = true;
     if (e.encounterType === "locked_chest" || e.encounterType === "fishing_spot")
@@ -485,7 +485,7 @@ const runEncounterTests = (DataStore, Loader, save) => {
   // copper_ore CAN surface (miner in party)
   let gotOre = false;
   for (let i = 0; i < 100; i++) {
-    const e = EncounterGenerator.generate("durotar", save, Loader);
+    const e = EncounterGenerator.generate("colonial_sewers", save, Loader);
     if (e.encounterType === "gathering" && e.gatheringNodes?.some(n => (n.nodeId || n.itemId) === "copper_ore"))
       gotOre = true;
   }
@@ -494,7 +494,7 @@ const runEncounterTests = (DataStore, Loader, save) => {
   // ── combat group ────────────────────────────────────────────────────────
   let combatEnc = null;
   for (let i = 0; i < 50; i++) {
-    const e = EncounterGenerator.generate("durotar", save, Loader);
+    const e = EncounterGenerator.generate("colonial_sewers", save, Loader);
     if (e.encounterType === "combat") { combatEnc = e; break; }
   }
   if (combatEnc) {
@@ -521,7 +521,7 @@ const runEncounterTests = (DataStore, Loader, save) => {
 
   // ── forced encounter ────────────────────────────────────────────────────
   const forcedSave = { ...save, flags: { forcedEncounter: { type: "combat", enemyIds: ["rogue_grunt"] } } };
-  const forcedEnc  = EncounterGenerator.generate("durotar", forcedSave, Loader);
+  const forcedEnc  = EncounterGenerator.generate("colonial_sewers", forcedSave, Loader);
   assert("forced: encounterType = combat",  forcedEnc.encounterType === "combat");
   assert("forced: forced flag = true",      forcedEnc.forced === true);
 
@@ -529,13 +529,13 @@ const runEncounterTests = (DataStore, Loader, save) => {
   // Write a temporary dungeon zone for testing
   DataStore.write("templates/zones/zone_test_dungeon", {
     id: "zone_test_dungeon", name: "Test Dungeon", _version: 1,
-    encounterTableId: "enc_durotar",
+    encounterTableId: "enc_colonial_sewers",
     forcedOnly: true,
     forcedEncounterQueue: [
       { type: "combat",    enemyIds: ["rogue_grunt"] },
       { type: "gathering", gatheringNodes: [{ nodeId: "copper_ore", name: "Copper Vein", qty: 1 }] },
     ],
-    minPartyLevel: 1, maxPartyLevel: 10, ambientBuffs: [], connectedZones: [], tags: [],
+    minPartyLevel: 1, maxPartyLevel: 10, ambientBuffs: [], tags: [],
   });
   const dungeonEnc = EncounterGenerator.generate("zone_test_dungeon", save, Loader);
   assert("dungeon: forced encounter returned",  dungeonEnc.ok);

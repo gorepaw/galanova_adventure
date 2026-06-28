@@ -1,5 +1,5 @@
 // =============================================================================
-// DUNGEON SYSTEM — Kalimdor RPG
+// DUNGEON SYSTEM — Galanova
 //
 // Extends the zone schema, encounter generator, and save schema to support
 // linear dungeon zones with boss encounters, lore text beats, and player-
@@ -576,31 +576,30 @@ const DungeonUI = (() => {
 // Paste into your seed function or DataStore.write calls to test.
 // =============================================================================
 
+// TEMPLATE example — neutral placeholder showing the forced-encounter dungeon
+// shape. Replace enemy/loot ids and dialogue with Galanova content.
 const EXAMPLE_DUNGEON_ZONE = {
-  id:              "ragefire_chasm",
-  name:            "Ragefire Chasm",
+  id:              "template_dungeon",
+  name:            "Template Dungeon",
   _version:        1,
   isDungeon:       true,
   forcedOnly:      true,
-  encounterTableId:"enc_durotar",  // fallback, never used when forcedOnly:true
-  minPartyLevel:   10,
-  maxPartyLevel:   18,
+  encounterTableId:"enc_colonial_sewers",  // fallback, never used when forcedOnly:true
+  minPartyLevel:   1,
+  maxPartyLevel:   5,
   ambientBuffs:    [],
-  connectedZones:  ["orgrimmar"],
   shopInventory:   [],             // no shop — isDungeon gates this in UI
   sellMultiplier:  0.25,
-  tags:            ["dungeon","fire","underground"],
-  lore:            "Deep beneath Orgrimmar, cultists of the Searing Blade gather around the flames of the Old Gods.",
+  tags:            ["dungeon","template"],
+  lore:            "TEMPLATE — placeholder dungeon. Replace with Galanova content.",
 
   forcedEncounterQueue: [
     // ── room 1 — flavour beat ────────────────────────────────────────────
     {
       type:    "text",
-      speaker: "Thrall",
+      speaker: "Narrator",
       lines: [
-        "The air reeks of brimstone.",
-        "The Searing Blade grows bolder with each passing day.",
-        "End them.",
+        "TEMPLATE — placeholder intro text.",
       ],
     },
 
@@ -608,63 +607,58 @@ const EXAMPLE_DUNGEON_ZONE = {
     {
       type:     "combat",
       enemyIds: [
-        { enemyId: "searing_blade_cultist", count: 2 },
-        { enemyId: "searing_blade_warlock", count: 1 },
+        { enemyId: "tunnel_roach", count: 2 },
       ],
     },
 
     // ── room 3 — fork ────────────────────────────────────────────────────
     {
       type:     "combat",
-      enemyIds: [{ enemyId: "ragefire_trogg", count: 3 }],
-      nextEncounters: ["ragefire_wing_a", "ragefire_wing_b"],
-      forkLabels:     ["Western corridors", "Eastern vault"],
+      enemyIds: [{ enemyId: "tunnel_roach", count: 3 }],
+      nextEncounters: ["template_wing_a", "template_wing_b"],
+      forkLabels:     ["Left passage", "Right passage"],
     },
   ],
 };
 
 const EXAMPLE_WING_A = {
-  id:              "ragefire_wing_a",
-  name:            "Western Corridors",
+  id:              "template_wing_a",
+  name:            "Left Passage",
   _version:        1,
   isDungeon:       true,
   forcedOnly:      true,
-  encounterTableId:"enc_durotar",
-  minPartyLevel:   10,
-  maxPartyLevel:   18,
+  encounterTableId:"enc_colonial_sewers",
+  minPartyLevel:   1,
+  maxPartyLevel:   5,
   ambientBuffs:    [],
-  connectedZones:  ["ragefire_chasm"],
   shopInventory:   [],
   sellMultiplier:  0.25,
-  tags:            ["dungeon","fire"],
-  lore:            "Narrow passages lit by guttering torches.",
+  tags:            ["dungeon","template"],
+  lore:            "TEMPLATE — placeholder dungeon wing.",
 
   forcedEncounterQueue: [
     {
       type:     "combat",
-      enemyIds: [{ enemyId: "searing_blade_enforcer", count: 2 }],
+      enemyIds: [{ enemyId: "tunnel_roach", count: 2 }],
     },
     {
       type:           "boss",
-      enemyIds:       [{ enemyId: "jergosh_the_invoker" }],
+      enemyIds:       [{ enemyId: "tunnel_roach" }],
       introDialogue:  [
-        "Jergosh the Invoker raises his staff.",
-        "\"You dare interrupt the ritual?  Burn with the rest of them!\"",
+        "TEMPLATE — placeholder boss intro.",
       ],
       midDialogue: {
         triggerHpPct: 0.4,
-        lines: ["\"Impossible...  The flames will devour you!\""],
+        lines: ["TEMPLATE — placeholder boss mid-fight line."],
         fired: false,
       },
       outroDialogue: [
-        "Jergosh collapses.  The ritual flame gutters and dies.",
-        "His grimoire falls open at your feet.",
+        "TEMPLATE — placeholder boss outro.",
       ],
       guaranteedLoot: [
-        { itemId: "jergoshs_kilt",       qty: 1 },
-        { itemId: "flaming_band",         qty: 1 },
+        { itemId: "basic_utility_knife", qty: 1 },
       ],
-      questFlags: ["jergosh_slain"],
+      questFlags: ["template_boss_slain"],
     },
   ],
 };
@@ -682,15 +676,15 @@ const runDungeonTests = (DataStore, Loader) => {
   DataStore.write("templates/zones/test_dungeon", {
     id: "test_dungeon", name: "Test Dungeon", _version: 1,
     isDungeon: true, forcedOnly: true,
-    encounterTableId: "enc_durotar",
+    encounterTableId: "enc_colonial_sewers",
     minPartyLevel: 1, maxPartyLevel: 10,
-    ambientBuffs: [], connectedZones: [], shopInventory: [],
+    ambientBuffs: [], shopInventory: [],
     sellMultiplier: 0.25, tags: ["dungeon"], lore: "A test dungeon.",
     forcedEncounterQueue: [
       { type: "text",   lines: ["Hello, dungeon."], speaker: "Narrator" },
-      { type: "combat", enemyIds: [{ enemyId: "boar", count: 1 }] },
+      { type: "combat", enemyIds: [{ enemyId: "tunnel_roach", count: 1 }] },
       {
-        type: "combat", enemyIds: [{ enemyId: "scorpid", count: 1 }],
+        type: "combat", enemyIds: [{ enemyId: "tunnel_roach", count: 1 }],
         nextEncounters: ["wing_left", "wing_right"],
         forkLabels: ["Left", "Right"],
       },
@@ -700,9 +694,9 @@ const runDungeonTests = (DataStore, Loader) => {
   DataStore.write("templates/zones/wing_left", {
     id: "wing_left", name: "Left Wing", _version: 1,
     isDungeon: true, forcedOnly: true,
-    encounterTableId: "enc_durotar",
+    encounterTableId: "enc_colonial_sewers",
     minPartyLevel: 1, maxPartyLevel: 10,
-    ambientBuffs: [], connectedZones: [], shopInventory: [],
+    ambientBuffs: [], shopInventory: [],
     sellMultiplier: 0.25, tags: ["dungeon"], lore: "",
     forcedEncounterQueue: [
       { type: "text", lines: ["You took the left path."] },
@@ -711,8 +705,8 @@ const runDungeonTests = (DataStore, Loader) => {
 
   const baseSave = {
     saveId: "test", _version: 1, timestamp: new Date().toISOString(),
-    mode: "normal", currentZone: "durotar",
-    party: [{ instanceId: "player_main", templateId: "thazzril" }],
+    mode: "normal", currentZone: "colonial_sewers",
+    party: [{ instanceId: "player_main", templateId: "template_companion" }],
     quests: {}, inventory: [], currency: 0,
     reputation: {}, talentSchools: {}, flags: {}, playtime: 0, shopStocks: {},
   };
@@ -774,11 +768,11 @@ const runDungeonTests = (DataStore, Loader) => {
 
   // ── DungeonEncounterBuilder ───────────────────────────────────────────────
   const textEntry   = { type: "text",   lines: ["Test."], speaker: "Test" };
-  const combatEntry = { type: "combat", enemyIds: [{ enemyId: "boar", count: 1 }] };
+  const combatEntry = { type: "combat", enemyIds: [{ enemyId: "tunnel_roach", count: 1 }] };
   const bossEntry   = {
-    type: "boss", enemyIds: [{ enemyId: "boar" }],
+    type: "boss", enemyIds: [{ enemyId: "tunnel_roach" }],
     introDialogue: ["Roar!"], outroDialogue: ["Dead."],
-    guaranteedLoot: [{ itemId: "minor_health_potion", qty: 1 }],
+    guaranteedLoot: [{ itemId: "basic_utility_knife", qty: 1 }],
     questFlags: ["boss_slain"],
   };
 
@@ -796,13 +790,13 @@ const runDungeonTests = (DataStore, Loader) => {
   assert("builder: boss guaranteedLoot present",  bossEnc.guaranteedLoot?.length > 0);
 
   // ── exit ──────────────────────────────────────────────────────────────────
-  const { save: sExit } = DungeonManager.exit(s2, "durotar");
+  const { save: sExit } = DungeonManager.exit(s2, "colonial_sewers");
   assert("exit: clears dungeonProgress",   !sExit.flags?.dungeonProgress);
-  assert("exit: restores returnZone",      sExit.currentZone === "durotar");
+  assert("exit: restores returnZone",      sExit.currentZone === "colonial_sewers");
 
   // ── isDungeon gate ────────────────────────────────────────────────────────
   assert("DungeonUI: isDungeon true for dungeon zone",  DungeonUI.isInDungeon({ ...baseSave, currentZone: "test_dungeon" }, Loader));
-  assert("DungeonUI: isDungeon false for normal zone",  !DungeonUI.isInDungeon({ ...baseSave, currentZone: "durotar" }, Loader));
+  assert("DungeonUI: isDungeon false for normal zone",  !DungeonUI.isInDungeon({ ...baseSave, currentZone: "colonial_sewers" }, Loader));
 
   // cleanup
   DataStore.remove("templates/zones/test_dungeon");

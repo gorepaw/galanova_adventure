@@ -1,84 +1,17 @@
 {
   "nodes": {
-
-    "copper_vein": {
-      "id": "copper_vein",
-      "name": "Copper Vein",
+    "template_node": {
+      "id": "template_node",
+      "name": "Template Node",
       "_version": 1,
       "requiredProfession": "mining",
       "minSkillLevel": 1,
-      "skillGain": 3,
-      "rolls": 3,
-      "drops": [
-        { "itemId": "copper_ore",  "qty": 1, "chance": 1.00 },
-        { "itemId": "copper_ore",  "qty": 1, "chance": 0.50 },
-        { "itemId": "rough_stone", "qty": 1, "chance": 0.44 },
-        { "itemId": "malachite",   "qty": 1, "chance": 0.01 },
-        { "itemId": "shadowgem",   "qty": 1, "chance": 0.01 },
-        { "itemId": "tigerseye",   "qty": 1, "chance": 0.01 }
-      ],
-      "tags": ["ore", "mining"]
-    },
-
-    "peacebloom_patch": {
-      "id": "peacebloom_patch",
-      "name": "Peacebloom",
-      "_version": 1,
-      "requiredProfession": "herbalism",
-      "minSkillLevel": 1,
       "skillGain": 1,
+      "rolls": 1,
       "drops": [
-        { "itemId": "peacebloom", "qty": 1, "chance": 1.00 },
-        { "itemId": "peacebloom", "qty": 1, "chance": 0.66 },
-        { "itemId": "peacebloom", "qty": 1, "chance": 0.33 }
+        { "itemId": "basic_utility_knife", "qty": 1, "chance": 1.00 }
       ],
-      "tags": ["herb", "herbalism"]
-    },
-
-    "silverleaf_bush": {
-      "id": "silverleaf_bush",
-      "name": "Silverleaf",
-      "_version": 1,
-      "requiredProfession": "herbalism",
-      "minSkillLevel": 1,
-      "skillGain": 1,
-      "drops": [
-        { "itemId": "silverleaf", "qty": 1, "chance": 1.00 },
-        { "itemId": "silverleaf", "qty": 1, "chance": 0.66 },
-        { "itemId": "silverleaf", "qty": 1, "chance": 0.33 }
-      ],
-      "tags": ["herb", "herbalism"]
-    },
-
-    "earthroot_tuft": {
-      "id": "earthroot_tuft",
-      "name": "Earthroot",
-      "_version": 1,
-      "requiredProfession": "herbalism",
-      "minSkillLevel": 15,
-      "skillGain": 1,
-      "drops": [
-        { "itemId": "earthroot", "qty": 1, "chance": 1.00 },
-        { "itemId": "earthroot", "qty": 1, "chance": 0.66 },
-        { "itemId": "earthroot", "qty": 1, "chance": 0.33 }
-      ],
-      "tags": ["herb", "herbalism"]
-    },
-
-    "mageroyal_cluster": {
-      "id": "mageroyal_cluster",
-      "name": "Mageroyal",
-      "_version": 1,
-      "requiredProfession": "herbalism",
-      "minSkillLevel": 50,
-      "skillGain": 1,
-      "drops": [
-        { "itemId": "mageroyal", "qty": 1, "chance": 1.00 },
-        { "itemId": "mageroyal", "qty": 1, "chance": 0.66 },
-        { "itemId": "mageroyal", "qty": 1, "chance": 0.33 }
-      ],
-      "tags": ["herb", "herbalism"]
+      "tags": ["template"]
     }
-
   }
 }
