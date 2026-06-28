@@ -300,7 +300,7 @@ combat sim using basic_attack.
 
 ## Race / species roster (work in progress)
 
-> Races apply **flat stat modifiers at character creation** (`statMod` in `classes.json` →
+> Races apply **flat stat modifiers at character creation** (`statMod` in `races.json` →
 > `races`), applied by `leveltables.raceStatMod` / `newInstance` and baked into the instance's
 > `stats.raw`. `raceId` is otherwise decoupled from stats. More races to come.
 

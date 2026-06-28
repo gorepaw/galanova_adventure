@@ -38,6 +38,26 @@
       "description": "Attacks with your equipped ranged weapon."
     },
 
+    "sample_cleaving_blow": {
+      "id": "sample_cleaving_blow",
+      "name": "Cleaving Blow",
+      "resourceCost": { "rage": 20 },
+      "cooldown": 3,
+      "castTime": 0,
+      "targeting": "single_enemy",
+      "effects": [
+        {
+          "type": "damage",
+          "damageType": "physical",
+          "usesWeapon": "melee",
+          "scaling": { "ap": 0.8, "str": 0.5, "one_handed_swords": 1.0 },
+          "flatBonus": 10
+        }
+      ],
+      "tags": ["physical", "melee", "sample"],
+      "description": "SAMPLE ability showing the new fields. Damage = melee weapon roll (mainhand at full + offhand at 50%, each divided by weaponSpeed) + 0.8 x AttackPower + 0.5 x Strength + 1.0 x One-Handed Swords skill level + 10 flat. The weapon term stands alongside the scaling (it is not multiplied by the coefficients), then the whole hit can crit."
+    },
+
     "spiritual_guidance": {
       "id": "spiritual_guidance",
       "name": "Spiritual Guidance",

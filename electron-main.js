@@ -133,6 +133,7 @@ function initEngine() {
   loadGlobal(path.join(__dirname, 'Engine/itemsuffixes.js'))
   loadGlobal(path.join(__dirname, 'Engine/leveltables.js'))
   loadGlobal(path.join(__dirname, 'Engine/skills.js'))
+  loadGlobal(path.join(__dirname, 'Engine/equipment.js'))
   loadGlobal(path.join(__dirname, 'Engine/companions.js'))
   loadGlobal(path.join(__dirname, 'Engine/encounters.js'))
   loadGlobal(path.join(__dirname, 'Engine/gameplayloop.js'))

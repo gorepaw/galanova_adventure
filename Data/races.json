@@ -1,0 +1,10 @@
+{
+  "races": {
+    "sephir": {
+      "id": "sephir",
+      "name": "Sephir",
+      "statMod": { "str": -1, "con": -1, "int": 2 },
+      "lore": "Blue-skinned, six-eyed humanoids of Meyn-Sephir; first to engineer Liquimetal-God communication, then FTL."
+    }
+  }
+}

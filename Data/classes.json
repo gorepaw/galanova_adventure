@@ -9,7 +9,7 @@
       "resources": ["stamina", "combo_points"],
       "primaryResource": "stamina",
       "skills": [
-        "blacksmithing", "engineering", "dueling",
+        "weaponsmithing", "engineering", "dueling",
         "one_handed_swords", "two_handed_swords",
         "one_handed_axes", "two_handed_axes",
         "one_handed_maces", "two_handed_maces",
@@ -18,17 +18,17 @@
       "startingBaseline": { "str": 13, "dex": 15, "con": 15, "int": 8, "spi": 9, "wis": 13, "spd": 10, "cha": 9 },
       "description": "A master of weapons and heavy armor, durable and dex-driven."
     },
-    "illusionist": {
-      "id": "illusionist",
-      "name": "Illusionist",
-      "armorTier": "clothing",
-      "coreStats": ["int", "cha"],
-      "guaranteedLevelUp": { "int": 1, "cha": 1 },
-      "resources": ["mana"],
-      "primaryResource": "mana",
-      "skills": ["staves", "wands", "daggers", "manipulation", "madness", "morale", "enchanting", "alchemy", "divination"],
-      "startingBaseline": { "str": 8, "dex": 10, "con": 9, "int": 16, "spi": 12, "wis": 10, "spd": 11, "cha": 15 },
-      "description": "A clothing caster who bends minds through manipulation and madness."
+    "assassin": {
+      "id": "assassin",
+      "name": "Assassin",
+      "armorTier": "light",
+      "coreStats": ["dex", "spd", "cha"],
+      "guaranteedLevelUp": { "dex": 1, "spd": 1, "cha": 1 },
+      "resources": ["stamina", "combo_points"],
+      "primaryResource": "stamina",
+      "skills": ["subtlety", "poisons", "daggers", "manipulation", "lockpicking", "alchemy"],
+      "startingBaseline": { "str": 10, "dex": 15, "con": 10, "int": 8, "spi": 8, "wis": 9, "spd": 15, "cha": 13 },
+      "description": "A fast, evasive killer who manipulates and poisons."
     },
     "elementalist": {
       "id": "elementalist",
@@ -42,17 +42,29 @@
       "startingBaseline": { "str": 8, "dex": 9, "con": 9, "int": 17, "spi": 14, "wis": 11, "spd": 10, "cha": 10 },
       "description": "A pure elementalist channeling the schools through mana."
     },
-    "assassin": {
-      "id": "assassin",
-      "name": "Assassin",
-      "armorTier": "light",
-      "coreStats": ["dex", "spd", "cha"],
-      "guaranteedLevelUp": { "dex": 1, "spd": 1, "cha": 1 },
-      "resources": ["stamina", "combo_points"],
+    "illusionist": {
+      "id": "illusionist",
+      "name": "Illusionist",
+      "armorTier": "clothing",
+      "coreStats": ["int", "cha"],
+      "guaranteedLevelUp": { "int": 1, "cha": 1 },
+      "resources": ["mana"],
+      "primaryResource": "mana",
+      "skills": ["staves", "wands", "daggers", "manipulation", "madness", "morale", "enchanting", "alchemy", "divination"],
+      "startingBaseline": { "str": 8, "dex": 10, "con": 9, "int": 16, "spi": 12, "wis": 10, "spd": 11, "cha": 15 },
+      "description": "A clothing caster who bends minds through manipulation and madness."
+    },
+    "miner": {
+      "id": "miner",
+      "name": "Miner",
+      "armorTier": "medium",
+      "coreStats": ["con", "spi"],
+      "guaranteedLevelUp": { "con": 1, "spi": 1 },
+      "resources": ["stamina"],
       "primaryResource": "stamina",
-      "skills": ["subtlety", "poisons", "daggers", "manipulation", "lockpicking", "alchemy"],
-      "startingBaseline": { "str": 10, "dex": 15, "con": 10, "int": 8, "spi": 8, "wis": 9, "spd": 15, "cha": 13 },
-      "description": "A fast, evasive killer who manipulates and poisons."
+      "skills": ["mining", "fabrication", "metallurgy", "two_handed_axes", "two_handed_maces"],
+      "startingBaseline": { "str": 14, "dex": 10, "con": 15, "int": 9, "spi": 12, "wis": 11, "spd": 10, "cha": 8 },
+      "description": "A durable craftsman and miner who wields maces and polearms."
     },
     "survivalist": {
       "id": "survivalist",
@@ -68,14 +80,20 @@
       ],
       "startingBaseline": { "str": 12, "dex": 12, "con": 14, "int": 9, "spi": 13, "wis": 11, "spd": 13, "cha": 8 },
       "description": "A durable, mobile outdoorsman blending Biomancy with weapons and survival crafts."
-    }
-  },
-  "races": {
-    "sephir": {
-      "id": "sephir",
-      "name": "Sephir",
-      "statMod": { "str": -1, "con": -1, "int": 2 },
-      "lore": "Blue-skinned, six-eyed humanoids of Meyn-Sephir; first to engineer Liquimetal-God communication, then FTL."
+    },
+    "swordsman": {
+      "id": "swordsman",
+      "name": "Swordsman",
+      "armorTier": "medium",
+      "coreStats": ["dex", "str", "spd"],
+      "guaranteedLevelUp": { "dex": 1, "str": 1, "spd": 1 },
+      "resources": ["stamina", "combo_points"],
+      "primaryResource": "stamina",
+      "skills": [
+        "one_handed_swords", "two_handed_swords", "dueling", "weaponsmithing", "shields", "marksmanship"
+      ],
+      "startingBaseline": { "str": 13, "dex": 15, "con": 11, "int": 8, "spi": 9, "wis": 12, "spd": 14, "cha": 10 },
+      "description": "A dex-driven swordsman who blends swordplay with subtlety and traps."
     }
   },
   "maxLevel": 99

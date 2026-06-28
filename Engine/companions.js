@@ -46,7 +46,7 @@ const STARTER_GEAR = {};
 
 const buildCompanionInstance = (template, instanceId) => {
   const raw   = template.baseStats;
-  const maxHp = raw.con * 10 + (CLASS_BASE_HP[template.classId] || 0);
+  const maxHp = raw.con * 10 + (template.joinLevel || 1) * 20 + (CLASS_BASE_HP[template.classId] || 0);
   const maxMp = raw.int * 15 + (CLASS_BASE_MP[template.classId] || 0);
 
   return {

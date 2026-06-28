@@ -13,12 +13,13 @@
 //   addXpToInst(inst, amount)                 → { inst, levelUpLines }
 //   allocateStat(inst, stat, n)               → inst (spends unspent points)
 //
-// DEPENDENCIES: Data/classes.json
+// DEPENDENCIES: Data/classes.json, Data/races.json
 // =============================================================================
 
 "use strict";
 
 const _classData = require('../Data/classes.json');
+const _raceData  = require('../Data/races.json');
 
 const CLASSES          = _classData.classes || {};
 const MAX_LEVEL        = _classData.maxLevel || 99;
@@ -35,7 +36,7 @@ const XP_TABLE = (Array.isArray(_classData.xpTable) && _classData.xpTable.length
 // Gain tables and race base stats are retired under stat-point allocation.
 // Kept as empty maps so older callers using CLASS_BASE_HP[classId] || 0 still
 // resolve to 0 (HP now derives purely from con, mana from int).
-const RACE_BASE_STATS   = _classData.races || {};
+const RACE_BASE_STATS   = _raceData.races || {};
 const CLASS_BASE_HP     = {};
 const CLASS_BASE_MP     = {};
 const CLASS_GAIN_TABLES = {};
@@ -83,7 +84,7 @@ const getStatsAtLevel = (raceId, classId, level) => guaranteedStatsAtLevel(class
 
 const xpToNextLevel = (level) => (level >= MAX_LEVEL ? Infinity : XP_TABLE[level - 1]);
 
-const deriveHpMp = (raw) => ({ maxHp: (raw.con || 0) * 10, maxMp: (raw.int || 0) * 15 });
+const deriveHpMp = (raw, level = 1) => ({ maxHp: (raw.con || 0) * 10 + (level || 1) * 20, maxMp: (raw.int || 0) * 15 });
 
 // Build a unit's resource pools from its class's resource list (mix-and-match).
 // mana scales with the unit's mana pool; the others use fixed pools.
@@ -108,7 +109,7 @@ const newInstance = (instanceId, classId, opts = {}) => {
   const raw = startingStats(classId);
   // apply flat racial stat modifiers
   for (const [k, v] of Object.entries(raceStatMod(opts.raceId))) raw[k] = (raw[k] || 0) + v;
-  const { maxHp, maxMp } = deriveHpMp(raw);
+  const { maxHp, maxMp } = deriveHpMp(raw, 1);
   return {
     instanceId, templateId: opts.templateId || instanceId,
     name: opts.name || (CLASSES[classId] && CLASSES[classId].name) || classId,
@@ -146,7 +147,7 @@ const addXpToInst = (inst, amount) => {
   }
   if (level >= MAX_LEVEL) xp = 0;
 
-  const { maxHp, maxMp } = deriveHpMp(raw);
+  const { maxHp, maxMp } = deriveHpMp(raw, level);
   const alive = inst.deathState !== "downed" && inst.deathState !== "dead" && !inst.permadead;
   const out = {
     ...inst, xp, level, unspentStatPoints: unspent,
@@ -166,7 +167,7 @@ const allocateStat = (inst, stat, n = 1) => {
   if (spend <= 0) return inst;
   const raw = { ...emptyStats(), ...((inst.stats && inst.stats.raw) || {}) };
   raw[stat] = (raw[stat] || 0) + spend;
-  const { maxHp, maxMp } = deriveHpMp(raw);
+  const { maxHp, maxMp } = deriveHpMp(raw, inst.level || 1);
   return {
     ...inst,
     stats: { ...inst.stats, raw },
@@ -215,7 +216,7 @@ const runStatTableTests = () => {
   // level-up via xp
   const inst = newInstance("test_arms", "armsman", { name: "Tester" });
   assert("newInstance starts at L1", inst.level === 1);
-  assert("newInstance HP = con*10", inst.maxHp === inst.stats.raw.con * 10);
+  assert("newInstance HP = con*10 + lv*20", inst.maxHp === inst.stats.raw.con * 10 + inst.level * 20);
   const { inst: lvl2, levelUpLines } = addXpToInst(inst, 200);
   assert("addXpToInst: reaches L2", lvl2.level === 2);
   assert("addXpToInst: grants 2 unspent points", lvl2.unspentStatPoints === 2);

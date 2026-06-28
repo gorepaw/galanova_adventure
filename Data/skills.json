@@ -3,8 +3,8 @@
   "maxLevel": 99,
   "skills": {
     "one_handed_swords": { 
-      "id": "one_handed_swords", "name": "One-Handed Swords", "category": "combat", "type": "weapon", "weaponTypes": ["sword_1h"], 
-      "abilities": [{ "id": "basic_attack", "skillLevel": 1 }] },
+      "id": "one_handed_swords", "name": "One-Handed Swords", "category": "combat", "type": "weapon", "weaponTypes": ["sword_1h"],
+      "abilities": [{ "id": "basic_attack", "skillLevel": 1 }, { "id": "sample_cleaving_blow", "skillLevel": 10 }] },
     "two_handed_swords": { 
       "id": "two_handed_swords", "name": "Two-Handed Swords", "category": "combat", "type": "weapon", "weaponTypes": ["sword_2h"], 
       "abilities": [{ "id": "basic_attack", "skillLevel": 1 }] },
@@ -25,6 +25,7 @@
     "staves": { "id": "staves", "name": "Staves", "category": "combat", "type": "weapon", "weaponTypes": ["staff"], "abilities": [{ "id": "basic_attack", "skillLevel": 1 }] },
     "wands": { "id": "wands", "name": "Wands", "category": "combat", "type": "weapon", "weaponTypes": ["wand"], "abilities": [{ "id": "basic_attack", "skillLevel": 1 }] },
     "artillery": { "id": "artillery", "name": "Artillery", "category": "combat", "type": "weapon", "weaponTypes": ["artillery"], "abilities": [{ "id": "basic_attack", "skillLevel": 1 }] },
+    "shields": { "id": "shields", "name": "Shields", "category": "combat", "type": "weapon", "weaponTypes": ["shield"], "abilities": [{ "id": "basic_attack", "skillLevel": 1 }] },
 
     "dueling": { "id": "dueling", "name": "Dueling", "category": "combat", "type": "magic", "abilities": [] },
     "manipulation": { "id": "manipulation", "name": "Manipulation", "category": "combat", "type": "magic", "abilities": [] },
@@ -38,21 +39,26 @@
     "energetics": { "id": "energetics", "name": "Energetics", "category": "combat", "type": "magic", "abilities": [] },
     "hydromancy": { "id": "hydromancy", "name": "Hydromancy", "category": "combat", "type": "magic", "abilities": [] },
     "biomancy": { "id": "biomancy", "name": "Biomancy", "category": "combat", "type": "magic", "abilities": [] },
+    "astromancy": { "id": "astromancy", "name": "Astromancy", "category": "combat", "type": "magic", "abilities": [] },
     "zoology": { "id": "zoology", "name": "Zoology", "category": "combat", "type": "magic", "abilities": [] },
     "summoning": { "id": "summoning", "name": "Summoning", "category": "combat", "type": "magic", "abilities": [] },
+    "necromancy": { "id": "necromancy", "name": "Necromancy", "category": "combat", "type": "magic", "abilities": [] },
     "restoration": { "id": "restoration", "name": "Restoration", "category": "combat", "type": "magic", "abilities": [] },
     "divination": { "id": "divination", "name": "Divination", "category": "combat", "type": "magic", "abilities": [] },
     "shapeshifting": { "id": "shapeshifting", "name": "Shapeshifting", "category": "combat", "type": "magic", "abilities": [] },
+    "spiritcalling": { "id": "spiritcalling", "name": "Spiritcalling", "category": "combat", "type": "magic", "abilities": [] },
+    "marksmanship": { "id": "marksmanship", "name": "Marksmanship", "category": "combat", "type": "magic", "abilities": [] },
 
-
-    
+    "trapping": { "id": "trapping", "name": "Trapping", "category": "non_combat", "type": "utility", "abilities": [] },
+    "firemaking": { "id": "firemaking", "name": "Firemaking", "category": "non_combat", "type": "utility", "abilities": [] },
     "tracking": { "id": "tracking", "name": "Tracking", "category": "non_combat", "type": "utility", "abilities": [] },
     "lockpicking": { "id": "lockpicking", "name": "Lockpicking", "category": "non_combat", "type": "utility", "abilities": [] },
     "riding": { "id": "riding", "name": "Riding", "category": "non_combat", "type": "utility", "abilities": [] },
     "trading": { "id": "trading", "name": "Trading", "category": "non_combat", "type": "utility", "abilities": [] },
     "dungeoneering": { "id": "dungeoneering", "name": "Dungeoneering", "category": "non_combat", "type": "utility", "abilities": [] },
 
-    "blacksmithing": { "id": "blacksmithing", "name": "Blacksmithing", "category": "non_combat", "type": "profession", "abilities": [] },
+    "weaponsmithing": { "id": "weaponsmithing", "name": "Weaponsmithing", "category": "non_combat", "type": "profession", "abilities": [] },
+    "armorsmithing": { "id": "armorsmithing", "name": "Armorsmithing", "category": "non_combat", "type": "profession", "abilities": [] },
     "engineering": { "id": "engineering", "name": "Engineering", "category": "non_combat", "type": "profession", "abilities": [] },
     "enchanting": { "id": "enchanting", "name": "Enchanting", "category": "non_combat", "type": "profession", "abilities": [] },
     "alchemy": { "id": "alchemy", "name": "Alchemy", "category": "non_combat", "type": "profession", "abilities": [] },
@@ -68,6 +74,10 @@
     "tailoring": { "id": "tailoring", "name": "Tailoring", "category": "non_combat", "type": "profession", "abilities": [] },
     "construction": { "id": "construction", "name": "Construction", "category": "non_combat", "type": "profession", "abilities": [] },
     "farming": { "id": "farming", "name": "Farming", "category": "non_combat", "type": "profession", "abilities": [] },
+    "leatherworking": { "id": "leatherworking", "name": "Leatherworking", "category": "non_combat", "type": "profession", "abilities": [] },
+    "skinning": { "id": "skinning", "name": "Skinning", "category": "non_combat", "type": "profession", "abilities": [] },
+    "fletching": { "id": "fletching", "name": "Fletching", "category": "non_combat", "type": "profession", "abilities": [] },
+    "aeronautics": { "id": "aeronautics", "name": "Aeronautics", "category": "non_combat", "type": "profession", "abilities": [] },
     "jewelcrafting": { "id": "jewelcrafting", "name": "Jewelcrafting", "category": "non_combat", "type": "profession", "abilities": [] }
   }
 }

@@ -23,6 +23,7 @@ const _achievementsData   = require('../Data/achievements.json');
 const _dungeonsData       = require('../Data/dungeons.json');
 const _zoologyData        = require('../Data/zoology.json');
 const _summoningData      = require('../Data/summoning.json');
+const _necromancyData     = require('../Data/necromancy.json');
 
 // Shared stat derivation — the SAME core the character sheet uses, so combat and
 // the sheet can never disagree (Engine/charsheet.js).
@@ -36,13 +37,15 @@ const { tag } = require('./logtags.js');
 // =============================================================================
 // COMBAT PETS — unlocked by skill, not class
 // The Zoology skill grants beast companions (zoology.json); the Summoning skill
-// grants summons (summoning.json). A character may draw from every pet skill it
-// has learned (level >= 1).
+// grants summons (summoning.json); the Necromancy skill grants undead
+// (necromancy.json). A character may draw from every pet skill it has learned
+// (level >= 1).
 // =============================================================================
 
 const PETS_BY_SKILL = {
-  zoology:   _zoologyData.pets,
-  summoning: _summoningData.pets,
+  zoology:    _zoologyData.pets,
+  summoning:  _summoningData.pets,
+  necromancy: _necromancyData.pets,
 };
 
 // All pet templates a character can use, based on the pet skills they've learned.
@@ -120,7 +123,7 @@ const Currency = (() => {
 const CombatBridge = (() => {
 
   // Per-class flat HP/MP bonuses — TBD for the Galanova classes; empty for now
-  // so maxHp/maxMana derive purely from stats (con*10 / int*15).
+  // so maxHp/maxMana derive purely from stats (con*10 + level*20 / int*15).
   const CLASS_BASE_HP = {};
   const CLASS_BASE_MP = {};
 
@@ -159,7 +162,8 @@ const CombatBridge = (() => {
     // Derive base stats (incl. equipped-gear bonuses) via the shared core so the
     // character sheet and combat use identical formulas. Class flat HP/MP bonuses
     // are layered on top (the core has no concept of them).
-    const baseD = deriveCore({ raw, level, classId, gear: cfg.gear }, _itemsData.items).derived;
+    const _core = deriveCore({ raw, level, classId, gear: cfg.gear }, _itemsData.items);
+    const baseD = _core.derived;
     baseD.maxHp   += (CLASS_BASE_HP[classId] || 0);
     baseD.maxMana += (CLASS_BASE_MP[classId] || 0);
 
@@ -186,7 +190,9 @@ const CombatBridge = (() => {
       butcheryXp:   cfg.butcheryXp || 0,
       killReputation: cfg.killReputation || [],
       currencyDrop: cfg.currencyDrop  || null,
-      stats:        { raw, derived },
+      stats:        { raw, derived, totals: _core.totals },
+      skills:       cfg.skills || {},
+      gear:         cfg.gear   || {},
       resources,
       cooldowns:    {},
       castQueue:    [],
@@ -279,18 +285,89 @@ const CombatBridge = (() => {
     };
   };
 
+  // ── Scaling resolution ──────────────────────────────────────────────────
+  // An effect's `scaling` names which attacker stat(s) drive its magnitude.
+  // Recognized keys:
+  //   ap / rap / sp  → derived combat stats (buff-adjusted via `ov`)
+  //   the 8 attributes (str,dex,con,int,spi,wis,spd,cha) → gear-inclusive total
+  //   anything else  → a skill id, resolved to that skill's level
+  const SCALE_ATTRS = ['str','dex','con','int','spi','wis','spd','cha'];
+  const resolveScaleStat = (attacker, key, ov) => {
+    if (key === "ap")  return ov.ap;
+    if (key === "sp")  return ov.sp;
+    if (key === "rap") return ov.rap;
+    if (SCALE_ATTRS.includes(key))
+      return attacker.stats.totals?.[key] ?? attacker.stats.raw?.[key] ?? 0;
+    const sv = attacker.skills?.[key];               // otherwise a skill id → level
+    return typeof sv === "number" ? sv : (sv?.level ?? 0);
+  };
+  // Sum of all scaling contributions for an effect. Supports two shapes:
+  //   object map:  scaling: { ap: 1.0, str: 0.5 }   (coefficient per stat)
+  //   legacy form: scaling: "ap", multiplier: 1.0
+  // `legacyMult` is the default coefficient for the legacy string form when no
+  // `multiplier` is present (1 for damage, 0 for heals — preserves old behavior).
+  const scalingSum = (effect, attacker, ov, legacyMult) => {
+    const s = effect.scaling;
+    if (s && typeof s === "object") {
+      let sum = 0;
+      for (const [k, coeff] of Object.entries(s)) sum += resolveScaleStat(attacker, k, ov) * (coeff || 0);
+      return sum;
+    }
+    if (typeof s === "string") return resolveScaleStat(attacker, s, ov) * (effect.multiplier ?? legacyMult);
+    return 0;
+  };
+  // Weapon-damage contribution for an effect's `usesWeapon` mode. For each weapon
+  // in the relevant slot, rolls min..max and divides by weaponSpeed; main-hand is
+  // counted in full, off-hand at 50%. `none`/unset contributes nothing.
+  const weaponContribution = (attacker, mode) => {
+    if (!mode || mode === "none") return 0;
+    const gear = attacker.gear || {};
+    const wpn = (slot) => {
+      const id = typeof gear[slot] === "string" ? gear[slot] : null;
+      const it = id ? _itemsData.items[id] : null;
+      return (it && it.type === "weapon") ? it : null;
+    };
+    const rollOne = (it) => {
+      const lo = it.minDamage || 0, hi = it.maxDamage || 0;
+      const dmg = lo + Math.random() * Math.max(0, hi - lo);
+      const spd = it.weaponSpeed || 1;
+      return spd > 0 ? dmg / spd : dmg;
+    };
+    if (mode === "ranged") { const r = wpn("ranged"); return r ? rollOne(r) : 0; }
+    // melee: main hand full + off hand at half
+    const mh = wpn("mainhand"), oh = wpn("offhand");
+    return (mh ? rollOne(mh) : 0) + (oh ? 0.5 * rollOne(oh) : 0);
+  };
+  // Scaling overrides built straight off a unit's derived stats (no buff
+  // adjustment). Used by DoT/HoT ticks and on-hit retaliation/proc damage, which
+  // scale off the unit the effect currently sits on rather than the live attacker.
+  const baseOv = (unit) => {
+    const d = unit.stats.derived;
+    return { ap: d.attackPower || 0, sp: d.spellPower || 0, rap: d.rangedAttackPower || 0 };
+  };
+  // DoT/HoT magnitude is snapshotted to the CASTER's scaling at application time,
+  // so a damage/heal-over-time scales off whoever cast it — not off the victim it
+  // sits on. Returns a minimal attacker-like { src, ov } that scalingSum can read.
+  const snapshotCaster = (s) => s ? {
+    src: { stats: { totals: s.stats?.totals, raw: s.stats?.raw }, skills: s.skills },
+    ov:  baseOv(s),
+  } : null;
+
   const rollDamage = (effect, attacker, target) => {
     const aD = attacker.stats.derived;
     // attacker's buff/debuff modifiers (weapon enchants, debuffs reducing attack power)
-    let ap = aD.attackPower || 0, sp = aD.spellPower || 0;
+    let ap = aD.attackPower || 0, sp = aD.spellPower || 0, rap = aD.rangedAttackPower || 0;
     for (const b of [...attacker.buffs, ...attacker.debuffs]) {
-      if (b.modifiers?.attackPower) ap += b.modifiers.attackPower;
-      if (b.modifiers?.spellPower)  sp += b.modifiers.spellPower;
+      if (b.modifiers?.attackPower)       ap  += b.modifiers.attackPower;
+      if (b.modifiers?.spellPower)        sp  += b.modifiers.spellPower;
+      if (b.modifiers?.rangedAttackPower) rap += b.modifiers.rangedAttackPower;
     }
-    let base = effect.flatBonus || 0;
-    if (effect.scaling === "ap")  base += ap * (effect.multiplier || 1);
-    if (effect.scaling === "sp")  base += sp * (effect.multiplier || 1);
-    if (effect.scaling === "rap") base += (aD.rangedAttackPower || 0) * (effect.multiplier || 1);
+    const ov = { ap, sp, rap };
+    // base = flat + stat scaling + weapon damage (weapon term is added pre-crit but
+    // is NOT touched by the scaling multiplier — it stands alongside the scaling).
+    let base = (effect.flatBonus || 0)
+             + scalingSum(effect, attacker, ov, 1)
+             + weaponContribution(attacker, effect.usesWeapon);
     const isCrit = Math.random() < (effect.damageType === "physical" ? aD.critChanceMelee : aD.critChanceSpell || 0);
     if (isCrit) base *= aD.critMultiplier || 2;
     if (effect.damageType === "physical") {
@@ -308,14 +385,19 @@ const CombatBridge = (() => {
     const d = caster.stats.derived;
     let sp = d.spellPower || 0;
     for (const b of [...caster.buffs, ...caster.debuffs]) if (b.modifiers?.spellPower) sp += b.modifiers.spellPower;
-    return Math.max(1, Math.floor((effect.flatBonus || 0) + sp * (effect.multiplier || 0)));
+    // Heals can scale off any stat too; legacy default coefficient is 0 (matches
+    // prior behavior where a heal with no multiplier added no spell power).
+    const ov = { ap: d.attackPower || 0, sp, rap: d.rangedAttackPower || 0 };
+    return Math.max(1, Math.floor((effect.flatBonus || 0) + scalingSum(effect, caster, ov, 0)));
   };
 
-  const applyBuff = (unit, buffId, sourceId, durationOverride) => {
+  const applyBuff = (unit, buffId, sourceId, durationOverride, source) => {
     const def = BUFF_DEFS_BRIDGE[buffId];
     if (!def) return unit;
     const inst = {
       id: buffId, sourceId, duration: durationOverride != null ? durationOverride : def.duration,
+      // snapshot the caster's scaling for DoT/HoT ticks (see snapshotCaster)
+      casterScaling:    (source && (def.tickDamage || def.tickHeal)) ? snapshotCaster(source) : null,
       modifiers:        { ...(def.modifiers || {}) },
       ccFlags:          { ...(def.ccFlags   || {}) },
       tickDamage:       def.tickDamage       ? { ...def.tickDamage } : null,
@@ -414,10 +496,10 @@ const CombatBridge = (() => {
         if (!buffId) continue;
         const isSelfBuff = ["on_hit","on_crit_heal"].includes(trigger);
         if (isSelfBuff) {
-          u = applyBuff(u, buffId, u.id);
+          u = applyBuff(u, buffId, u.id, undefined, u);
           logs.push(`    ↳ ${u.name} procs ${buffId}`);
         } else {
-          pt = applyBuff(pt, buffId, u.id);
+          pt = applyBuff(pt, buffId, u.id, undefined, u);
           logs.push(`    ↳ ${pt.name} afflicted by ${buffId} (proc)`);
         }
       }
@@ -465,7 +547,7 @@ const CombatBridge = (() => {
 
       // self_buff: apply buff to caster regardless of ability targeting (e.g. Frostbolt flee bonus)
       if (effect.type === "self_buff") {
-        c = applyBuff(c, effect.buffId, c.id);
+        c = applyBuff(c, effect.buffId, c.id, undefined, c);
         logs.push(`    ↳ ${c.name} gains ${effect.buffId}`);
         continue;
       }
@@ -560,8 +642,7 @@ const CombatBridge = (() => {
             const sb = t.buffs[bi];
             if (!sb.onHitRetaliation) continue;
             const rtn = sb.onHitRetaliation;
-            let retDmg = rtn.flat || 0;
-            if (rtn.scaling === "sp") retDmg += (t.stats.derived.spellPower || 0) * (rtn.multiplier || 0);
+            let retDmg = (rtn.flat || 0) + scalingSum(rtn, t, baseOv(t), 0);
             retDmg = Math.max(1, Math.floor(retDmg));
             c = { ...c, hp: Math.max(0, c.hp - retDmg) };
             if (c.hp <= 0 && c.alive) c = { ...c, alive: false };
@@ -580,7 +661,7 @@ const CombatBridge = (() => {
           if (effect.damageType === "physical") {
             for (const b of t.buffs) {
               if (!b.debuffOnHit) continue;
-              c = applyBuff(c, b.debuffOnHit.buffId, t.id);
+              c = applyBuff(c, b.debuffOnHit.buffId, t.id, undefined, t);
               logs.push(`    ↳ ${c.name} afflicted by ${b.debuffOnHit.buffId}`);
               break;
             }
@@ -591,8 +672,7 @@ const CombatBridge = (() => {
             for (const b of c.buffs) {
               if (!b.procOnHit) continue;
               const rtn = b.procOnHit;
-              let procDmg = rtn.flat || 0;
-              if (rtn.scaling === "sp") procDmg += (c.stats.derived.spellPower || 0) * (rtn.multiplier || 0);
+              let procDmg = (rtn.flat || 0) + scalingSum(rtn, c, baseOv(c), 0);
               procDmg = Math.max(1, Math.floor(procDmg));
               t = { ...t, hp: Math.max(0, t.hp - procDmg) };
               if (t.hp <= 0 && t.alive) { t = { ...t, alive: false, hp: 0 }; logs.push(`    ✗ ${t.name} dies`); }
@@ -633,7 +713,7 @@ const CombatBridge = (() => {
               comboPtsSpent = true;
             }
           }
-          t = applyBuff(t, effect.buffId, c.id, durOverride);
+          t = applyBuff(t, effect.buffId, c.id, durOverride, c);
           logs.push(`    ↳ ${t.name} gains ${effect.buffId}${durOverride != null ? ` (${durOverride}t)` : ""}`);
         }
 
@@ -654,7 +734,7 @@ const CombatBridge = (() => {
             }
           }
           if (Math.random() < (effect.chance || 1)) {
-            t = applyBuff(t, effect.buffId, c.id);
+            t = applyBuff(t, effect.buffId, c.id, undefined, c);
             logs.push(`    ↳ ${t.name} afflicted by ${effect.buffId}`);
           }
         }
@@ -789,8 +869,8 @@ const CombatBridge = (() => {
     for (const eff of [...u.buffs, ...u.debuffs]) {
       if (eff.tickDamage) {
         const td  = eff.tickDamage;
-        let dmg   = td.flat || 0;
-        if (td.scaling === "sp") dmg += (u.stats.derived.spellPower || 0) * (td.multiplier || 0);
+        const cs  = eff.casterScaling;                      // caster snapshot, if any
+        let dmg   = (td.flat || 0) + scalingSum(td, cs ? cs.src : u, cs ? cs.ov : baseOv(u), 0);
         dmg = Math.max(1, Math.floor(dmg));
         if (eff.rampingTickDamage && (eff.initialDuration || 0) > 1) {
           const progress = (eff.initialDuration - eff.duration) / (eff.initialDuration - 1);
@@ -802,8 +882,8 @@ const CombatBridge = (() => {
       }
       if (eff.tickHeal) {
         const th   = eff.tickHeal;
-        let heal   = th.flat || 0;
-        if (th.scaling === "sp") heal += (u.stats.derived.spellPower || 0) * (th.multiplier || 0);
+        const csH  = eff.casterScaling;                     // caster snapshot, if any
+        let heal   = (th.flat || 0) + scalingSum(th, csH ? csH.src : u, csH ? csH.ov : baseOv(u), 0);
         heal = Math.max(1, Math.floor(heal));
         u = { ...u, hp: Math.min(u.maxHp, u.hp + heal) };
         logs.push(`    ↳ ${u.name} heals ${heal} (${eff.id})`);
@@ -1291,7 +1371,7 @@ const CombatBridge = (() => {
               }
             }
           } else if (onUse.type === 'weapon_buff') {
-            actor = applyBuff(actor, onUse.buffId, actor.id);
+            actor = applyBuff(actor, onUse.buffId, actor.id, undefined, actor);
             party = syncUnit(party, actor);
             stepLogs.push(`  ${actor.name} uses ${itemName}`);
           }
@@ -2745,6 +2825,14 @@ const HomeScreen = (() => {
       // Weapon-skill gating: a character can only equip weapon types it has the skill for.
       if (item.weaponType && typeof canEquipWeaponType === "function" && !canEquipWeaponType(inst, item.weaponType)) {
         emit(`   ${inst.name} lacks the weapon skill to equip ${item.name}.`); return;
+      }
+      // Armor-tier gating: a class may wear its designated tier and anything lower.
+      if (item.armorType && typeof ClassDB !== "undefined" && !ClassDB.canWearArmor(inst.classId, item.armorType)) {
+        emit(`   ${inst.name} cannot wear ${item.name} (armor too heavy for class).`); return;
+      }
+      // Class restriction: items tagged with allowedClasses gate by class.
+      if (typeof ClassDB !== "undefined" && !ClassDB.itemAllowedForClass(item, inst.classId)) {
+        emit(`   ${inst.name}'s class cannot use ${item.name}.`); return;
       }
       const prevItemId = inst.gear?.[item.slot] || null;
       DataStore.write(`instances/companions/${compId}`, { ...inst, gear: { ...(inst.gear || {}), [item.slot]: itemId } });

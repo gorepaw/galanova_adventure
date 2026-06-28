@@ -62,7 +62,7 @@ function deriveCore({ raw = {}, level = 1, gear = {} } = {}, catalog = {}) {
   for (const s of SCHOOLS) resistances[s] = resBase + (gb[`${s}Resistance`] ?? 0);
 
   const derived = {
-    maxHp:              totals.con * 10 + (gb.maxHpBonus ?? 0),
+    maxHp:              totals.con * 10 + level * 20 + (gb.maxHpBonus ?? 0),
     maxMana:            totals.int * 15,
     attackPower:        totals.str * 2 + totals.dex + (gb.attackPower ?? 0),
     rangedAttackPower:  Math.max(0, 2 * level + 2 * totals.dex - 10) + (gb.rangedAttackPower ?? 0),

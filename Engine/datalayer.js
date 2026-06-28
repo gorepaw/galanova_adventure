@@ -14,6 +14,20 @@ const _trapsData         = require('../Data/traps.json');
 // SCHEMAS
 // =============================================================================
 
+// Per-tick magnitude for a DoT/HoT (buff.tickDamage / buff.tickHeal). Mirrors the
+// scaling shape used by effectEntry: `scaling` is either a single-stat string or
+// an object map of stat -> coefficient. damageType only applies to tickDamage.
+const TICK_ENTRY = {
+  type: "object",
+  properties: {
+    damageType: { type: "string", enum: ["physical","pyro","cryo","nature","chaos","order","bio","energy","psychic"] },
+    flat:       { type: "number" },
+    scaling:    { oneOf: [ { type: "string" }, { type: "object", additionalProperties: { type: "number" } } ] },
+    multiplier: { type: "number", minimum: 0 },
+  },
+  additionalProperties: false,
+};
+
 const SCHEMAS = {
 
   // --- schema stability legend ---
@@ -61,8 +75,13 @@ const SCHEMAS = {
       type:            { type: "string", enum: ["damage","heal","buff","debuff","resource","cc","stat_mod","proc"] },
       // damage / heal
       damageType:      { type: "string", enum: ["physical","pyro","cryo","nature","chaos","order","bio","energy","psychic"] },
-      scaling:         { type: "string", enum: ["ap","sp","combo","flat","weapon"] },
+      // scaling: legacy single-stat string ("ap","sp","rap", an attribute, or a
+      // skill id) OR an object map of stat -> coefficient, e.g. { ap: 1.0, str: 0.5 }.
+      scaling:         { oneOf: [ { type: "string" }, { type: "object", additionalProperties: { type: "number" } } ] },
       multiplier:      { type: "number", minimum: 0 },
+      // usesWeapon: adds rolled weapon damage (roll / weaponSpeed) from the melee
+      // slots (mainhand + 50% offhand) or the ranged slot, on top of scaling.
+      usesWeapon:      { type: "string", enum: ["melee","ranged","none"] },
       flatBonus:       { type: "number" },
       comboMultiplier: { type: "number", minimum: 0 },
       // buff / debuff / proc
@@ -121,8 +140,8 @@ const SCHEMAS = {
       duration:    { oneOf: [{ type: "integer", minimum: 1 }, { type: "string", enum: ["infinite"] }] },
       modifiers:   { type: "object" },
       ccFlags:     { type: "object" },
-      tickDamage:  { type: "object" },
-      tickHeal:    { type: "object" },
+      tickDamage:  TICK_ENTRY,
+      tickHeal:    TICK_ENTRY,
       stacks:      { type: "boolean" },
       maxStacks:   { type: "integer", minimum: 1 },
       charges:     { type: "integer", minimum: 1 },

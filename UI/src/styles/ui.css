@@ -1160,6 +1160,12 @@ html, body, #root { height: 100%; overflow: hidden; }
 .spell-cd       { font-size: 9px; color: var(--text-dim); }
 .spell-meta-sep { font-size: 9px; color: var(--border2); }
 
+.spell-scaling {
+  display: flex; flex-direction: column; gap: 1px; margin-top: 3px;
+}
+.spell-scaling-line { font-size: 9px; color: var(--text-dim); line-height: 1.3; }
+.spell-scaling-icon { color: var(--text); opacity: 0.7; }
+
 /* ── Spellbook navigation ────────────────────────────────────────────────────── */
 .spellbook-nav {
   display: flex; align-items: center; justify-content: center;

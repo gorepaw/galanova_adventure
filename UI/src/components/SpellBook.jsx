@@ -1,11 +1,43 @@
 import React, { useState, useEffect } from 'react'
 import abilitiesData from '../../../Data/abilities.json'
 import classesData   from '../../../Data/classes.json'
+import skillsData    from '../../../Data/skills.json'
 import { skillAbilities } from './skillAbilities.js'
 
 const ABILITY_DEFS = abilitiesData.abilities
 const CLASS_DEFS   = classesData.classes
 const PER_PAGE     = 24
+
+// Pretty labels for scaling sources: combat stats, the 8 attributes, then skills.
+const SKILL_NAMES = Object.fromEntries(
+  Object.values(skillsData.skills || {}).map(s => [s.id, s.name])
+)
+const STAT_LABELS = {
+  ap: 'AP', rap: 'RAP', sp: 'SP',
+  str: 'STR', dex: 'DEX', con: 'CON', int: 'INT',
+  spi: 'SPI', wis: 'WIS', spd: 'SPD', cha: 'CHA',
+}
+const statLabel = k => STAT_LABELS[k] || SKILL_NAMES[k] || k
+
+// Build the human-readable scaling breakdown for one damage/heal effect, e.g.
+// "melee weapon + 0.8× AP + 0.5× STR + 1.0× One-Handed Swords + 10".
+function fmtEffect(eff) {
+  const parts = []
+  if (eff.usesWeapon === 'melee')       parts.push('melee weapon')
+  else if (eff.usesWeapon === 'ranged') parts.push('ranged weapon')
+
+  const s = eff.scaling
+  if (s && typeof s === 'object') {
+    for (const [k, c] of Object.entries(s)) parts.push(`${c}× ${statLabel(k)}`)
+  } else if (typeof s === 'string') {
+    parts.push(`${eff.multiplier ?? 1}× ${statLabel(s)}`)
+  }
+
+  const flat = eff.flatBonus ?? eff.flat
+  if (flat) parts.push(`${flat}`)
+  if (!parts.length) return null
+  return { icon: eff.type === 'heal' ? '✚' : '⚔', text: parts.join(' + ') }
+}
 
 const RESOURCE_COLORS = {
   rage:   { label: 'Rage',   color: '#ff6644' },
@@ -39,6 +71,10 @@ function SpellEntry({ def, learnedAt }) {
   const costs     = fmtCost(def.resourceCost) || []
   const cooldown  = def.cooldown > 0 ? def.cooldown : null
   const tags      = (def.tags || []).slice(0, 2)
+  const scalingLines = (def.effects || [])
+    .filter(e => e.type === 'damage' || e.type === 'heal')
+    .map(fmtEffect)
+    .filter(Boolean)
 
   return (
     <div className={`spell-entry${isPassive ? ' spell-passive' : ''}`}>
@@ -73,6 +109,16 @@ function SpellEntry({ def, learnedAt }) {
           ))}
           {costs.length > 0 && cooldown && <span className="spell-meta-sep"> · </span>}
           {cooldown && <span className="spell-cd">{cooldown}t cd</span>}
+        </div>
+      )}
+
+      {!isPassive && scalingLines.length > 0 && (
+        <div className="spell-scaling">
+          {scalingLines.map((l, i) => (
+            <span key={i} className="spell-scaling-line">
+              <span className="spell-scaling-icon">{l.icon}</span> {l.text}
+            </span>
+          ))}
         </div>
       )}
     </div>
