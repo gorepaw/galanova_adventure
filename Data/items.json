@@ -101,10 +101,135 @@
     "header4": "////// CONSUMABLES /// CONSUMABLES /// CONSUMABLES /// CONSUMABLES /////////",
     "header5": "////////////////////////////////////////////////////////////////////////////",
 
-    "------Food------": "food"
+    "------Food------": "food",
 
+    "stringy_roach_meat": {
+      "id": "stringy_roach_meat",
+      "name": "Stringy Roach Meat",
+      "_version": 1,
+      "type": "consumable",
+      "slot": "none",
+      "statBonuses": {},
+      "value": 4,
+      "quality": "common",
+      "onUse": {
+        "type": "heal",
+        "flat": 20,
+        "target": "single",
+        "outOfCombatOnly": true
+      },
+      "tags": [
+        "food"
+      ],
+      "description": "Tough, stringy meat from a roach. Restores 20 health. Cannot be used in combat."
+    },
 
+    "grilled_roach_meat": {
+      "id": "grilled_roach_meat",
+      "name": "Grilled Roach Meat",
+      "_version": 1,
+      "type": "consumable",
+      "slot": "none",
+      "statBonuses": {},
+      "value": 8,
+      "quality": "common",
+      "onUse": {
+        "type": "heal",
+        "flat": 40,
+        "target": "single",
+        "outOfCombatOnly": true
+      },
+      "tags": [
+        "food"
+      ],
+      "description": "Grilled meat from a roach. Restores 40 health. Cannot be used in combat."
+    },
 
+    "raw_rat_meat": {
+      "id": "raw_rat_meat",
+      "name": "Raw Rat Meat",
+      "_version": 1,
+      "type": "consumable",
+      "slot": "none",
+      "statBonuses": {},
+      "value": 5,
+      "quality": "common",
+      "onUse": {
+        "type": "heal",
+        "flat": 25,
+        "target": "single",
+        "outOfCombatOnly": true
+      },
+      "tags": [
+        "food"
+      ],
+      "description": "Raw meat from a rat. Restores 25 health. Cannot be used in combat."
+    },
 
+    "grilled_rat_meat": {
+      "id": "grilled_rat_meat",
+      "name": "Grilled Rat Meat",
+      "_version": 1,
+      "type": "consumable",
+      "slot": "none",
+      "statBonuses": {},
+      "value": 10,
+      "quality": "common",
+      "onUse": {
+        "type": "heal",
+        "flat": 50,
+        "target": "single",
+        "outOfCombatOnly": true
+      },
+      "tags": [
+        "food"
+      ],
+      "description": "Grilled meat from a rat. Restores 50 health. Cannot be used in combat."
+    },
+
+    "mheader6": "////////////////////////////////////////////////////////////////////////////",
+    "mheader7": "////// MATERIALS /// MATERIALS /// MATERIALS /// MATERIALS /// MATERIALS ////",
+    "mheader8": "////////////////////////////////////////////////////////////////////////////",
+
+    "------Butchery------": "material",
+
+    "thin_hide": {
+      "id": "thin_hide",
+      "name": "Thin Hide",
+      "_version": 1,
+      "type": "material",
+      "slot": "none",
+      "statBonuses": {},
+      "value": 3,
+      "quality": "common",
+      "tags": ["material", "hide"],
+      "description": "A thin, supple hide cut from a small creature."
+    },
+
+    "small_bone": {
+      "id": "small_bone",
+      "name": "Small Bone",
+      "_version": 1,
+      "type": "material",
+      "slot": "none",
+      "statBonuses": {},
+      "value": 2,
+      "quality": "common",
+      "tags": ["material", "bone"],
+      "description": "A small bone, useful for crafting and tools."
+    },
+
+    "down_feather": {
+      "id": "down_feather",
+      "name": "Down Feather",
+      "_version": 1,
+      "type": "material",
+      "slot": "none",
+      "statBonuses": {},
+      "value": 3,
+      "quality": "common",
+      "tags": ["material", "feather"],
+      "description": "A soft down feather plucked from a winged creature."
+    }
   }
 }

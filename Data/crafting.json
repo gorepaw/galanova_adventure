@@ -6,11 +6,505 @@
       "name": "Template Recipe",
       "requiredProfession": null,
       "minSkillLevel": 0,
-      "skillGain": 0,
-      "inputs": [],
+      "xp": 20,
+      "inputs": [{ "itemId": "basic_utility_knife", "qty": 1 }],
       "output": { "itemId": "basic_utility_knife", "qty": 1 },
       "tags": ["template"],
       "description": "TEMPLATE — placeholder recipe. Replace with Galanova content."
+    },
+
+    "creheader0": "////////////////////////////////////////////////////////////////////////////",
+    "creheader1": "////// COOKING /// COOKING /// COOKING /// COOKING /// COOKING /////////////",
+    "creheader2": "////////////////////////////////////////////////////////////////////////////",
+
+    "grilled_roach_meat": {
+      "id": "grilled_roach_meat",
+      "name": "Grilled Roach Meat",
+      "_version": 1,
+      "requiredProfession": "cooking",
+      "minSkillLevel": 1,
+      "skillGain": 1,
+      "inputs": [
+        { "itemId": "stringy_roach_meat", "qty": 1 }
+      ],
+      "output": { "itemId": "grilled_roach_meat", "qty": 1 },
+      "tags": ["cooking", "food"],
+      "description": "A simple grilled roach meat, a step up from raw roach meat."
+    },
+
+    "grilled_rat_meat": {
+      "id": "grilled_rat_meat",
+      "name": "Grilled Rat Meat",
+      "_version": 1,
+      "requiredProfession": "cooking",
+      "minSkillLevel": 1,
+      "skillGain": 1,
+      "inputs": [
+        { "itemId": "raw_rat_meat", "qty": 1 }
+      ],
+      "output": { "itemId": "grilled_rat_meat", "qty": 1 },
+      "tags": ["cooking", "food"],
+      "description": "A simple grilled rat meat, a step up from raw rat meat."
+    },
+
+    "creheader3": "////////////////////////////////////////////////////////////////////////////",
+    "creheader4": "////// METALLURGY /// METALLURGY /// METALLURGY /// METALLURGY /////////////",
+    "creheader5": "////////////////////////////////////////////////////////////////////////////",
+
+    "zinc_ingot": {
+      "id": "zinc_ingot",
+      "name": "Zinc Ingot",
+      "_version": 1,
+      "requiredProfession": "metallurgy",
+      "minSkillLevel": 1,
+      "skillGain": 1,
+      "inputs": [
+        { "itemId": "zinc_ore", "qty": 2 }
+      ],
+      "output": { "itemId": "zinc_ingot", "qty": 1 },
+      "tags": ["metallurgy", "metal"],
+      "description": "A simple zinc ingot, a step up from raw zinc ore."
+    },
+
+    "copper_ingot": {
+      "id": "copper_ingot",
+      "name": "Copper Ingot",
+      "_version": 1,
+      "requiredProfession": "metallurgy",
+      "minSkillLevel": 5,
+      "skillGain": 1,
+      "inputs": [
+        { "itemId": "copper_ore", "qty": 2 }
+      ],
+      "output": { "itemId": "copper_ingot", "qty": 1 },
+      "tags": ["metallurgy", "metal"],
+      "description": "A simple copper ingot, a step up from raw copper ore."
+    },
+
+    "brass_ingot": {
+      "id": "brass_ingot",
+      "name": "Brass Ingot",
+      "_version": 1,
+      "requiredProfession": "metallurgy",
+      "minSkillLevel": 9,
+      "skillGain": 1,
+      "inputs": [
+        { "itemId": "copper_ore", "qty": 1 },
+        { "itemId": "zinc_ore", "qty": 1 }
+      ],
+      "output": { "itemId": "brass_ingot", "qty": 1 },
+      "tags": ["metallurgy", "metal"],
+      "description": "A simple brass ingot, a step up from raw copper and zinc ore."
+    },
+
+    "bronze_ingot": {
+      "id": "bronze_ingot",
+      "name": "Bronze Ingot",
+      "_version": 1,
+      "requiredProfession": "metallurgy",
+      "minSkillLevel": 13,
+      "skillGain": 1,
+      "inputs": [
+        { "itemId": "copper_ore", "qty": 1 },
+        { "itemId": "tin_ore", "qty": 1 }
+      ],
+      "output": { "itemId": "bronze_ingot", "qty": 1 },
+      "tags": ["metallurgy", "metal"],
+      "description": "A simple bronze ingot, a step up from raw copper and tin ore."
+    },
+     
+    "white_bronze_ingot": {
+      "id": "white_bronze_ingot",
+      "name": "White Bronze Ingot",
+      "_version": 1,
+      "requiredProfession": "metallurgy",
+      "minSkillLevel": 17,
+      "skillGain": 1,
+      "inputs": [
+        { "itemId": "copper_ore", "qty": 1 },
+        { "itemId": "tin_ore", "qty": 1 }
+      ],
+      "output": { "itemId": "white_bronze_ingot", "qty": 1 },
+      "tags": ["metallurgy", "metal"],
+      "description": "A simple white bronze ingot, a step up from raw copper and tin ore."
+    },
+
+    "silver_ingot": {
+      "id": "silver_ingot",
+      "name": "Silver Ingot",
+      "_version": 1,
+      "requiredProfession": "metallurgy",
+      "minSkillLevel": 21,
+      "skillGain": 1,
+      "inputs": [
+        { "itemId": "silver_ore", "qty": 2 }
+      ],
+      "output": { "itemId": "silver_ingot", "qty": 1 },
+      "tags": ["metallurgy", "metal"],
+      "description": "A simple silver ingot, a step up from raw silver ore."
+    },
+
+    "gold_ingot": {
+      "id": "gold_ingot",
+      "name": "Gold Ingot",
+      "_version": 1,
+      "requiredProfession": "metallurgy",
+      "minSkillLevel": 25,
+      "skillGain": 1,
+      "inputs": [
+        { "itemId": "gold_ore", "qty": 2 }
+      ],
+      "output": { "itemId": "gold_ingot", "qty": 1 },
+      "tags": ["metallurgy", "metal"],
+      "description": "A simple gold ingot, a step up from raw gold ore."
+    },
+
+    "black_bronze_ingot": {
+      "id": "black_bronze_ingot",
+      "name": "Black Bronze Ingot",
+      "_version": 1,
+      "requiredProfession": "metallurgy",
+      "minSkillLevel": 29,
+      "skillGain": 1,
+      "inputs": [
+        { "itemId": "copper_ore", "qty": 1 },
+        { "itemId": "tin_ore", "qty": 1 }
+      ],
+      "output": { "itemId": "black_bronze_ingot", "qty": 1 },
+      "tags": ["metallurgy", "metal"],
+      "description": "A simple black bronze ingot, a step up from raw copper and tin ore."
+    },
+
+    "vibro_bronze_ingot": {
+      "id": "vibro_bronze_ingot",
+      "name": "Vibro Bronze Ingot",
+      "_version": 1,
+      "requiredProfession": "metallurgy",
+      "minSkillLevel": 37,
+      "skillGain": 1,
+      "inputs": [
+        { "itemId": "copper_ore", "qty": 1 },
+        { "itemId": "tin_ore", "qty": 1 }
+      ],
+      "output": { "itemId": "vibro_bronze_ingot", "qty": 1 },
+      "tags": ["metallurgy", "metal"],
+      "description": "A simple vibro bronze ingot, a step up from raw copper and tin ore."
+    },
+
+    "electro_bronze_ingot": {
+      "id": "electro_bronze_ingot",
+      "name": "Electro Bronze Ingot",
+      "_version": 1,
+      "requiredProfession": "metallurgy",
+      "minSkillLevel": 45,
+      "skillGain": 1,
+      "inputs": [
+        { "itemId": "copper_ore", "qty": 1 },
+        { "itemId": "tin_ore", "qty": 1 }
+      ],
+      "output": { "itemId": "electro_bronze_ingot", "qty": 1 },
+      "tags": ["metallurgy", "metal"],
+      "description": "A simple electro bronze ingot, a step up from raw copper and tin ore."
+    },
+
+    "bloomery_iron_ingot": {
+      "id": "bloomery_iron_ingot",
+      "name": "Bloomery Iron Ingot",
+      "_version": 1,
+      "requiredProfession": "metallurgy",
+      "minSkillLevel": 13,
+      "skillGain": 1,
+      "inputs": [
+        { "itemId": "bloomery_iron_ore", "qty": 2 }
+      ],
+      "output": { "itemId": "bloomery_iron_ingot", "qty": 1 },
+      "tags": ["metallurgy", "metal"],
+      "description": "A simple bloomery iron ingot, a step up from raw bloomery iron ore."
+    },
+
+    "wrought_iron_ingot": {
+      "id": "wrought_iron_ingot",
+      "name": "Wrought Iron Ingot",
+      "_version": 1,
+      "requiredProfession": "metallurgy",
+      "minSkillLevel": 29,
+      "skillGain": 1,
+      "inputs": [
+        { "itemId": "wrought_iron_ore", "qty": 2 }
+      ],
+      "output": { "itemId": "wrought_iron_ingot", "qty": 1 },
+      "tags": ["metallurgy", "metal"],
+      "description": "A simple wrought iron ingot, a step up from raw wrought iron ore."
+    },
+
+    "steel_ingot": {
+      "id": "steel_ingot",
+      "name": "Steel Ingot",
+      "_version": 1,
+      "requiredProfession": "metallurgy",
+      "minSkillLevel": 33,
+      "skillGain": 1,
+      "inputs": [
+        { "itemId": "steel_ore", "qty": 2 }
+      ],
+      "output": { "itemId": "steel_ingot", "qty": 1 },
+      "tags": ["metallurgy", "metal"],
+      "description": "A simple steel ingot, a step up from raw steel ore."
+    },
+
+    "carbonized_steel_ingot": {
+      "id": "carbonized_steel_ingot",
+      "name": "Carbonized Steel Ingot",
+      "_version": 1,
+      "requiredProfession": "metallurgy",
+      "minSkillLevel": 37,
+      "skillGain": 1,
+      "inputs": [
+        { "itemId": "carbonized_steel_ore", "qty": 2 }
+      ],
+      "output": { "itemId": "carbonized_steel_ingot", "qty": 1 },
+      "tags": ["metallurgy", "metal"],
+      "description": "A simple carbonized steel ingot, a step up from raw carbonized steel ore."
+    },
+
+    "pattern_welded_steel_ingot": {
+      "id": "pattern_welded_steel_ingot",
+      "name": "Pattern-Welded Steel Ingot",
+      "_version": 1,
+      "requiredProfession": "metallurgy",
+      "minSkillLevel": 41,
+      "skillGain": 1,
+      "inputs": [
+        { "itemId": "pattern_welded_steel_ore", "qty": 2 }
+      ],
+      "output": { "itemId": "pattern_welded_steel_ingot", "qty": 1 },
+      "tags": ["metallurgy", "metal"],
+      "description": "A simple pattern-welded steel ingot, a step up from raw pattern-welded steel ore."
+    },
+
+    "crucible_steel_ingot": {
+      "id": "crucible_steel_ingot",
+      "name": "Crucible Steel Ingot",
+      "_version": 1,
+      "requiredProfession": "metallurgy",
+      "minSkillLevel": 45,
+      "skillGain": 1,
+      "inputs": [
+        { "itemId": "crucible_steel_ore", "qty": 2 }
+      ],
+      "output": { "itemId": "crucible_steel_ingot", "qty": 1 },
+      "tags": ["metallurgy", "metal"],
+      "description": "A simple crucible steel ingot, a step up from raw crucible steel ore."
+    },
+
+    "industrial_steel_ingot": {
+      "id": "industrial_steel_ingot",
+      "name": "Industrial Steel Ingot",
+      "_version": 1,
+      "requiredProfession": "metallurgy",
+      "minSkillLevel": 49,
+      "skillGain": 1,
+      "inputs": [
+        { "itemId": "industrial_steel_ore", "qty": 2 }
+      ],
+      "output": { "itemId": "industrial_steel_ingot", "qty": 1 },
+      "tags": ["metallurgy", "metal"],
+      "description": "A simple industrial steel ingot, a step up from raw industrial steel ore."
+    },
+
+    "vibrosteel_ingot": {
+      "id": "vibrosteel_ingot",
+      "name": "Vibrosteel Ingot",
+      "_version": 1,
+      "requiredProfession": "metallurgy",
+      "minSkillLevel": 53,
+      "skillGain": 1,
+      "inputs": [
+        { "itemId": "vibrosteel_ore", "qty": 2 }
+      ],
+      "output": { "itemId": "vibrosteel_ingot", "qty": 1 },
+      "tags": ["metallurgy", "metal"],
+      "description": "A simple vibrosteel ingot, a step up from raw vibrosteel ore."
+    },
+
+    "electrosteel_ingot": {
+      "id": "electrosteel_ingot",
+      "name": "Electrosteel Ingot",
+      "_version": 1,
+      "requiredProfession": "metallurgy",
+      "minSkillLevel": 57,
+      "skillGain": 1,
+      "inputs": [
+        { "itemId": "electrosteel_ore", "qty": 2 }
+      ],
+      "output": { "itemId": "electrosteel_ingot", "qty": 1 },
+      "tags": ["metallurgy", "metal"],
+      "description": "A simple electrosteel ingot, a step up from raw electrosteel ore."
+    },
+
+    "titanium_ingot": {
+      "id": "titanium_ingot",
+      "name": "Titanium Ingot",
+      "_version": 1,
+      "requiredProfession": "metallurgy",
+      "minSkillLevel": 53,
+      "skillGain": 1,
+      "inputs": [
+        { "itemId": "titanium_ore", "qty": 2 }
+      ],
+      "output": { "itemId": "titanium_ingot", "qty": 1 },
+      "tags": ["metallurgy", "metal"],
+      "description": "A simple titanium ingot, a step up from raw titanium ore."
+    },
+
+    "alpha_beta_titanium_ingot": {
+      "id": "alpha_titanium_ingot",
+      "name": "Alpha Titanium Ingot",
+      "_version": 1,
+      "requiredProfession": "metallurgy",
+      "minSkillLevel": 57,
+      "skillGain": 1,
+      "inputs": [
+        { "itemId": "alpha_titanium_ore", "qty": 2 }
+      ],
+      "output": { "itemId": "alpha_titanium_ingot", "qty": 1 },
+      "tags": ["metallurgy", "metal"],
+      "description": "A simple alpha titanium ingot, a step up from raw alpha titanium ore."
+    },
+
+    "titanium_ceramic_ingot": {
+      "id": "titanium_ceramic_ingot",
+      "name": "Titanium Ceramic Ingot",
+      "_version": 1,
+      "requiredProfession": "metallurgy",
+      "minSkillLevel": 61,
+      "skillGain": 1,
+      "inputs": [
+        { "itemId": "titanium_ceramic_ore", "qty": 2 }
+      ],
+      "output": { "itemId": "titanium_ceramic_ingot", "qty": 1 },
+      "tags": ["metallurgy", "metal"],
+      "description": "A simple titanium ceramic ingot, a step up from raw titanium ceramic ore."
+    },
+
+    "vibro_titanium_ingot": {
+      "id": "vibro_titanium_ingot",
+      "name": "Vibro Titanium Ingot",
+      "_version": 1,
+      "requiredProfession": "metallurgy",
+      "minSkillLevel": 65,
+      "skillGain": 1,
+      "inputs": [
+        { "itemId": "vibro_titanium_ore", "qty": 2 }
+      ],
+      "output": { "itemId": "vibro_titanium_ingot", "qty": 1 },
+      "tags": ["metallurgy", "metal"],
+      "description": "A simple vibro titanium ingot, a step up from raw vibro titanium ore."
+    },
+
+    "electro_titanium_ingot": {
+      "id": "electro_titanium_ingot",
+      "name": "Electro Titanium Ingot",
+      "_version": 1,
+      "requiredProfession": "metallurgy",
+      "minSkillLevel": 69,
+      "skillGain": 1,
+      "inputs": [
+        { "itemId": "electro_titanium_ore", "qty": 2 }
+      ],
+      "output": { "itemId": "electro_titanium_ingot", "qty": 1 },
+      "tags": ["metallurgy", "metal"],
+      "description": "A simple electro titanium ingot, a step up from raw electro titanium ore."
+    },
+
+    "titansteel_ingot": {
+      "id": "titanssteel_ingot",
+      "name": "Titanssteel Ingot",
+      "_version": 1,
+      "requiredProfession": "metallurgy",
+      "minSkillLevel": 73,
+      "skillGain": 1,
+      "inputs": [
+        { "itemId": "titanssteel_ore", "qty": 2 }
+      ],
+      "output": { "itemId": "titanssteel_ingot", "qty": 1 },
+      "tags": ["metallurgy", "metal"],
+      "description": "A simple titanssteel ingot, a step up from raw titanssteel ore."
+    },
+
+    "vibro_titansteel_ingot": {
+      "id": "vibro_titansteel_ingot",
+      "name": "Vibro Titansteel Ingot",
+      "_version": 1,
+      "requiredProfession": "metallurgy",
+      "minSkillLevel": 78,
+      "skillGain": 1,
+      "inputs": [
+        { "itemId": "vibro_titansteel_ore", "qty": 2 }
+      ],
+      "output": { "itemId": "vibro_titansteel_ingot", "qty": 1 },
+      "tags": ["metallurgy", "metal"],
+      "description": "A simple vibro titansteel ingot, a step up from raw vibro titansteel ore."
+    },
+
+    "electro_titansteel_ingot": {
+      "id": "electro_titansteel_ingot",
+      "name": "Electro Titansteel Ingot",
+      "_version": 1,
+      "requiredProfession": "metallurgy",
+      "minSkillLevel": 83,
+      "skillGain": 1,
+      "inputs": [
+        { "itemId": "electro_titansteel_ore", "qty": 2 }
+      ],
+      "output": { "itemId": "electro_titansteel_ingot", "qty": 1 },
+      "tags": ["metallurgy", "metal"],
+      "description": "A simple electro titansteel ingot, a step up from raw electro titansteel ore."
+    },
+
+    "metametal_ingot": {
+      "id": "metametal_ingot",
+      "name": "Metametal Ingot",
+      "_version": 1,
+      "requiredProfession": "metallurgy",
+      "minSkillLevel": 88,
+      "skillGain": 1,
+      "inputs": [
+        { "itemId": "metametal_ore", "qty": 2 }
+      ],
+      "output": { "itemId": "metametal_ingot", "qty": 1 },
+      "tags": ["metallurgy", "metal"],
+      "description": "A simple metametal ingot, a step up from raw metametal ore."
+    },
+
+    "vibro_metametal_ingot": {
+      "id": "vibro_metametal_ingot",
+      "name": "Vibro Metametal Ingot",
+      "_version": 1,
+      "requiredProfession": "metallurgy",
+      "minSkillLevel": 93,
+      "skillGain": 1,
+      "inputs": [
+        { "itemId": "vibro_metametal_ore", "qty": 2 }
+      ],
+      "output": { "itemId": "vibro_metametal_ingot", "qty": 1 },
+      "tags": ["metallurgy", "metal"],
+      "description": "A simple vibro metametal ingot, a step up from raw vibro metametal ore."
+    },
+
+    "electro_metametal_ingot": {
+      "id": "electro_metametal_ingot",
+      "name": "Electro Metametal Ingot",
+      "_version": 1,
+      "requiredProfession": "metallurgy",
+      "minSkillLevel": 98,
+      "skillGain": 1,
+      "inputs": [
+        { "itemId": "electro_metametal_ore", "qty": 2 }
+      ],
+      "output": { "itemId": "electro_metametal_ingot", "qty": 1 },
+      "tags": ["metallurgy", "metal"],
+      "description": "A simple electro metametal ingot, a step up from raw electro metametal ore."
     }
   }
 }

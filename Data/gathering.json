@@ -6,7 +6,7 @@
       "_version": 1,
       "requiredProfession": "mining",
       "minSkillLevel": 1,
-      "skillGain": 1,
+      "xp": 15,
       "rolls": 1,
       "drops": [
         { "itemId": "basic_utility_knife", "qty": 1, "chance": 1.00 }

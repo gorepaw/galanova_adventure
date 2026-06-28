@@ -311,10 +311,12 @@ The first playable slice, seeded into `slot_start`:
   stats are `str 7 · dex 10 · con 8 · int 18 · spi 12 · wis 10 · spd 11 · cha 15` → HP 80 /
   MP 270. Starts with a **Basic Utility Knife** (dagger, `basic_utility_knife`) equipped, so
   her Basic Attack trains the **daggers** skill.
-- **Colonial Sewers** (`templates/zones/colonial_sewers`, region `rath`) — starting zone,
-  `enc_colonial_sewers` (copied from the Durotar table; combat pool = tunnel roach only).
-- **Tunnel Roach** (`tunnel_roach`, in `mobs.json`) — level 1 beast, `basic_attack` only,
-  Galanova stat keys. Verified: Lati defeats one in ~6 turns.
+- **Colonial Sewers** (`templates/zones/colonial_sewers`, region `rath`) — the only seeded zone
+  (the WoW world map was stripped in Phase 6/7); `enc_colonial_sewers` combat pool = sewer rat +
+  tunnel roach.
+- **Tunnel Roach** / **Colonial Sewer Rat** (`mobs.json`) — level 1 beasts, `basic_attack` only,
+  Galanova stat keys, with per-creature `butcheryLoot` (meat/bone, + hide on the rat) and
+  `butcheryXp`. Verified: Lati defeats one in ~6 turns.
 
 ---
 
@@ -328,7 +330,55 @@ The first playable slice, seeded into `slot_start`:
    stat-point allocation (cap 99), skills system + XP, equip gating. ✅
 5. **Classes & races** — 5 classes; Sephir race; skills/abilities-from-skills; **playable MVP**
    (Lati Ashera in Colonial Sewers vs tunnel roaches). ✅
-6. **Clear bulk data to templates** — one example per category, structure preserved. ⬅ **NEXT**
-   (mobs.json, items.json, quests.json, dungeons.json, shop, companions, professions, etc.).
-7. **Rebrand & cleanup** — strip remaining WoW/Kalimdor/thazz strings.
-8. **Final validation** — tests + app smoke test.
+6. **Clear bulk data to templates** — one example per category, structure preserved. ✅
+   (mobs/items/quests/dungeons/shop/companions/professions reduced to MVP-or-template entries;
+   datalayer test fixtures preserved). `abilities.json` intentionally left WoW for now.
+7. **Rebrand & cleanup** — strip remaining WoW/Kalimdor/thazz strings. ✅ (engine + UI; see build log)
+8. **Final validation** — tests + app smoke test. ✅ (`npm test` harness, ~246/246 green)
+
+---
+
+## Build log — Phases 6–8 + systems (session 2)
+
+**Data templated (Phase 6).** Each `Data/` bulk file reduced to one example: the Galanova MVP
+entry where it exists (`tunnel_roach`, `basic_utility_knife`, `enc_colonial_sewers`) else a neutral
+`template_*` placeholder. Datalayer test fixtures (`enemy_test_grunt`/`enemy_test_caster`/
+`encounter_test_plains`/`quest_test_01`) kept so the self-test stays green.
+
+**Rebrand / dead-code cleanup (Phase 7).**
+- Deleted orphaned WoW modules `Engine/classes.js` and `Engine/combatbridge.js` (superseded by
+  `equipment.js` / gameplayloop's own `CombatBridge`). Removed dead `classRestrictions`.
+- Defaults `orc→sephir`, `warrior→armsman`; legacy `CLASS_BASE_HP/MP` 9-class maps → `{}`;
+  `STARTER_GEAR → {}`; `raw.sta → raw.con`. `Kalimdor RPG → Galanova` (headers, welcome, UI logo);
+  `package.json` name → `galanova_adventure`.
+- **`skinning → butchery`** full rename (`Data/butchery.json`, profession id, IPC `game:butcherCorpses`,
+  UI `canButcher`/"Butcher").
+- **World/travel:** 130+ hardcoded WoW zones in `seed()` stripped — only `colonial_sewers` (Rath)
+  remains. The `connectedZones` adjacency graph removed entirely; travel = **same-region free,
+  cross-region pays `max(100, destLevel×10)`** (UI list renamed `connectedZones → travelZones`).
+
+**Systems added/changed.**
+- **Combat pets → skills, not class.** `PETS_BY_SKILL` (Zoology→`zoology.json`, Summoning→
+  `summoning.json`) + `petsForUnit(inst)`; a companion draws from every pet skill it has learned.
+- **Butchery loot = per-creature & typed.** Each mob authors `butcheryLoot: [{type, itemId, chance,
+  qty|minQty/maxQty}]` (types **meat / hide / bone / feather** — a feathered creature carries
+  `feather` entries and no `hide`) plus `butcheryXp`. Old global leather/hide tier tables gone;
+  `butchery.json` is now schema reference only. Example loot on the rat/roach; material items
+  `thin_hide`/`small_bone`/`down_feather` added.
+- **Professions level via authored XP, not skill-up.** `awardProfessionXp(save, prof, xp)`: crafting
+  uses `recipe.xp`, gathering `node.xp`, butchering `mob.butcheryXp` (fallback `10 + minSkillLevel`).
+  The old `skillGain`/`skillGainTiers` chance-roll is gone.
+- **Item suffixes → 8 Galanova stats.** `item_suffixes.json` rebuilt: 8 single-stat suffixes +
+  11 stat-descriptive paired suffixes (of the Brute/Fighter/Skirmisher/…); `statCost` flat 1.0.
+  Separate `craftRollChance` (vs loot `rollChance`) wired into `craftItem` — crafted output can roll
+  a suffix when the item is `randomEnchant`-tagged. System is **dormant** until items carry the tag.
+
+**Testing (Phase 8).** `Testing/run_tests.js` rewritten as a harness that runs each system's own
+self-test and aggregates (`npm test`): DATA LAYER, CLASS/ARMOR, ITEM SUFFIXES, SKILLS, ENCOUNTERS,
+DUNGEONS, GAME LOOP → **~246/246, all green**. The old ~1880-line WoW class-ability suites were
+deleted. Self-tests in datalayer + gameplayloop now run **only** under `GALANOVA_RUN_TESTS` (set by
+the harness) — the app no longer runs tests on launch. Fixed a latent `partySkillLevel` bug (now
+uses `getSkillLevel`, handling the `{level,xp}` skill form).
+
+**Still WoW (intentional):** `abilities.json` + its combat `PASSIVE_HOOKS` (blood_fury/war_stomp/…)
+— next conversion target.

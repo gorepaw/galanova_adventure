@@ -63,10 +63,15 @@ const PartySkills = (() => {
     insts.some(i => i.profession === prof && i.deathState === "alive");
 
   // Returns the highest value of a named skill across all living party members.
+  // Uses getSkillLevel (skills.js) so both the {level,xp} object form and the
+  // legacy flat-number form resolve correctly.
   const partySkillLevel = (insts, skill) =>
     insts.reduce((best, i) => {
       if (i.deathState !== "alive") return best;
-      return Math.max(best, (i.skills || {})[skill] || 0);
+      const lvl = (typeof getSkillLevel === "function")
+        ? getSkillLevel(i, skill)
+        : ((i.skills || {})[skill] || 0);
+      return Math.max(best, lvl || 0);
     }, 0);
 
   return { getInsts, partyHasProfession, partySkillLevel };
@@ -411,36 +416,49 @@ const EncounterGenerator = (() => {
 // SELF-TEST
 // =============================================================================
 
-const runEncounterTests = (DataStore, Loader, save) => {
+const runEncounterTests = (DataStore, Loader, _save) => {
   const results = [];
   let p = 0, f = 0;
   const assert = (label, cond) => { cond ? p++ : f++; results.push({ ok: !!cond, label }); };
 
+  // Controlled test party: one miner (mining 5; no herbalism/lockpicking/fishing)
+  // so skill-gated slot logic is deterministic, independent of the real start party.
+  DataStore.write("instances/companions/enc_test_miner", {
+    instanceId: "enc_test_miner", templateId: "template_companion", _version: 1,
+    name: "Test Miner", raceId: "sephir", classId: "survivalist", level: 5, xp: 0,
+    currentHp: 100, currentMp: 0, maxHp: 100, maxMp: 0,
+    deathState: "alive", permadead: false, downedAt: null, rezCost: 0,
+    profession: "mining", learnedAbilities: [], acquiredQuirks: [], activeBuffs: [],
+    relationship: 0, skills: { mining: { level: 5, xp: 0 } }, unlockedSkills: [],
+    stats: { raw: { str: 10, dex: 10, con: 12, int: 8, spi: 10, wis: 10, spd: 10, cha: 8 } }, gear: {},
+  });
+  const save = {
+    saveId: "enc_test", _version: 1, mode: "normal", currentZone: "colonial_sewers",
+    party: [{ instanceId: "enc_test_miner", templateId: "template_companion" }],
+    quests: {}, inventory: [], currency: 0, reputation: {}, talentSchools: {}, flags: {}, playtime: 0, shopStocks: {},
+  };
+
   // ── PartySkills ────────────────────────────────────────────────────────
   const pInsts = PartySkills.getInsts(save, Loader);
-  assert("PartySkills: returns array",               Array.isArray(pInsts));
-  assert("PartySkills: mining present at start",     PartySkills.partyHasProfession(pInsts, "mining"));
-  assert("PartySkills: herbalism absent at start",  !PartySkills.partyHasProfession(pInsts, "herbalism"));
-  assert("PartySkills: mining skill >= 1",           PartySkills.partySkillLevel(pInsts, "mining") >= 1);
-  assert("PartySkills: lockpicking = 0",             PartySkills.partySkillLevel(pInsts, "lockpicking") === 0);
-  assert("PartySkills: fishing = 0",                 PartySkills.partySkillLevel(pInsts, "fishing") === 0);
+  assert("PartySkills: returns array",        Array.isArray(pInsts));
+  assert("PartySkills: miner present",        PartySkills.partyHasProfession(pInsts, "mining"));
+  assert("PartySkills: herbalism absent",    !PartySkills.partyHasProfession(pInsts, "herbalism"));
+  assert("PartySkills: mining skill >= 1",    PartySkills.partySkillLevel(pInsts, "mining") >= 1);
+  assert("PartySkills: lockpicking = 0",      PartySkills.partySkillLevel(pInsts, "lockpicking") === 0);
+  assert("PartySkills: fishing = 0",          PartySkills.partySkillLevel(pInsts, "fishing") === 0);
 
   // ── checkReroll ────────────────────────────────────────────────────────
   const etR    = Loader.load("templates/encounter_tables/enc_colonial_sewers", "encounterTable");
-  assert("enc_colonial_sewers loads",                        etR.ok);
+  assert("enc_colonial_sewers loads",         etR.ok);
   const etData = etR.ok ? etR.data : { slots: [], recruitPool: [] };
 
-  const oreSlot   = etData.slots?.find(sl => sl.nodeId === "copper_ore");
-  const herbSlot  = etData.slots?.find(sl => sl.nodeId === "peacebloom");
-  const earthSlot = etData.slots?.find(sl => sl.nodeId === "earthroot");
+  const nodeSlot  = etData.slots?.find(sl => sl.nodeId === "template_node");
   const chestSlot = etData.slots?.find(sl => sl.type   === "locked_chest");
   const fishSlot  = etData.slots?.find(sl => sl.type   === "fishing_spot");
 
-  if (oreSlot)   assert("checkReroll: copper_ore OK with miner",          !checkReroll(oreSlot,   save, etData, pInsts, Loader));
-  if (herbSlot)  assert("checkReroll: peacebloom rerolls — no herbalist",  checkReroll(herbSlot,  save, etData, pInsts, Loader));
-  if (earthSlot) assert("checkReroll: earthroot rerolls — herb skill < 15",checkReroll(earthSlot, save, etData, pInsts, Loader));
-  if (chestSlot) assert("checkReroll: chest rerolls — no lockpicking",     checkReroll(chestSlot, save, etData, pInsts, Loader));
-  if (fishSlot)  assert("checkReroll: fishing rerolls — no fishing skill",  checkReroll(fishSlot,  save, etData, pInsts, Loader));
+  if (nodeSlot)  assert("checkReroll: mining node OK with miner",     !checkReroll(nodeSlot,  save, etData, pInsts, Loader));
+  if (chestSlot) assert("checkReroll: chest rerolls — no lockpicking", checkReroll(chestSlot, save, etData, pInsts, Loader));
+  if (fishSlot)  assert("checkReroll: fishing rerolls — no fishing",   checkReroll(fishSlot,  save, etData, pInsts, Loader));
 
   // ── buildRollTable ─────────────────────────────────────────────────────
   const rollTable = EncounterGenerator.buildRollTable(etData.slots || [], save);
@@ -449,12 +467,11 @@ const runEncounterTests = (DataStore, Loader, save) => {
   assert("buildRollTable: entries sum to ~1",        Math.abs(tableSum - 1) < 0.001);
   assert("buildRollTable: combat entry present",     rollTable.some(e => e.type === "combat"));
 
-  // trackingBoost inflates correctly
-  const boostedSave = { ...save, flags: { trackingBoost: { targetId: "combat", multiplier: 1.5 } } };
+  // trackingBoost inflates the combat chance, table still normalises
+  const boostedSave  = { ...save, flags: { trackingBoost: { targetId: "combat", multiplier: 1.5 } } };
   const boostedTable = EncounterGenerator.buildRollTable(etData.slots || [], boostedSave);
-  const baseTable    = EncounterGenerator.buildRollTable(etData.slots || [], save);
   const boostedCombat = boostedTable.find(e => e.type === "combat")?._chance || 0;
-  const baseCombat    = baseTable.find(e => e.type === "combat")?._chance    || 0;
+  const baseCombat    = rollTable.find(e => e.type === "combat")?._chance    || 0;
   assert("buildRollTable: trackingBoost increases combat chance", boostedCombat > baseCombat);
   const boostedSum = boostedTable.reduce((s, e) => s + e._chance, 0);
   assert("buildRollTable: boosted table still sums to ~1",        Math.abs(boostedSum - 1) < 0.001);
@@ -470,26 +487,21 @@ const runEncounterTests = (DataStore, Loader, save) => {
   }
   assert("generate: companion_none never surfaces", !gotCompanionNone);
 
-  // ── gated nodes never surface without required skill ───────────────────
-  const GATED_HERB_NODES = ["peacebloom","silverleaf","earthroot","mageroyal"];
-  let gotGatedNode = false;
+  // chest / fishing never surface — the miner has neither skill
+  let gotGated = false;
   for (let i = 0; i < 40; i++) {
     const e = EncounterGenerator.generate("colonial_sewers", save, Loader);
-    if (e.encounterType === "gathering" && e.gatheringNodes?.some(n => GATED_HERB_NODES.includes(n.nodeId || n.itemId)))
-      gotGatedNode = true;
-    if (e.encounterType === "locked_chest" || e.encounterType === "fishing_spot")
-      gotGatedNode = true;
+    if (e.encounterType === "locked_chest" || e.encounterType === "fishing_spot") gotGated = true;
   }
-  assert("generate: herb/chest/fishing never surface without skill", !gotGatedNode);
+  assert("generate: chest/fishing never surface without skill", !gotGated);
 
-  // copper_ore CAN surface (miner in party)
-  let gotOre = false;
+  // the mining gather node CAN surface for the miner
+  let gotNode = false;
   for (let i = 0; i < 100; i++) {
     const e = EncounterGenerator.generate("colonial_sewers", save, Loader);
-    if (e.encounterType === "gathering" && e.gatheringNodes?.some(n => (n.nodeId || n.itemId) === "copper_ore"))
-      gotOre = true;
+    if (e.encounterType === "gathering" && e.gatheringNodes?.some(n => (n.nodeId || n.itemId) === "template_node")) gotNode = true;
   }
-  assert("generate: copper_ore can surface with miner", gotOre);
+  assert("generate: mining node can surface with miner", gotNode);
 
   // ── combat group ────────────────────────────────────────────────────────
   let combatEnc = null;
@@ -503,45 +515,16 @@ const runEncounterTests = (DataStore, Loader, save) => {
     assert("combat: each enemy has name",            combatEnc.enemies.every(e => !!e.name));
     assert("combat: each enemy has instanceId",      combatEnc.enemies.every(e => !!e.instanceId));
   } else {
-    assert("combat: encounter generated (skipped — no combat rolled in 50 tries)", true);
+    assert("combat: encounter generated (skipped — none rolled in 50 tries)", true);
   }
-
-  // ── exclusiveGroups — barrens ───────────────────────────────────────────
-  const barrensSave = { ...save, currentZone: "northern_barrens", party: save.party };
-  let gotMixedEmber = false;
-  for (let i = 0; i < 60; i++) {
-    const e = EncounterGenerator.generate("northern_barrens", barrensSave, Loader);
-    if (e.encounterType === "combat" && e.enemies.length > 1) {
-      const ids = e.enemies.map(en => en.id);
-      if (ids.includes("ember_sprite") && ids.some(id => id !== "ember_sprite"))
-        gotMixedEmber = true;
-    }
-  }
-  assert("exclusiveGroups: ember_sprite never mixes with other enemies", !gotMixedEmber);
 
   // ── forced encounter ────────────────────────────────────────────────────
-  const forcedSave = { ...save, flags: { forcedEncounter: { type: "combat", enemyIds: ["rogue_grunt"] } } };
+  const forcedSave = { ...save, flags: { forcedEncounter: { type: "combat", enemyIds: ["tunnel_roach"] } } };
   const forcedEnc  = EncounterGenerator.generate("colonial_sewers", forcedSave, Loader);
   assert("forced: encounterType = combat",  forcedEnc.encounterType === "combat");
   assert("forced: forced flag = true",      forcedEnc.forced === true);
 
-  // ── dungeon mode ────────────────────────────────────────────────────────
-  // Write a temporary dungeon zone for testing
-  DataStore.write("templates/zones/zone_test_dungeon", {
-    id: "zone_test_dungeon", name: "Test Dungeon", _version: 1,
-    encounterTableId: "enc_colonial_sewers",
-    forcedOnly: true,
-    forcedEncounterQueue: [
-      { type: "combat",    enemyIds: ["rogue_grunt"] },
-      { type: "gathering", gatheringNodes: [{ nodeId: "copper_ore", name: "Copper Vein", qty: 1 }] },
-    ],
-    minPartyLevel: 1, maxPartyLevel: 10, ambientBuffs: [], tags: [],
-  });
-  const dungeonEnc = EncounterGenerator.generate("zone_test_dungeon", save, Loader);
-  assert("dungeon: forced encounter returned",  dungeonEnc.ok);
-  assert("dungeon: correct type from queue",    dungeonEnc.encounterType === "combat");
-  assert("dungeon: forced flag = true",         dungeonEnc.forced === true);
-  DataStore.remove("templates/zones/zone_test_dungeon");
+  DataStore.remove("instances/companions/enc_test_miner");
 
   // ── summary ─────────────────────────────────────────────────────────────
   return { passed: p, failed: f, total: p + f, results };

@@ -1,9 +1,9 @@
 // =============================================================================
 // RANDOM ITEM SUFFIX SYSTEM — Galanova
 //
-// Implements Classic WoW's "random enchantment" items — the world-drop greens
-// that can be looted plain, or with a randomly rolled suffix like "of the
-// Bear" (+Strength +Stamina) or "of Intellect" appended to their name.
+// World-drop items that can be looted plain, or with a randomly rolled stat
+// suffix like "of the Brute" (+str +con) or "of Intellect" appended to their
+// name. Uses the 8 Galanova stats (str/dex/con/int/spi/wis/spd/cha).
 //
 // HOW IT WORKS:
 //   Base items in Data/items.json that are eligible carry the tag
@@ -20,13 +20,11 @@
 //   chance decides whether an eligible drop's itemId gets swapped for one of
 //   its suffixed variant ids instead of the plain base id.
 //
-// STAT MAGNITUDE: modeled on Blizzard's published itemization budget economy
-// (a base point budget derived from item level, scaled by a per-slot
-// multiplier, split across the suffix's stat(s) with a per-stat cost
-// weight — Stamina is "cheaper" so it rolls higher numbers than primary
-// stats). This is NOT a byte-exact reproduction of Blizzard's internal
-// RandPropPoints / ScalingStatDistribution tables — it's a faithful,
-// internally-consistent approximation tuned for this game's low item levels.
+// STAT MAGNITUDE: a budget economy — a base point budget derived from item
+// level, scaled by a per-slot multiplier, split across the suffix's stat(s)
+// with a per-stat cost weight (a cheaper stat rolls higher numbers). Cost
+// weights live in Data/item_suffixes.json (currently all 1.0 — equal magnitude).
+// Tuned for this game's low item levels.
 //
 // DEPENDENCIES: Data/item_suffixes.json. Uses DataStore/Loader as globals
 // (set up by datalayer.js) the same way gameplayloop.js does — load this
@@ -43,6 +41,9 @@ const ItemSuffixes = (() => {
   const STAT_COST       = _suffixData.statCost;
   const SLOT_MULT       = _suffixData.slotMultipliers;
   const ROLL_CHANCE     = _suffixData.rollChance;
+  // Separate chance for crafted output (vs world-drop loot). Defaults to 0 so
+  // crafting never suffixes unless explicitly enabled in the data.
+  const CRAFT_ROLL_CHANCE = _suffixData.craftRollChance ?? 0;
   const VALUE_MULT      = _suffixData.valueMultiplier;
   const UPGRADED_QUALITY = _suffixData.upgradedQuality;
 
@@ -121,10 +122,10 @@ const ItemSuffixes = (() => {
   // the roll misses (rollChance is 1.0 by default — in Classic, these
   // world-drop templates essentially always rolled some suffix; the bare
   // unsuffixed item rarely if ever actually dropped).
-  const maybeApplySuffix = (itemId) => {
+  const maybeApplySuffix = (itemId, chance = ROLL_CHANCE) => {
     const ir = Loader.load(`templates/items/${itemId}`, "item");
     if (!ir.ok || !isEligibleBaseItem(ir.data)) return itemId;
-    if (Math.random() >= ROLL_CHANCE) return itemId;
+    if (Math.random() >= chance) return itemId;
     const suffixKey = SUFFIX_KEYS[Math.floor(Math.random() * SUFFIX_KEYS.length)];
     return `${itemId}__${suffixKey}`;
   };
@@ -135,13 +136,71 @@ const ItemSuffixes = (() => {
   };
 
   return {
-    SUFFIX_GROUPS, SUFFIX_KEYS,
+    SUFFIX_GROUPS, SUFFIX_KEYS, ROLL_CHANCE, CRAFT_ROLL_CHANCE,
     greenBudget, slotMultiplier, computeStatBonuses,
     isEligibleBaseItem, isEligible,
     buildVariant, generateAllVariants, maybeApplySuffix,
   };
 })();
 
+// =============================================================================
+// SELF-TEST
+// =============================================================================
+
+const runSuffixTests = () => {
+  const results = []; let p = 0, f = 0;
+  const assert = (label, cond) => { cond ? p++ : f++; results.push({ ok: !!cond, label }); };
+
+  const base = {
+    id: "suffix_test_helm", name: "Test Helm", _version: 1, type: "armor",
+    slot: "head", itemLevel: 20, statBonuses: {}, value: 50, quality: "common",
+    tags: ["armor", "randomEnchant"],
+  };
+  const variants = ItemSuffixes.generateAllVariants({ suffix_test_helm: base });
+
+  assert("one variant per suffix group", variants.length === ItemSuffixes.SUFFIX_KEYS.length);
+
+  const brute = variants.find(v => v.id === "suffix_test_helm__brute");
+  assert("paired suffix exists (of the Brute)", !!brute);
+  assert("paired suffix grants both stats",     brute && brute.statBonuses.str > 0 && brute.statBonuses.con > 0);
+  assert("paired suffix names the item",        brute && brute.name === "Test Helm of the Brute");
+
+  const con = variants.find(v => v.id === "suffix_test_helm__constitution");
+  assert("single suffix grants its stat (con)", con && con.statBonuses.con > 0);
+
+  const ALLOWED = new Set(["str", "dex", "con", "int", "spi", "wis", "spd", "cha"]);
+  const used = new Set();
+  variants.forEach(v => Object.keys(v.statBonuses).forEach(s => used.add(s)));
+  assert("only Galanova stats used",            [...used].every(s => ALLOWED.has(s)));
+  assert("no legacy agi/sta stats",            !used.has("agi") && !used.has("sta"));
+
+  assert("suffixed items upgrade quality",      variants.every(v => v.quality === "uncommon"));
+  assert("value multiplied",                    con && con.value === Math.round(50 * 1.5));
+  assert("non-randomEnchant items ignored",     ItemSuffixes.generateAllVariants({ x: { id: "x", tags: [] } }).length === 0);
+
+  // maybeApplySuffix honours a chance override (the crafting path passes craftRollChance)
+  if (typeof DataStore !== "undefined" && typeof Loader !== "undefined") {
+    DataStore.write("templates/items/suffix_test_helm", base);
+    assert("chance 1.0 → always suffixed", ItemSuffixes.maybeApplySuffix("suffix_test_helm", 1).startsWith("suffix_test_helm__"));
+    assert("chance 0 → never suffixed",    ItemSuffixes.maybeApplySuffix("suffix_test_helm", 0) === "suffix_test_helm");
+    DataStore.remove("templates/items/suffix_test_helm");
+  }
+
+  return { passed: p, failed: f, total: p + f, results };
+};
+
+const reportSuffixTests = (r) => {
+  const lines = [
+    `\n${"=".repeat(60)}`,
+    `ITEM SUFFIX TESTS: ${r.passed}/${r.total} passed`,
+    "=".repeat(60),
+    ...r.results.filter(x => !x.ok).map(x => `  ✗ ${x.label}`),
+    r.failed > 0 ? `  ${r.failed} FAILED` : "  All tests passed.",
+    "=".repeat(60),
+  ];
+  return lines.join("\n");
+};
+
 if (typeof module !== "undefined") {
-  module.exports = { ItemSuffixes };
+  module.exports = { ItemSuffixes, runSuffixTests, reportSuffixTests };
 }

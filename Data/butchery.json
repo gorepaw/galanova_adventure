@@ -1,8 +1,28 @@
 {
-  "leatherTiers": [
-    { "itemId": "basic_utility_knife", "minLevel": 1, "maxLevel": 5 }
-  ],
-  "hideTiers": [
-    { "itemId": "basic_utility_knife", "minLevel": 1, "maxLevel": 5, "peakMin": 1, "peakMax": 5, "chanceBase": 0.08, "chancePeak": 0.22 }
-  ]
+  "_note": "Butchery loot is authored PER CREATURE on each mob's `butcheryLoot` array in Data/mobs.json — this file is schema reference only and is NOT loaded by the engine. Each entry is typed (meat | hide | bone | feather) and rolled independently; a creature that yields feathers simply carries `feather` entries and no `hide` entry. A mob's `butcheryXp` is awarded to the butcher (a party member with the butchery profession) for each corpse butchered.",
+  "lootTypes": ["meat", "hide", "bone", "feather"],
+  "entrySchema": {
+    "type": "meat | hide | bone | feather",
+    "itemId": "<item id>",
+    "chance": "0..1 (default 1)",
+    "qty": "<fixed quantity>  — or use minQty/maxQty for a range"
+  },
+  "example": {
+    "mobId": "example_beast",
+    "butcheryXp": 8,
+    "butcheryLoot": [
+      { "type": "meat", "itemId": "raw_example_meat", "chance": 1.0, "minQty": 1, "maxQty": 2 },
+      { "type": "hide", "itemId": "thin_hide",        "chance": 0.5, "qty": 1 },
+      { "type": "bone", "itemId": "small_bone",       "chance": 0.7, "qty": 1 }
+    ]
+  },
+  "featheredExample": {
+    "mobId": "example_fowl",
+    "butcheryXp": 8,
+    "butcheryLoot": [
+      { "type": "meat",    "itemId": "raw_fowl_meat", "chance": 1.0, "minQty": 1, "maxQty": 2 },
+      { "type": "feather", "itemId": "down_feather",  "chance": 0.8, "minQty": 1, "maxQty": 3 },
+      { "type": "bone",    "itemId": "hollow_bone",   "chance": 0.6, "qty": 1 }
+    ]
+  }
 }

@@ -1,5 +1,5 @@
 {
-  "name": "kalimdoradventures",
+  "name": "galanova_adventure",
   "version": "0.1.0",
   "private": true,
   "main": "electron-main.js",
@@ -7,7 +7,8 @@
     "dev": "concurrently \"vite\" \"wait-on http://localhost:5173 && electron .\"",
     "build": "vite build",
     "start": "electron .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test": "node Testing/run_tests.js"
   },
   "dependencies": {
     "react": "^18.3.1",

@@ -1,25 +1,30 @@
 {
-  "_comment": "Classic WoW 'random enchantment' system. Base items tagged 'randomEnchant' in items.json can drop plain, or — per rollChance — be looted with one of these suffix groups rolled at random, which renames the item ('<Base Name> of the Bear'), upgrades its quality, and adds stat bonuses computed from the base item's itemLevel and slot. See Engine/itemsuffixes.js for the generator. This is modeled on Blizzard's published itemization budget economy (base-budget-by-quality × slot multiplier, stat cost weights), not a byte-exact reproduction of the internal RandPropPoints/ScalingStatDistribution tables.",
+  "_comment": "Random-suffix ('of the ___') system. A base item in items.json tagged 'randomEnchant' can drop plain or, per rollChance, be looted with one of these suffix groups rolled at random — which renames the item ('<Base Name> of the Brute'), upgrades its quality, and adds stat bonuses computed from the base item's itemLevel and slot. Stat magnitude follows a budget economy: a point budget derived from item level, scaled by a per-slot multiplier, split across the suffix's stats with a per-stat cost weight (cheaper stats roll higher numbers). See Engine/itemsuffixes.js for the generator. Uses the 8 Galanova stats: str/dex/con/int/spi/wis/spd/cha.",
 
   "suffixGroups": {
-    "tiger":     { "suffix": "of the Tiger",   "stats": ["str", "agi"] },
-    "bear":      { "suffix": "of the Bear",    "stats": ["str", "sta"] },
-    "gorilla":   { "suffix": "of the Gorilla", "stats": ["str", "int"] },
-    "boar":      { "suffix": "of the Boar",    "stats": ["str", "spi"] },
-    "monkey":    { "suffix": "of the Monkey",  "stats": ["agi", "sta"] },
-    "falcon":    { "suffix": "of the Falcon",  "stats": ["agi", "int"] },
-    "wolf":      { "suffix": "of the Wolf",    "stats": ["agi", "spi"] },
-    "eagle":     { "suffix": "of the Eagle",   "stats": ["sta", "int"] },
-    "whale":     { "suffix": "of the Whale",   "stats": ["sta", "spi"] },
-    "owl":       { "suffix": "of the Owl",     "stats": ["int", "spi"] },
-    "strength":  { "suffix": "of Strength",    "stats": ["str"] },
-    "agility":   { "suffix": "of Agility",     "stats": ["agi"] },
-    "stamina":   { "suffix": "of Stamina",     "stats": ["sta"] },
-    "intellect": { "suffix": "of Intellect",   "stats": ["int"] },
-    "spirit":    { "suffix": "of Spirit",      "stats": ["spi"] }
+    "strength":     { "suffix": "of Strength",     "stats": ["str"] },
+    "dexterity":    { "suffix": "of Dexterity",    "stats": ["dex"] },
+    "constitution": { "suffix": "of Constitution", "stats": ["con"] },
+    "intellect":    { "suffix": "of Intellect",    "stats": ["int"] },
+    "spirit":       { "suffix": "of Spirit",       "stats": ["spi"] },
+    "wisdom":       { "suffix": "of Wisdom",       "stats": ["wis"] },
+    "speed":        { "suffix": "of Speed",        "stats": ["spd"] },
+    "charisma":     { "suffix": "of Charisma",     "stats": ["cha"] },
+
+    "brute":      { "suffix": "of the Brute",      "stats": ["str", "con"] },
+    "fighter":    { "suffix": "of the Fighter",    "stats": ["str", "dex"] },
+    "skirmisher": { "suffix": "of the Skirmisher", "stats": ["dex", "con"] },
+    "stalker":    { "suffix": "of the Stalker",    "stats": ["dex", "spd"] },
+    "duelist":    { "suffix": "of the Duelist",    "stats": ["spd", "cha"] },
+    "trickster":  { "suffix": "of the Trickster",  "stats": ["dex", "cha"] },
+    "mystic":     { "suffix": "of the Mystic",     "stats": ["int", "cha"] },
+    "channeler":  { "suffix": "of the Channeler",  "stats": ["int", "spi"] },
+    "scholar":    { "suffix": "of the Scholar",    "stats": ["int", "wis"] },
+    "sage":       { "suffix": "of the Sage",       "stats": ["spi", "wis"] },
+    "survivor":   { "suffix": "of the Survivor",   "stats": ["con", "spi"] }
   },
 
-  "statCost": { "str": 1, "agi": 1, "int": 1, "spi": 1, "sta": 0.67 },
+  "statCost": { "str": 1, "dex": 1, "con": 1, "int": 1, "spi": 1, "wis": 1, "spd": 1, "cha": 1 },
 
   "slotMultipliers": {
     "weapon_2h": 1.00, "weapon_1h": 0.42, "weapon_ranged": 0.30,
@@ -29,7 +34,8 @@
     "wrist": 0.55, "back": 0.55, "ring": 0.55, "neck": 0.55, "offhand": 0.55
   },
 
-  "rollChance": 1.0,
+  "rollChance": 0.1,
+  "craftRollChance": 0.1,
   "valueMultiplier": 1.5,
   "upgradedQuality": "uncommon"
 }

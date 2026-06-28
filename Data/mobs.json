@@ -20,6 +20,12 @@
       "xpValue": 20,
       "currencyDrop": null,
       "tags": ["beast", "vermin", "zone_colonial_sewers"],
+      "butcheryXp": 8,
+      "butcheryLoot": [
+        { "type": "meat", "itemId": "raw_rat_meat", "chance": 1.0, "minQty": 1, "maxQty": 2 },
+        { "type": "hide", "itemId": "thin_hide",    "chance": 0.5, "qty": 1 },
+        { "type": "bone", "itemId": "small_bone",   "chance": 0.6, "qty": 1 }
+      ],
       "description": "A rat that has adapted to the sewers beneath Rath."
     },
 
@@ -36,6 +42,11 @@
       "xpValue": 25,
       "currencyDrop": null,
       "tags": ["beast", "vermin", "zone_colonial_sewers"],
+      "butcheryXp": 6,
+      "butcheryLoot": [
+        { "type": "meat", "itemId": "stringy_roach_meat", "chance": 1.0, "minQty": 1, "maxQty": 2 },
+        { "type": "bone", "itemId": "small_bone",         "chance": 0.5, "qty": 1 }
+      ],
       "description": "A bloated roach grown fat in the sewers beneath Rath."
     },
 
