@@ -25,6 +25,7 @@ contextBridge.exposeInMainWorld('gameAPI', {
   getItemCatalog:        ()        => ipcRenderer.invoke('game:getItemCatalog'),
   getBuffCatalog:        ()        => ipcRenderer.invoke('game:getBuffCatalog'),
   getQuestCatalog:       ()        => ipcRenderer.invoke('game:getQuestCatalog'),
+  getEntityCatalog:      ()        => ipcRenderer.invoke('game:getEntityCatalog'),
   setCombatMode:         (mode)    => ipcRenderer.invoke('game:setCombatMode', mode),
   executePlayerAction:   (actions) => ipcRenderer.invoke('game:executePlayerAction', actions),
   getRosterData:         ()        => ipcRenderer.invoke('game:getRosterData'),

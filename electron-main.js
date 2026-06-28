@@ -8,6 +8,10 @@ const isDev = !app.isPackaged
 // numbers the UI shows — the renderer no longer recomputes derived stats).
 const { characterSheet } = require('./Engine/charsheet.js')
 
+// Clean name/tooltip data for combat-log entity recognition (abilities, mobs).
+const _abilitiesCatalog = require('./Data/abilities.json')
+const _mobsCatalog      = require('./Data/mobs.json')
+
 // Load an engine module and merge its exports into global scope.
 // Mirrors Testing/run_tests.js bootstrap so engine files that check
 // `typeof DataStore === "undefined"` can find each other at top level.
@@ -314,6 +318,43 @@ ipcMain.handle('game:getItemCatalog', () => {
 
 ipcMain.handle('game:getQuestCatalog', () => {
   return _questTemplates
+})
+
+// Entity catalog for combat-log tooltips: clean id→{name,…} maps for abilities,
+// zones, regions, and enemy mobs. Items use the existing getItemCatalog; party
+// characters come from partyInstances. Built from validated loaders/data so the
+// UI never parses raw (messy) JSON.
+ipcMain.handle('game:getEntityCatalog', () => {
+  const titleCase = (s) => String(s || '').replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
+
+  const abilities = {}
+  for (const [id, def] of Object.entries(_abilitiesCatalog.abilities || {})) {
+    if (id.startsWith('_') || !def?.name) continue
+    abilities[id] = {
+      name: def.name, resourceCost: def.resourceCost || null, cooldown: def.cooldown || 0,
+      tags: def.tags || [], description: def.description || '', passive: !!def.passive,
+    }
+  }
+
+  const zones = {}, regions = {}
+  for (const key of (DataStore.list('templates/zones/') || [])) {
+    const r = Loader.load(key, 'zone')
+    if (!r.ok) continue
+    const z = r.data
+    zones[z.id] = {
+      name: z.name, regionId: z.regionId || null, zoneType: z.zoneType || null,
+      minLevel: z.minPartyLevel, maxLevel: z.maxPartyLevel, lore: z.lore || '',
+    }
+    if (z.regionId && !regions[z.regionId]) regions[z.regionId] = { name: titleCase(z.regionId) }
+  }
+
+  const mobs = {}
+  for (const [id, def] of Object.entries(_mobsCatalog.mobs || {})) {
+    if (!/^[a-z0-9_]+$/.test(id) || !def?.name) continue
+    mobs[id] = { name: def.name, type: def.type || null }
+  }
+
+  return { abilities, zones, regions, mobs }
 })
 
 ipcMain.handle('game:getBuffCatalog', () => {

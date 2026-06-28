@@ -328,6 +328,36 @@ html, body, #root { height: 100%; overflow: hidden; }
 .log-default { color: var(--text); }
 .log-empty   { color: var(--text-dim); }
 
+/* ── Combat-log entity tokens (ALL-CAPS, hoverable) ──────────────────────────── */
+.log-entity {
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  cursor: help;
+  border-bottom: 1px dotted currentColor;
+}
+.log-entity-item      { color: var(--gold); }
+.log-entity-ability   { color: #7fb2ff; }
+.log-entity-character { color: #ff9a6b; }
+.log-entity-zone      { color: #8fe0b0; }
+.log-entity-region    { color: #c9a0ff; }
+
+.entity-tooltip {
+  position: fixed;
+  z-index: 9999;
+  pointer-events: none;
+  background: var(--panel);
+  border: 1px solid var(--gold-dim);
+  border-radius: 4px;
+  padding: 8px 10px;
+  min-width: 150px;
+  max-width: 260px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.5);
+}
+.entity-tooltip-name { font-weight: 700; color: var(--text-bright); margin-bottom: 2px; }
+.entity-tooltip-kind { font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--gold-dim); margin-bottom: 4px; }
+.entity-tooltip-line { font-size: 11px; color: var(--text); }
+.entity-tooltip-desc { font-size: 11px; color: var(--text-dim); font-style: italic; margin-top: 4px; }
+
 /* ── Inventory ──────────────────────────────────────────────────────────────── */
 .inventory-panel { height: 100%; overflow-y: auto; padding: 10px 14px; }
 

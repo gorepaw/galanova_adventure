@@ -28,6 +28,10 @@ const _summoningData      = require('../Data/summoning.json');
 // the sheet can never disagree (Engine/charsheet.js).
 const { deriveCore } = require('./charsheet.js');
 
+// Combat-log entity tags: wrap entity refs so the UI resolves name + tooltip
+// with zero matching cost (Engine/logtags.js). Migrate emit sites to tag() over time.
+const { tag } = require('./logtags.js');
+
 
 // =============================================================================
 // COMBAT PETS — unlocked by skill, not class
@@ -2139,7 +2143,7 @@ const HomeScreen = (() => {
       if (summary.currency)             emit(`   Currency:  +${Currency.toString(summary.currency)}`);
       if ((cr.pickpocketGold || 0) > 0) emit(`   Pickpocket: +${Currency.toString(cr.pickpocketGold)}`);
       if ((cr.soulShardsGained || 0) > 0) emit(`   Soul Shard: +${cr.soulShardsGained} added to bag`);
-      if (summary.loot.length)     emit(`   Loot:      ${summary.loot.map(l => `${l.qty}x ${l.itemId}`).join(", ")}`);
+      if (summary.loot.length)     emit(`   Loot:      ${summary.loot.map(l => `${l.qty}x ${tag("item", l.itemId)}`).join(", ")}`);
       for (const [skillId, amount] of Object.entries(summary.skillXp || {})) emit(`   ${skillId} skill +${amount} xp`);
       for (const qp of (summary.questProgress || [])) { if (qp.completed) emit(`   ✓ Quest complete: ${qp.questId}`); else emit(`   Quest "${qp.questId}" � ${qp.objectiveId}: ${qp.next}/${qp.goal}`); }
       if (summary.reputation?.length) for (const rr of summary.reputation) emit(`   Rep: +${rr.amount} ${rr.factionId}`);

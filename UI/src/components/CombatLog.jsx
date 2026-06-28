@@ -1,4 +1,7 @@
-import React, { useEffect, useRef } from 'react'
+import React, { useEffect, useRef, useState, useMemo } from 'react'
+import ItemTooltip, { buildTipItem } from './ItemTooltip.jsx'
+import EntityTooltip from './EntityTooltip.jsx'
+import { buildMatcher, tokenizeLine } from '../logTokenizer.js'
 
 function classifyLine(line) {
   if (!line) return 'log-empty'
@@ -15,12 +18,62 @@ function classifyLine(line) {
   return 'log-default'
 }
 
-export default function CombatLog({ messages }) {
+const spaces = (s) => s.replace(/_/g, ' ')
+
+function buildEntries(itemCatalog, entityCatalog, partyInstances) {
+  const entries = []
+  const ec = entityCatalog || {}
+  for (const [id, def] of Object.entries(itemCatalog || {})) {
+    if (id.startsWith('_')) continue
+    entries.push({ type: 'item', id, name: def?.name || id, data: def })
+  }
+  for (const [id, def] of Object.entries(ec.abilities || {})) entries.push({ type: 'ability',   id, name: def.name, data: def })
+  for (const [id, def] of Object.entries(ec.zones || {}))     entries.push({ type: 'zone',      id, name: def.name, data: def })
+  for (const [id, def] of Object.entries(ec.regions || {}))   entries.push({ type: 'region',    id, name: def.name, data: def })
+  for (const [id, def] of Object.entries(ec.mobs || {}))      entries.push({ type: 'character', id, name: def.name, data: def })
+  for (const inst of (partyInstances || [])) entries.push({ type: 'character', id: inst.instanceId, name: inst.name, data: inst })
+  return entries
+}
+
+export default function CombatLog({ messages, itemCatalog = {}, entityCatalog = null, partyInstances = [] }) {
   const bottomRef = useRef(null)
+  const [tip, setTip] = useState(null)
+
+  // Party names rarely change, but partyInstances is a fresh array every snapshot.
+  // Key the (potentially large) matcher on a stable signature so the trie is only
+  // rebuilt when the catalogs load or the roster/names actually change.
+  const partyKey = (partyInstances || []).map(p => `${p.instanceId}:${p.name}`).join('|')
+  const matcher = useMemo(
+    () => buildMatcher(buildEntries(itemCatalog, entityCatalog, partyInstances)),
+    [itemCatalog, entityCatalog, partyKey], // eslint-disable-line react-hooks/exhaustive-deps
+  )
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
+
+  const onTip = (entry, e) => {
+    if (!entry) { setTip(null); return }
+    const x = e.clientX + 14 + 260 > window.innerWidth ? e.clientX - 274 : e.clientX + 14
+    setTip({ entry, x, y: e.clientY - 8 })
+  }
+
+  const renderParts = (line) =>
+    tokenizeLine(line, matcher).map((part, i) => {
+      if (part.kind === 'text') return spaces(part.text)
+      const { entry } = part
+      return (
+        <span
+          key={i}
+          className={`log-entity log-entity-${entry.type}`}
+          onMouseEnter={(e) => onTip(entry, e)}
+          onMouseMove={(e) => onTip(entry, e)}
+          onMouseLeave={() => onTip(null)}
+        >
+          {spaces(entry.name || part.raw).toUpperCase()}
+        </span>
+      )
+    })
 
   return (
     <div className="combat-log">
@@ -29,11 +82,15 @@ export default function CombatLog({ messages }) {
       ) : (
         messages.map((line, i) => (
           <div key={i} className={`log-line ${classifyLine(line)}`}>
-            {line || ' '}
+            {renderParts(line)}
           </div>
         ))
       )}
       <div ref={bottomRef} />
+      {tip && (tip.entry.type === 'item'
+        ? <ItemTooltip item={buildTipItem(tip.entry.id, itemCatalog)} x={tip.x} y={tip.y} />
+        : <EntityTooltip entry={tip.entry} x={tip.x} y={tip.y} />
+      )}
     </div>
   )
 }

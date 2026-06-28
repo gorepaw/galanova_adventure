@@ -51,6 +51,7 @@ export default function App() {
   const [itemCatalog, setItemCatalog]     = useState({})
   const [buffCatalog, setBuffCatalog]     = useState({})
   const [questCatalog, setQuestCatalog]   = useState({})
+  const [entityCatalog, setEntityCatalog] = useState(null)
   const [rosterData, setRosterData]       = useState([])
   const [saveSlots, setSaveSlots]         = useState([])
   const [activeSlotId, setActiveSlotId]   = useState('slot_start')
@@ -115,6 +116,7 @@ export default function App() {
     api.getItemCatalog().then(c => setItemCatalog(c || {})).catch(() => {})
     api.getBuffCatalog().then(c => setBuffCatalog(c || {})).catch(() => {})
     api.getQuestCatalog().then(c => setQuestCatalog(c || {})).catch(() => {})
+    api.getEntityCatalog?.().then(c => setEntityCatalog(c || {})).catch(() => {})
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Auto-run: fire a new encounter 1.5 s after the previous one resolves
@@ -439,7 +441,7 @@ export default function App() {
             <div className="tab-content">
               <ErrorBoundary key={activeTab} label="This panel">
               {activeTab === 'log' && (
-                <CombatLog messages={log} />
+                <CombatLog messages={log} itemCatalog={itemCatalog} entityCatalog={entityCatalog} partyInstances={partyInstances} />
               )}
               {activeTab === 'quests' && (
                 <QuestsPanel quests={save?.quests ?? {}} questCatalog={questCatalog} />
@@ -571,7 +573,7 @@ export default function App() {
         </main>
 
         <aside className="log-column">
-          <CombatLog messages={log} />
+          <CombatLog messages={log} itemCatalog={itemCatalog} entityCatalog={entityCatalog} partyInstances={partyInstances} />
         </aside>
       </div>
     </div>
