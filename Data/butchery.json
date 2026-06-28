@@ -1,0 +1,8 @@
+{
+  "leatherTiers": [
+    { "itemId": "basic_utility_knife", "minLevel": 1, "maxLevel": 5 }
+  ],
+  "hideTiers": [
+    { "itemId": "basic_utility_knife", "minLevel": 1, "maxLevel": 5, "peakMin": 1, "peakMax": 5, "chanceBase": 0.08, "chancePeak": 0.22 }
+  ]
+}

@@ -1,0 +1,19 @@
+{
+  "pets": [
+    {
+      "id": "template_beast",
+      "name": "Template Beast",
+      "unlockLevel": 1,
+      "type": "TBD",
+      "role": "dps",
+      "aiProfile": "aggressive",
+      "baseStats": { "str": 1, "agi": 1, "sta": 1, "int": 1, "spi": 1 },
+      "statGrowthPerLevel": { "str": 0.1, "agi": 0.1, "sta": 0.1, "int": 0.1, "spi": 0.1 },
+      "baseHp": 10,
+      "hpPerLevel": 1,
+      "abilities": [],
+      "description": "TEMPLATE — placeholder Zoology companion. Replace with Galanova content.",
+      "tags": ["template"]
+    }
+  ]
+}
