@@ -1,14 +1,11 @@
 import React from 'react'
+import { formatCurrency } from '../currency.js'
 
 const TYPE_LABEL = { combat: 'Combat', shop: 'Shop', dungeon: 'Dungeon', unknown: '?' }
 const TYPE_CLASS = { combat: 'zone-combat', shop: 'zone-shop', dungeon: 'zone-dungeon', unknown: '' }
 
-function fmtCost(copper) {
-  if (copper <= 0) return null
-  if (copper >= 10000) return `${Math.floor(copper / 10000)}g`
-  if (copper >= 100)   return `${Math.floor(copper / 100)}s`
-  return `${copper}c`
-}
+// Travel cost shows only the largest coin unit; free/unknown travel renders nothing.
+const fmtCost = (copper) => formatCurrency(copper, { compact: true, empty: null, zero: null })
 
 function regionLabel(r) {
   if (!r) return 'Unknown'

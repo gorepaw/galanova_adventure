@@ -1,17 +1,6 @@
 import React, { useState } from 'react'
 import ItemTooltip, { buildTipItem } from './ItemTooltip.jsx'
-
-function formatCurrency(copper) {
-  if (!copper) return '0c'
-  const g = Math.floor(copper / 10000)
-  const s = Math.floor((copper % 10000) / 100)
-  const c = copper % 100
-  const parts = []
-  if (g > 0) parts.push(`${g}g`)
-  if (s > 0) parts.push(`${s}s`)
-  if (c > 0 || parts.length === 0) parts.push(`${c}c`)
-  return parts.join(' ')
-}
+import { formatCurrency } from '../currency.js'
 
 const USABLE = new Set([
   'minor_health_potion', 'rough_bandage', 'ember_shard',

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import ItemTooltip, { buildTipItem } from './ItemTooltip.jsx'
 import SpellBook from './SpellBook.jsx'
+import { formatCurrency as fmtCopper } from '../currency.js'
 
 // Derived stats, gear totals, and the skill view-model are computed by the engine
 // (Engine/charsheet.js) and arrive on inst.sheet — this component only renders them.
@@ -28,17 +29,6 @@ const DISPLAY_SLOTS = [
 
 
 function pct(n, digits = 2) { return `${n.toFixed(digits)}%` }
-
-function fmtCopper(copper) {
-  const g = Math.floor(copper / 10000)
-  const s = Math.floor((copper % 10000) / 100)
-  const c = copper % 100
-  const parts = []
-  if (g > 0) parts.push(`${g}g`)
-  if (s > 0) parts.push(`${s}s`)
-  if (c > 0 || parts.length === 0) parts.push(`${c}c`)
-  return parts.join(' ')
-}
 
 function tipPos(e) {
   const x = e.clientX + 14 + 240 > window.innerWidth ? e.clientX - 254 : e.clientX + 14

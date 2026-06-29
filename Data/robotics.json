@@ -1,0 +1,17 @@
+{
+  "pets": [
+    {
+      "id": "template_construct",
+      "name": "Template Construct",
+      "unlockLevel": 1,
+      "type": "TBD",
+      "role": "dps",
+      "aiProfile": "aggressive",
+      "baseStats": { "str": 1, "dex": 1, "con": 1, "int": 1, "spi": 1 },
+      "statGrowthPerLevel": { "str": 0.1, "dex": 0.1, "con": 0.1, "int": 0.1, "spi": 0.1 },
+      "abilities": [],
+      "description": "TEMPLATE — placeholder Robotics companion. Replace with Galanova content.",
+      "tags": ["template"]
+    }
+  ]
+}

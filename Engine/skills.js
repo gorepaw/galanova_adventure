@@ -93,15 +93,16 @@ const canEquipWeaponType = (inst, weaponType) => {
 };
 
 // Which skill should an ability use grant XP to? basic_attack -> equipped weapon's
-// skill; everything else -> its owning skill from the ability tables.
+// skill; with no melee weapon, it trains the unarmed skill (the "unarmed" weaponType
+// maps to it). Everything else -> its owning skill from the ability tables.
 const skillForAbilityUse = (abilityId, equippedWeaponType) => {
   if (abilityId === "basic_attack")
-    return equippedWeaponType ? (WEAPON_TYPE_SKILL[equippedWeaponType] || null) : null;
+    return WEAPON_TYPE_SKILL[equippedWeaponType || "unarmed"] || null;
   return ABILITY_SKILL[abilityId] || null;
 };
 
 // Universal skills every character has (not listed per class).
-const UNIVERSAL_SKILLS = ["riding", "trading", "dungeoneering"];
+const UNIVERSAL_SKILLS = ["running", "climbing", "swimming", "riding", "trading", "dungeoneering"];
 
 // Trainable skills = class list (+ universal + narrative-unlocked skills on the instance).
 const trainableSkills = (classId, inst) => {
@@ -155,6 +156,9 @@ const runSkillTests = () => {
 
   assert("skillForAbilityUse: basic_attack -> equipped weapon skill",
     skillForAbilityUse("basic_attack", "dagger") === "daggers");
+  assert("skillForAbilityUse: bare-handed basic_attack -> unarmed",
+    skillForAbilityUse("basic_attack", null) === "unarmed");
+  assert("weaponType map: unarmed -> unarmed skill", WEAPON_TYPE_SKILL["unarmed"] === "unarmed");
 
   // normalize legacy profession number
   const legacy = { skills: { mining: 40 } };

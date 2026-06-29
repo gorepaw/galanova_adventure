@@ -24,6 +24,7 @@ const _dungeonsData       = require('../Data/dungeons.json');
 const _zoologyData        = require('../Data/zoology.json');
 const _summoningData      = require('../Data/summoning.json');
 const _necromancyData     = require('../Data/necromancy.json');
+const _roboticsData       = require('../Data/robotics.json');
 
 // Shared stat derivation — the SAME core the character sheet uses, so combat and
 // the sheet can never disagree (Engine/charsheet.js).
@@ -38,14 +39,15 @@ const { tag } = require('./logtags.js');
 // COMBAT PETS — unlocked by skill, not class
 // The Zoology skill grants beast companions (zoology.json); the Summoning skill
 // grants summons (summoning.json); the Necromancy skill grants undead
-// (necromancy.json). A character may draw from every pet skill it has learned
-// (level >= 1).
+// (necromancy.json); the Robotics skill grants constructs (robotics.json).
+// A character may draw from every pet skill it has learned (level >= 1).
 // =============================================================================
 
 const PETS_BY_SKILL = {
   zoology:    _zoologyData.pets,
   summoning:  _summoningData.pets,
   necromancy: _necromancyData.pets,
+  robotics:   _roboticsData.pets,
 };
 
 // All pet templates a character can use, based on the pet skills they've learned.
@@ -85,21 +87,23 @@ const awardProfessionXp = (save, professionId, xp) => {
 // =============================================================================
 
 const Currency = (() => {
-  const toCopperFromParts = (gold = 0, silver = 0, copper = 0) =>
-    gold * 10000 + silver * 100 + copper;
+  const toCopperFromParts = (platinum = 0, gold = 0, silver = 0, copper = 0) =>
+    platinum * 1000000 + gold * 10000 + silver * 100 + copper;
 
   const toDisplay = (totalCopper) => ({
-    gold:   Math.floor(totalCopper / 10000),
-    silver: Math.floor((totalCopper % 10000) / 100),
-    copper: totalCopper % 100,
-    total:  totalCopper,
+    platinum: Math.floor(totalCopper / 1000000),
+    gold:     Math.floor((totalCopper % 1000000) / 10000),
+    silver:   Math.floor((totalCopper % 10000) / 100),
+    copper:   totalCopper % 100,
+    total:    totalCopper,
   });
 
   const toString = (totalCopper) => {
-    const { gold, silver, copper } = toDisplay(totalCopper);
+    const { platinum, gold, silver, copper } = toDisplay(totalCopper);
     const parts = [];
-    if (gold   > 0) parts.push(`${gold}g`);
-    if (silver > 0) parts.push(`${silver}s`);
+    if (platinum > 0) parts.push(`${platinum}p`);
+    if (gold     > 0) parts.push(`${gold}g`);
+    if (silver   > 0) parts.push(`${silver}s`);
     if (copper > 0 || parts.length === 0) parts.push(`${copper}c`);
     return parts.join(" ");
   };
@@ -1597,7 +1601,9 @@ const RewardEngine = (() => {
         const mhWeaponType = (mhLoad && mhLoad.ok) ? mhLoad.data.weaponType : null;
         for (const [abilityId, count] of Object.entries(used)) {
           const skillId = skillForAbilityUse(abilityId, mhWeaponType);
-          if (skillId && count > 0) {
+          // Bare-handed basic attacks only train unarmed if the character has the skill.
+          const hasSkill = skillId !== "unarmed" || getSkillLevel(updated, "unarmed") >= 1;
+          if (skillId && count > 0 && hasSkill) {
             const amount = count * 10;
             const sx = addSkillXp(updated, skillId, amount);
             updated = sx.inst;
@@ -3215,7 +3221,9 @@ const GameLoopTests = (() => {
     const withGold = Currency.add(save0, 10000);
     assert("Currency add works",         withGold.currency === save0.currency + 10000);
     assert("Currency display correct",   Currency.toDisplay(10000).gold === 1);
+    assert("Currency platinum display",  Currency.toDisplay(1000000).platinum === 1);
     assert("Currency toString works",    Currency.toString(10150) === "1g 1s 50c");
+    assert("Currency platinum toString", Currency.toString(1010150) === "1p 1g 1s 50c");
 
     // ── death handling ────────────────────────────────────────────────────────
     const dummySave = { mode: "normal", currency: 10000, party: [] };

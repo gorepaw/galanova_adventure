@@ -1,15 +1,11 @@
 import React from 'react'
 import achievementsData from '../../../Data/achievements.json'
+import { formatCurrency as baseFormatCurrency } from '../currency.js'
 
 const DEFS = Object.values(achievementsData.achievements || {})
 
-function formatCurrency(copper) {
-  if (!copper) return null
-  const g = Math.floor(copper / 10000)
-  const s = Math.floor((copper % 10000) / 100)
-  const c = copper % 100
-  return [g && `${g}g`, s && `${s}s`, (c || (!g && !s)) && `${c}c`].filter(Boolean).join(' ')
-}
+// Rewards hide the line entirely when there's no coin, so empty/zero render as null.
+const formatCurrency = (copper) => baseFormatCurrency(copper, { empty: null, zero: null })
 
 function RewardLine({ rewards }) {
   const parts = []

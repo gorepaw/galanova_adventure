@@ -19,20 +19,9 @@ import AchievementsPanel from './components/AchievementsPanel.jsx'
 import SettingsPanel from './components/SettingsPanel.jsx'
 import useHotkeys from './hooks/useHotkeys.js'
 import { normalizeKey, formatKeyLabel } from './hotkeys.js'
+import { formatCurrency } from './currency.js'
 
 const api = window.gameAPI
-
-function formatCurrency(copper) {
-  if (!copper) return '0c'
-  const g = Math.floor(copper / 10000)
-  const s = Math.floor((copper % 10000) / 100)
-  const c = copper % 100
-  const parts = []
-  if (g > 0) parts.push(`${g}g`)
-  if (s > 0) parts.push(`${s}s`)
-  if (c > 0 || parts.length === 0) parts.push(`${c}c`)
-  return parts.join(' ')
-}
 
 export default function App() {
   const [gameState, setGameState]         = useState(null)

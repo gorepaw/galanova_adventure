@@ -367,7 +367,8 @@ entry where it exists (`tunnel_roach`, `basic_utility_knife`, `enc_colonial_sewe
 
 **Systems added/changed.**
 - **Combat pets → skills, not class.** `PETS_BY_SKILL` (Zoology→`zoology.json`, Summoning→
-  `summoning.json`) + `petsForUnit(inst)`; a companion draws from every pet skill it has learned.
+  `summoning.json`, Necromancy→`necromancy.json`, Robotics→`robotics.json`) + `petsForUnit(inst)`;
+  a companion draws from every pet skill it has learned.
 - **Butchery loot = per-creature & typed.** Each mob authors `butcheryLoot: [{type, itemId, chance,
   qty|minQty/maxQty}]` (types **meat / hide / bone / feather** — a feathered creature carries
   `feather` entries and no `hide`) plus `butcheryXp`. Old global leather/hide tier tables gone;

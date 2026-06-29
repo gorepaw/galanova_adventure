@@ -1,4 +1,5 @@
 import React from 'react'
+import { formatCurrency as fmtCopper } from '../currency.js'
 
 function Bar({ value, max, className }) {
   const pct = max > 0 ? Math.max(0, Math.min(100, (value / max) * 100)) : 0
@@ -16,17 +17,6 @@ function xpToNext(level) {
 
 // Skills are stored as { level, xp } (legacy: plain number). Read the level safely.
 const skillLevel = (v) => (typeof v === 'number' ? v : (v?.level ?? null))
-
-function fmtCopper(copper) {
-  const g = Math.floor(copper / 10000)
-  const s = Math.floor((copper % 10000) / 100)
-  const c = copper % 100
-  const parts = []
-  if (g > 0) parts.push(`${g}g`)
-  if (s > 0) parts.push(`${s}s`)
-  if (c > 0 || parts.length === 0) parts.push(`${c}c`)
-  return parts.join(' ')
-}
 
 function MemberCard({ inst, currency, onRez }) {
   if (!inst) return null

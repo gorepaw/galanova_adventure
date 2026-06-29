@@ -1,18 +1,9 @@
 import React, { useState, useEffect } from 'react'
 import ItemTooltip, { buildTipItem } from './ItemTooltip.jsx'
+import { formatCurrency as baseFormatCurrency } from '../currency.js'
 
-function formatCurrency(copper) {
-  if (!copper && copper !== 0) return '—'
-  if (copper === 0) return '0c'
-  const g = Math.floor(copper / 10000)
-  const s = Math.floor((copper % 10000) / 100)
-  const c = copper % 100
-  const parts = []
-  if (g > 0) parts.push(`${g}g`)
-  if (s > 0) parts.push(`${s}s`)
-  if (c > 0 || parts.length === 0) parts.push(`${c}c`)
-  return parts.join(' ')
-}
+// Missing prices render as an em dash; 0 still shows "0c".
+const formatCurrency = (copper) => baseFormatCurrency(copper, { empty: '—' })
 
 const QUALITY_CLASS = {
   poor: 'q-poor', common: 'q-common', uncommon: 'q-uncommon',
