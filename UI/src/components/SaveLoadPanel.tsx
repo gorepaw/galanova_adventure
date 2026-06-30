@@ -68,7 +68,7 @@ function SlotRow({ slot, isActive, loading, onLoad, onOverwrite, onDelete }) {
   )
 }
 
-export default function SaveLoadPanel({ slots = [], activeSlotId, loading, onSaveToSlot, onLoadFromSlot, onDeleteSlot, onNewGame }) {
+export default function SaveLoadPanel({ slots = [], activeSlotId, loading, onSaveToSlot, onLoadFromSlot, onDeleteSlot, onNewGame }: any) {
   const [newName, setNewName] = useState('')
   const [confirmingNew, setConfirmingNew] = useState(false)
 

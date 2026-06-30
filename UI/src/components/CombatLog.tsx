@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState, useMemo } from 'react'
-import ItemTooltip, { buildTipItem } from './ItemTooltip.jsx'
-import EntityTooltip from './EntityTooltip.jsx'
-import { buildMatcher, tokenizeLine } from '../logTokenizer.js'
+import ItemTooltip, { buildTipItem } from './ItemTooltip'
+import EntityTooltip from './EntityTooltip'
+import { buildMatcher, tokenizeLine } from '../logTokenizer'
 
 function classifyLine(line) {
   if (!line) return 'log-empty'
@@ -21,23 +21,23 @@ function classifyLine(line) {
 const spaces = (s) => s.replace(/_/g, ' ')
 
 function buildEntries(itemCatalog, entityCatalog, partyInstances) {
-  const entries = []
+  const entries: any[] = []
   const ec = entityCatalog || {}
-  for (const [id, def] of Object.entries(itemCatalog || {})) {
+  for (const [id, def] of Object.entries<any>(itemCatalog || {})) {
     if (id.startsWith('_')) continue
     entries.push({ type: 'item', id, name: def?.name || id, data: def })
   }
-  for (const [id, def] of Object.entries(ec.abilities || {})) entries.push({ type: 'ability',   id, name: def.name, data: def })
-  for (const [id, def] of Object.entries(ec.zones || {}))     entries.push({ type: 'zone',      id, name: def.name, data: def })
-  for (const [id, def] of Object.entries(ec.regions || {}))   entries.push({ type: 'region',    id, name: def.name, data: def })
-  for (const [id, def] of Object.entries(ec.mobs || {}))      entries.push({ type: 'character', id, name: def.name, data: def })
+  for (const [id, def] of Object.entries<any>(ec.abilities || {})) entries.push({ type: 'ability',   id, name: def.name, data: def })
+  for (const [id, def] of Object.entries<any>(ec.zones || {}))     entries.push({ type: 'zone',      id, name: def.name, data: def })
+  for (const [id, def] of Object.entries<any>(ec.regions || {}))   entries.push({ type: 'region',    id, name: def.name, data: def })
+  for (const [id, def] of Object.entries<any>(ec.mobs || {}))      entries.push({ type: 'character', id, name: def.name, data: def })
   for (const inst of (partyInstances || [])) entries.push({ type: 'character', id: inst.instanceId, name: inst.name, data: inst })
   return entries
 }
 
-export default function CombatLog({ messages, itemCatalog = {}, entityCatalog = null, partyInstances = [] }) {
-  const bottomRef = useRef(null)
-  const [tip, setTip] = useState(null)
+export default function CombatLog({ messages, itemCatalog = {}, entityCatalog = null, partyInstances = [] }: any) {
+  const bottomRef = useRef<any>(null)
+  const [tip, setTip] = useState<any>(null)
 
   // Party names rarely change, but partyInstances is a fresh array every snapshot.
   // Key the (potentially large) matcher on a stable signature so the trie is only
@@ -52,7 +52,7 @@ export default function CombatLog({ messages, itemCatalog = {}, entityCatalog = 
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
 
-  const onTip = (entry, e) => {
+  const onTip = (entry: any, e?: any) => {
     if (!entry) { setTip(null); return }
     const x = e.clientX + 14 + 260 > window.innerWidth ? e.clientX - 274 : e.clientX + 14
     setTip({ entry, x, y: e.clientY - 8 })

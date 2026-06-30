@@ -1,6 +1,6 @@
 import React from 'react'
 import achievementsData from '../../../Data/achievements.json'
-import { formatCurrency as baseFormatCurrency } from '../currency.js'
+import { formatCurrency as baseFormatCurrency } from '../currency'
 
 const DEFS = Object.values(achievementsData.achievements || {})
 
@@ -8,7 +8,7 @@ const DEFS = Object.values(achievementsData.achievements || {})
 const formatCurrency = (copper) => baseFormatCurrency(copper, { empty: null, zero: null })
 
 function RewardLine({ rewards }) {
-  const parts = []
+  const parts: string[] = []
   if (rewards.xp)       parts.push(`+${rewards.xp} XP`)
   if (rewards.currency) parts.push(`+${formatCurrency(rewards.currency)}`)
   if (rewards.items)    rewards.items.forEach(r => parts.push(`+${r.qty}x ${r.itemId}`))

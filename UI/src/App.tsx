@@ -1,57 +1,57 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react'
-import CombatLog from './components/CombatLog.jsx'
-import CombatView from './components/CombatView.jsx'
-import AbilityBar from './components/AbilityBar.jsx'
-import DungeonMap from './components/DungeonMap.jsx'
-import InventoryPanel from './components/InventoryPanel.jsx'
-import CraftingPanel from './components/CraftingPanel.jsx'
-import CharacterScreen from './components/CharacterScreen.jsx'
-import ErrorBoundary from './components/ErrorBoundary.jsx'
-import ShopPanel from './components/ShopPanel.jsx'
-import ReputationPanel from './components/ReputationPanel.jsx'
-import SkillsPanel from './components/SkillsPanel.jsx'
-import ProfessionsPanel from './components/ProfessionsPanel.jsx'
-import GuildhallPanel from './components/GuildhallPanel.jsx'
-import SaveLoadPanel from './components/SaveLoadPanel.jsx'
-import QuestsPanel from './components/QuestsPanel.jsx'
-import CollectionsPanel from './components/CollectionsPanel.jsx'
-import AchievementsPanel from './components/AchievementsPanel.jsx'
-import SettingsPanel from './components/SettingsPanel.jsx'
-import useHotkeys from './hooks/useHotkeys.js'
-import { normalizeKey, formatKeyLabel } from './hotkeys.js'
-import { formatCurrency } from './currency.js'
+import CombatLog from './components/CombatLog'
+import CombatView from './components/CombatView'
+import AbilityBar from './components/AbilityBar'
+import DungeonMap from './components/DungeonMap'
+import InventoryPanel from './components/InventoryPanel'
+import CraftingPanel from './components/CraftingPanel'
+import CharacterScreen from './components/CharacterScreen'
+import ErrorBoundary from './components/ErrorBoundary'
+import ShopPanel from './components/ShopPanel'
+import ReputationPanel from './components/ReputationPanel'
+import SkillsPanel from './components/SkillsPanel'
+import ProfessionsPanel from './components/ProfessionsPanel'
+import GuildhallPanel from './components/GuildhallPanel'
+import SaveLoadPanel from './components/SaveLoadPanel'
+import QuestsPanel from './components/QuestsPanel'
+import CollectionsPanel from './components/CollectionsPanel'
+import AchievementsPanel from './components/AchievementsPanel'
+import SettingsPanel from './components/SettingsPanel'
+import useHotkeys from './hooks/useHotkeys'
+import { normalizeKey, formatKeyLabel } from './hotkeys'
+import { formatCurrency } from './currency'
 
 const api = window.gameAPI
 
 export default function App() {
-  const [gameState, setGameState]         = useState(null)
-  const [save, setSave]                   = useState(null)
-  const [partyInstances, setPartyInstances] = useState([])
-  const [zoneData, setZoneData]           = useState(null)
-  const [travelZones, setTravelZones] = useState([])
+  const [gameState, setGameState]         = useState<any>(null)
+  const [save, setSave]                   = useState<any>(null)
+  const [partyInstances, setPartyInstances] = useState<any[]>([])
+  const [zoneData, setZoneData]           = useState<any>(null)
+  const [travelZones, setTravelZones] = useState<any[]>([])
   const [canButcher, setCanButcher]             = useState(false)
-  const [log, setLog]                     = useState([])
-  const [activeTab, setActiveTab]         = useState(null)
+  const [log, setLog]                     = useState<any[]>([])
+  const [activeTab, setActiveTab]         = useState<any>(null)
   const [loading, setLoading]             = useState(false)
   const [combatMode, setCombatMode]       = useState('auto')
-  const [manualCombat, setManualCombat]   = useState(null)
-  const [craftingRecipes, setCraftingRecipes] = useState([])
-  const [shopData, setShopData]           = useState(null)
+  const [manualCombat, setManualCombat]   = useState<any>(null)
+  const [craftingRecipes, setCraftingRecipes] = useState<any[]>([])
+  const [shopData, setShopData]           = useState<any>(null)
   const [itemCatalog, setItemCatalog]     = useState({})
   const [buffCatalog, setBuffCatalog]     = useState({})
   const [questCatalog, setQuestCatalog]   = useState({})
-  const [entityCatalog, setEntityCatalog] = useState(null)
-  const [rosterData, setRosterData]       = useState([])
-  const [saveSlots, setSaveSlots]         = useState([])
+  const [entityCatalog, setEntityCatalog] = useState<any>(null)
+  const [rosterData, setRosterData]       = useState<any[]>([])
+  const [saveSlots, setSaveSlots]         = useState<any[]>([])
   const [activeSlotId, setActiveSlotId]   = useState('slot_start')
   const { bindings, keyMap, updateBinding, resetBinding, resetAll } = useHotkeys()
   const [autoRun, setAutoRun]         = useState(false)
   const [autoEngage, setAutoEngage]   = useState(false)
   const [autoFlee, setAutoFlee]       = useState(false)
-  const activeTabRef              = useRef(null)
-  const prevGameStateRef          = useRef(null)
-  const autoRunTimerRef           = useRef(null)
-  const combatResponseTimerRef    = useRef(null)
+  const activeTabRef              = useRef<any>(null)
+  const prevGameStateRef          = useRef<any>(null)
+  const autoRunTimerRef           = useRef<any>(null)
+  const combatResponseTimerRef    = useRef<any>(null)
   const justRanAutoEncounterRef   = useRef(false)
   const prevLoadingRef            = useRef(false)
 

@@ -1,6 +1,6 @@
 import React from 'react'
 
-function getTier(val) {
+function getTier(val: number) {
   if (val >= 75) return { label: 'Exalted',  cls: 'rep-exalted'  }
   if (val >= 50) return { label: 'Revered',  cls: 'rep-revered'  }
   if (val >= 25) return { label: 'Honored',  cls: 'rep-honored'  }
@@ -8,7 +8,7 @@ function getTier(val) {
   return               { label: 'Hostile',  cls: 'rep-hostile'  }
 }
 
-function pct(val) {
+function pct(val: number) {
   // Map each tier bracket to 0-100% within that bracket
   if (val >= 75) return Math.min(100, ((val - 75) / 25) * 100)
   if (val >= 50) return ((val - 50) / 25) * 100
@@ -17,7 +17,7 @@ function pct(val) {
   return Math.max(0, ((val + 100) / 100) * 100)
 }
 
-export default function ReputationPanel({ reputation = {} }) {
+export default function ReputationPanel({ reputation = {} }: { reputation?: Record<string, number> }) {
   const entries = Object.entries(reputation)
 
   if (!entries.length) {

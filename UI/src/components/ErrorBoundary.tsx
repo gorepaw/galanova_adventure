@@ -3,17 +3,25 @@ import React from 'react'
 // Catches render-time exceptions in a subtree so one broken panel shows a
 // fallback instead of unmounting the whole app (blank screen). Reset it by
 // giving it a `key` that changes when you navigate away (e.g. the active tab).
-export default class ErrorBoundary extends React.Component {
-  constructor(props) {
+interface ErrorBoundaryProps {
+  label?: string;
+  children?: React.ReactNode;
+}
+interface ErrorBoundaryState {
+  error: Error | null;
+}
+
+export default class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
+  constructor(props: ErrorBoundaryProps) {
     super(props)
     this.state = { error: null }
   }
 
-  static getDerivedStateFromError(error) {
+  static getDerivedStateFromError(error: Error): ErrorBoundaryState {
     return { error }
   }
 
-  componentDidCatch(error, info) {
+  componentDidCatch(error: Error, info: React.ErrorInfo) {
     console.error('Panel render error:', error, info?.componentStack)
   }
 

@@ -1,0 +1,18 @@
+{
+  // gameplayloop.ts ONLY — the ~3400-line combat core ported from JS over
+  // dynamically-shaped unit/effect/save objects. It is genuinely type-CHECKED
+  // here (real bugs surface — this caught a stale seedCompanions reference), but
+  // noImplicitAny/strictNullChecks are relaxed because blanket `: any` + null
+  // guards across the combat math would add no safety. Everything else
+  // (tsconfig.json) stays fully strict. Tighten later by typing the combat/IPC
+  // shapes, then fold this file back into the main config.
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "module": "node16",
+    "moduleResolution": "node16",
+    "types": ["node"],
+    "noImplicitAny": false,
+    "strictNullChecks": false
+  },
+  "include": ["Engine/gameplayloop.ts"]
+}

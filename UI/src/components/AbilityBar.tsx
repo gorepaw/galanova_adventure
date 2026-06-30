@@ -6,7 +6,7 @@ export default function AbilityBar({
   bindings = {}, formatKeyLabel = k => k,
   onRunEncounter, onEngage, onFlee, onButcher,
   onToggleAutoRun, onToggleAutoEngage, onToggleAutoFlee,
-}) {
+}: any) {
   const disabled  = loading
   const isPending = gameState === 'combat_pending'
 

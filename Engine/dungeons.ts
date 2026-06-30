@@ -32,7 +32,9 @@
 
 import { Modifiers } from "./datalayer.js";
 import { EncounterGenerator } from "./encounters.js";
-import { RewardEngine } from "./gameplayloop.js";
+// gameplayloop is checked under its own relaxed tsconfig, so its exports are
+// pulled in via require() to keep it out of the strict program that checks this file.
+const { RewardEngine } = require("./gameplayloop.js");
 
 type LoaderLike = { load: (path: string, schema: string) => { ok: boolean; data: any; errors?: string[] } };
 

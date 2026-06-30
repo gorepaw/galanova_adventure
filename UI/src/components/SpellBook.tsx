@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react'
 import abilitiesData from '../../../Data/abilities.json'
 import classesData   from '../../../Data/classes.json'
 import skillsData    from '../../../Data/skills.json'
-import { skillAbilities } from './skillAbilities.js'
+import { skillAbilities } from './skillAbilities'
 
 const ABILITY_DEFS = abilitiesData.abilities
 const CLASS_DEFS   = classesData.classes
@@ -22,7 +22,7 @@ const statLabel = k => STAT_LABELS[k] || SKILL_NAMES[k] || k
 // Build the human-readable scaling breakdown for one damage/heal effect, e.g.
 // "melee weapon + 0.8× AP + 0.5× STR + 1.0× One-Handed Swords + 10".
 function fmtEffect(eff) {
-  const parts = []
+  const parts: string[] = []
   if (eff.usesWeapon === 'melee')       parts.push('melee weapon')
   else if (eff.usesWeapon === 'ranged') parts.push('ranged weapon')
 
@@ -61,7 +61,7 @@ const TAG_STYLE = {
 
 function fmtCost(resourceCost) {
   if (!resourceCost) return null
-  return Object.entries(resourceCost)
+  return Object.entries<any>(resourceCost)
     .filter(([, v]) => v > 0)
     .map(([k, v]) => ({ key: k, amount: v, ...RESOURCE_COLORS[k] }))
 }

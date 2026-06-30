@@ -1,5 +1,5 @@
 import React from 'react'
-import { formatCurrency } from '../currency.js'
+import { formatCurrency } from '../currency'
 
 const QUALITY_CLASS = {
   poor: 'q-poor', common: 'q-common', uncommon: 'q-uncommon',
@@ -28,7 +28,7 @@ const formatCopper = (copper) => formatCurrency(copper, { empty: null })
 
 function describeOnUse(onUse) {
   if (!onUse) return null
-  const parts = []
+  const parts: string[] = []
   if (onUse.type === 'heal') {
     const healAmt = onUse.percent ? `${Math.round(onUse.percent * 100)}% of` : onUse.minFlat != null ? `${onUse.minFlat}–${onUse.maxFlat}` : (onUse.flat ?? '?')
     parts.push(`Restores ${healAmt} health`)
@@ -74,7 +74,7 @@ export default function ItemTooltip({ item, x, y }) {
 
   const qualityCls = QUALITY_CLASS[item.quality] || 'q-common'
   const statEntries = item.statBonuses
-    ? Object.entries(item.statBonuses).filter(([, v]) => v !== 0)
+    ? Object.entries<any>(item.statBonuses).filter(([, v]) => v !== 0)
     : []
   const onUseText = describeOnUse(item.onUse)
   const sellCopper = item.sellValue ?? item.value

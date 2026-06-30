@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
-import ItemTooltip, { buildTipItem } from './ItemTooltip.jsx'
-import { formatCurrency as baseFormatCurrency } from '../currency.js'
+import ItemTooltip, { buildTipItem } from './ItemTooltip'
+import { formatCurrency as baseFormatCurrency } from '../currency'
 
 // Missing prices render as an em dash; 0 still shows "0c".
 const formatCurrency = (copper) => baseFormatCurrency(copper, { empty: '—' })
@@ -29,7 +29,7 @@ const WEAPON_LABEL = {
 
 function StatLine({ statBonuses }) {
   if (!statBonuses) return null
-  const entries = Object.entries(statBonuses).filter(([, v]) => v !== 0)
+  const entries = Object.entries<any>(statBonuses).filter(([, v]) => v !== 0)
   if (!entries.length) return null
   return (
     <div className="shop-item-stats">
@@ -46,7 +46,7 @@ function tipPos(e) {
 }
 
 function BuyRow({ entry, currency, itemCatalog, onBuy, loading }) {
-  const [tip, setTip] = useState(null)
+  const [tip, setTip] = useState<any>(null)
   const canAfford = currency >= entry.buyPrice
   const qualityCls = QUALITY_CLASS[entry.quality] || ''
 
@@ -107,7 +107,7 @@ function BuyRow({ entry, currency, itemCatalog, onBuy, loading }) {
 }
 
 function SellRow({ entry, itemCatalog, onSell, loading }) {
-  const [tip, setTip] = useState(null)
+  const [tip, setTip] = useState<any>(null)
   const qualityCls = QUALITY_CLASS[entry.quality] || ''
 
   return (

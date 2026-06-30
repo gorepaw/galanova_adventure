@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
-import ItemTooltip, { buildTipItem } from './ItemTooltip.jsx'
-import SpellBook from './SpellBook.jsx'
-import { formatCurrency as fmtCopper } from '../currency.js'
+import ItemTooltip, { buildTipItem } from './ItemTooltip'
+import SpellBook from './SpellBook'
+import { formatCurrency as fmtCopper } from '../currency'
 
 // Derived stats, gear totals, and the skill view-model are computed by the engine
 // (Engine/charsheet.js) and arrive on inst.sheet — this component only renders them.
@@ -79,11 +79,11 @@ function fmtModifier(key, val) {
 }
 
 function buffEffectLines(def) {
-  const lines = []
-  for (const [k, v] of Object.entries(def.ccFlags || {})) {
+  const lines: string[] = []
+  for (const [k, v] of Object.entries<any>(def.ccFlags || {})) {
     if (v) lines.push(k.charAt(0).toUpperCase() + k.slice(1))
   }
-  for (const [k, v] of Object.entries(def.modifiers || {})) {
+  for (const [k, v] of Object.entries<any>(def.modifiers || {})) {
     const s = fmtModifier(k, v)
     if (s) lines.push(s)
   }
@@ -112,7 +112,7 @@ function buffEffectLines(def) {
   return lines
 }
 
-function EffectRow({ entry, buffCatalog }) {
+function EffectRow({ entry, buffCatalog }: any) {
   const id  = typeof entry === 'string' ? entry : entry.id
   const dur = typeof entry === 'object'  ? entry.remainingDuration : undefined
   const def = buffCatalog[id] || { name: id.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()), modifiers: {}, ccFlags: {} }
@@ -138,7 +138,7 @@ function EffectRow({ entry, buffCatalog }) {
 
 // ── Small building blocks ────────────────────────────────────────────────────
 
-function CsSection({ label, children }) {
+function CsSection({ label, children }: any) {
   return (
     <div className="cs-section">
       <div className="cs-section-label">{label}</div>
@@ -147,7 +147,7 @@ function CsSection({ label, children }) {
   )
 }
 
-function CsRow({ label, value, highlight }) {
+function CsRow({ label, value, highlight }: any) {
   return (
     <div className="cs-stat-row">
       <span className="cs-stat-label">{label}</span>
@@ -158,9 +158,9 @@ function CsRow({ label, value, highlight }) {
 
 // ── Main sheet ────────────────────────────────────────────────────────────────
 
-function CharacterSheet({ inst, itemCatalog, buffCatalog, inventory = [], onEquip, currency = 0, onRez, onAllocate }) {
-  const [tip, setTip]         = useState(null)
-  const [openSlot, setOpenSlot] = useState(null)
+function CharacterSheet({ inst, itemCatalog, buffCatalog, inventory = [], onEquip, currency = 0, onRez, onAllocate }: any) {
+  const [tip, setTip]         = useState<any>(null)
+  const [openSlot, setOpenSlot] = useState<any>(null)
 
   useEffect(() => {
     if (!openSlot) return
@@ -323,7 +323,7 @@ function CharacterSheet({ inst, itemCatalog, buffCatalog, inventory = [], onEqui
           {Object.keys(skillsView).length > 0 && (
             <CsSection label="Skills">
               <div className="char-skills">
-                {Object.entries(skillsView).map(([k, sk]) => {
+                {Object.entries<any>(skillsView).map(([k, sk]) => {
                   const name   = sk.name || k.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
                   const lvlPct = Math.min(100, (sk.level / skillMax) * 100)
                   const xpPct  = sk.atMax ? 100 : Math.min(100, (sk.xp / sk.xpToNext) * 100)
@@ -432,8 +432,8 @@ const PET_ROLE_LABEL = {
   dps: 'DPS', tank: 'Tank', caster: 'Caster', ranged_dps: 'Ranged', utility: 'Utility',
 }
 
-function PetSelector({ inst }) {
-  const [petData, setPetData] = useState(null)
+function PetSelector({ inst }: any) {
+  const [petData, setPetData] = useState<any>(null)
 
   useEffect(() => {
     if (!inst?.instanceId) return
@@ -487,7 +487,7 @@ function PetSelector({ inst }) {
   )
 }
 
-export default function CharacterScreen({ partyInstances, itemCatalog, buffCatalog, inventory = [], onEquip, currency = 0, onRez, onAllocate }) {
+export default function CharacterScreen({ partyInstances, itemCatalog, buffCatalog, inventory = [], onEquip, currency = 0, onRez, onAllocate }: any) {
   const [index, setIndex] = useState(0)
   const [view,  setView]  = useState('sheet')
 

@@ -1,15 +1,15 @@
 import React, { useState } from 'react'
 import mobsData from '../../../Data/mobs.json'
 
-const MOB_NAMES = Object.fromEntries(
-  Object.entries(mobsData.mobs || {}).map(([id, m]) => [id, m.name || id])
+const MOB_NAMES: Record<string, string> = Object.fromEntries(
+  Object.entries<any>((mobsData as any).mobs || {}).map(([id, m]) => [id, m.name || id])
 )
 
-export default function CollectionsPanel({ collections = {}, itemCatalog = {} }) {
+export default function CollectionsPanel({ collections = {}, itemCatalog = {} }: { collections?: any; itemCatalog?: any }) {
   const [tab, setTab] = useState('kills')
 
-  const kills = collections.kills || {}
-  const items = collections.items || {}
+  const kills: Record<string, number> = collections.kills || {}
+  const items: Record<string, number> = collections.items || {}
 
   const killEntries = Object.entries(kills)
     .map(([id, count]) => ({ id, name: MOB_NAMES[id] || id.replace(/_/g, ' '), count }))

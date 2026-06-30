@@ -9,7 +9,9 @@ import fs from 'fs'
 import { DataStore, Loader } from './Engine/datalayer.js'
 import { ItemSuffixes } from './Engine/itemsuffixes.js'
 import { characterSheet } from './Engine/charsheet.js'
-import { SaveManager, HomeScreen, SyntheticGameData } from './Engine/gameplayloop.js'
+// gameplayloop is checked under its own relaxed tsconfig (tsconfig.gameplayloop.json),
+// so it's pulled in via require() here to keep it out of this strict program.
+const { SaveManager, HomeScreen, SyntheticGameData } = require('./Engine/gameplayloop.js')
 
 const isDev = !app.isPackaged
 

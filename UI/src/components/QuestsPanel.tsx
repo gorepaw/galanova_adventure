@@ -14,7 +14,7 @@ function QuestRow({ questId, state, def }) {
   const objectives = def?.objectives ?? []
   const rewards = def?.rewards ?? {}
 
-  const rewardParts = []
+  const rewardParts: string[] = []
   if (rewards.xp)       rewardParts.push(`${rewards.xp} XP`)
   if (rewards.currency) rewardParts.push(`${rewards.currency}c`)
   if (rewards.items?.length) rewardParts.push(`${rewards.items.length} item${rewards.items.length > 1 ? 's' : ''}`)
@@ -72,8 +72,8 @@ function QuestRow({ questId, state, def }) {
   )
 }
 
-export default function QuestsPanel({ quests = {}, questCatalog = {} }) {
-  const entries = Object.entries(quests)
+export default function QuestsPanel({ quests = {}, questCatalog = {} }: any) {
+  const entries = Object.entries<any>(quests)
   const active    = entries.filter(([, q]) => !q.completed)
   const completed = entries.filter(([, q]) =>  q.completed)
 

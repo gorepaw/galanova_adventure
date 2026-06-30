@@ -11,11 +11,6 @@
 //   charsheet.js    � deriveCore (shared stat derivation for combat + sheet)
 // =============================================================================
 
-// @ts-nocheck — TRANSITIONAL: gameplayloop is the ~3400-line combat core. It is
-// now a real TS module (sibling imports below — no more ambient globals), but
-// type-checking is deferred so the combat math is never refactored by type
-// narrowing in a single pass. Remove this directive and add types section by
-// section as a focused follow-up.
 "use strict";
 
 const _abilitiesData      = require('../Data/abilities.json');
@@ -38,7 +33,7 @@ import { ItemSuffixes } from './itemsuffixes.js';
 import { getStatsAtLevel, addXpToInst, buildResources, allocateStat, xpToNextLevel } from './leveltables.js';
 import { getSkillLevel, addSkillXp, abilitiesFromSkills, skillForAbilityUse, canEquipWeaponType } from './skills.js';
 import { ClassDB } from './equipment.js';
-import { buildCompanionInstance } from './companions.js';
+import { buildCompanionInstance, seedCompanions } from './companions.js';
 import { EncounterGenerator, PartySkills, checkReroll } from './encounters.js';
 
 // Shared stat derivation — the SAME core the character sheet uses, so combat and
@@ -68,7 +63,7 @@ const PETS_BY_SKILL = {
 // All pet templates a character can use, based on the pet skills they've learned.
 const petsForUnit = (unit) => {
   const out = [];
-  for (const [skillId, list] of Object.entries(PETS_BY_SKILL)) {
+  for (const [skillId, list] of Object.entries<any>(PETS_BY_SKILL)) {
     if (typeof getSkillLevel === "function" && getSkillLevel(unit, skillId) >= 1) out.push(...list);
   }
   return out;
@@ -252,7 +247,7 @@ const CombatBridge = (() => {
 
   const buildPetUnit = (petTemplate, owner) => {
     const level = owner.level || 1;
-    const raw = {};
+    const raw: Record<string, number> = {};
     for (const stat of ['str','dex','con','int','spi','wis','spd','cha']) {
       raw[stat] = Math.floor((petTemplate.baseStats[stat] || 0) + (petTemplate.statGrowthPerLevel[stat] || 0) * (level - 1));
     }
@@ -329,7 +324,7 @@ const CombatBridge = (() => {
     const s = effect.scaling;
     if (s && typeof s === "object") {
       let sum = 0;
-      for (const [k, coeff] of Object.entries(s)) sum += resolveScaleStat(attacker, k, ov) * (coeff || 0);
+      for (const [k, coeff] of Object.entries<any>(s)) sum += resolveScaleStat(attacker, k, ov) * (coeff || 0);
       return sum;
     }
     if (typeof s === "string") return resolveScaleStat(attacker, s, ov) * (effect.multiplier ?? legacyMult);
@@ -456,7 +451,7 @@ const CombatBridge = (() => {
       retaliationLabel:   def.retaliationLabel   || null,
       blocksStealth:      def.blocksStealth      || false,
     };
-    const isDebuff = Object.values(inst.ccFlags).some(Boolean) || !!inst.tickDamage || !!def.isDebuff;
+    const isDebuff = Object.values<any>(inst.ccFlags).some(Boolean) || !!inst.tickDamage || !!def.isDebuff;
     const field    = isDebuff ? "debuffs" : "buffs";
 
     // mutual exclusion: weapon buffs, elemental shields, aspects, and blessings only allow one instance at a time
@@ -482,7 +477,7 @@ const CombatBridge = (() => {
       u = { ...u, buffs: u.buffs.filter(b => !b.isShapeshift) };
       u = { ...u, debuffs: u.debuffs.filter(d => !d.removedOnShapeshift) };
       const shiftCC = { stunned: false, silenced: false, disarmed: false, rooted: false, feared: false };
-      for (const d of u.debuffs) for (const [f, v] of Object.entries(d.ccFlags || {})) if (v) shiftCC[f] = true;
+      for (const d of u.debuffs) for (const [f, v] of Object.entries<any>(d.ccFlags || {})) if (v) shiftCC[f] = true;
       u = { ...u, ccState: shiftCC };
     }
 
@@ -491,7 +486,7 @@ const CombatBridge = (() => {
       ? u[field].map((b, i) => i === existIdx ? { ...b, duration: inst.duration, charges: inst.charges } : b)
       : [...u[field], inst];
     const ccState = { ...u.ccState };
-    for (const [f, v] of Object.entries(inst.ccFlags)) if (v) ccState[f] = true;
+    for (const [f, v] of Object.entries<any>(inst.ccFlags)) if (v) ccState[f] = true;
     let updated = { ...u, [field]: newList, ccState };
     if (def.maxHpBonus && existIdx < 0)
       updated = { ...updated, maxHp: updated.maxHp + def.maxHpBonus, hp: updated.hp + def.maxHpBonus };
@@ -548,7 +543,7 @@ const CombatBridge = (() => {
       const cost = Math.floor(c.resources.mana.max * ab.manaCostPercent);
       c.resources = { ...c.resources, mana: { ...c.resources.mana, current: Math.max(0, c.resources.mana.current - cost) } };
     }
-    for (const [r, a] of Object.entries(ab.resourceCost || {}))
+    for (const [r, a] of Object.entries<any>(ab.resourceCost || {}))
       if (c.resources[r]) c.resources[r] = { ...c.resources[r], current: c.resources[r].current - a };
     if ((ab.cooldown || 0) > 0)
       c = { ...c, cooldowns: { ...c.cooldowns, [abilityId]: ab.cooldown } };
@@ -639,7 +634,7 @@ const CombatBridge = (() => {
           if (t.debuffs.some(d => d.removedOnDamage)) {
             t = { ...t, debuffs: t.debuffs.filter(d => !d.removedOnDamage) };
             const cs = { stunned: false, silenced: false, disarmed: false, rooted: false, feared: false };
-            for (const d of t.debuffs) for (const [f, v] of Object.entries(d.ccFlags || {})) if (v) cs[f] = true;
+            for (const d of t.debuffs) for (const [f, v] of Object.entries<any>(d.ccFlags || {})) if (v) cs[f] = true;
             t = { ...t, ccState: cs };
             logs.push(`    ↳ ${t.name}'s stun broken by damage`);
           }
@@ -768,7 +763,7 @@ const CombatBridge = (() => {
             const removed = t.debuffs[0];
             t = { ...t, debuffs: t.debuffs.slice(1) };
             const cs = { stunned: false, silenced: false, disarmed: false, rooted: false, feared: false };
-            for (const d of t.debuffs) for (const [f, v] of Object.entries(d.ccFlags || {})) if (v) cs[f] = true;
+            for (const d of t.debuffs) for (const [f, v] of Object.entries<any>(d.ccFlags || {})) if (v) cs[f] = true;
             t = { ...t, ccState: cs };
             logs.push(`    ↳ ${t.name} debuff dispelled (${removed.id})`);
           }
@@ -786,7 +781,7 @@ const CombatBridge = (() => {
             t = { ...t, debuffs: [] };
           }
           const cs = { stunned: false, silenced: false, disarmed: false, rooted: false, feared: false };
-          for (const d of t.debuffs) for (const [f, v] of Object.entries(d.ccFlags || {})) if (v) cs[f] = true;
+          for (const d of t.debuffs) for (const [f, v] of Object.entries<any>(d.ccFlags || {})) if (v) cs[f] = true;
           t = { ...t, ccState: cs };
           logs.push(`    ↳ ${t.name} cleansed`);
         }
@@ -832,7 +827,7 @@ const CombatBridge = (() => {
           const before  = t.debuffs.length;
           t = { ...t, debuffs: t.debuffs.filter(d => !removes.has(BUFF_DEFS_BRIDGE[d.id]?.debuffType)) };
           const cs = { stunned: false, silenced: false, disarmed: false, rooted: false, feared: false };
-          for (const d of t.debuffs) for (const [f, v] of Object.entries(d.ccFlags || {})) if (v) cs[f] = true;
+          for (const d of t.debuffs) for (const [f, v] of Object.entries<any>(d.ccFlags || {})) if (v) cs[f] = true;
           t = { ...t, ccState: cs };
           const removed = before - t.debuffs.length;
           logs.push(removed > 0 ? `    ↳ purified ${removed} effect(s) from ${t.name}` : `    ↳ nothing to purify on ${t.name}`);
@@ -933,7 +928,7 @@ const CombatBridge = (() => {
     const process = list => list.map(b => ({ ...b, duration: b.duration - 1 })).filter(b => b.duration > 0);
     const nb = process(u.buffs), nd = process(u.debuffs);
     const ccState = { stunned: false, silenced: false, disarmed: false, rooted: false, feared: false };
-    for (const d of nd) for (const [f, v] of Object.entries(d.ccFlags || {})) if (v) ccState[f] = true;
+    for (const d of nd) for (const [f, v] of Object.entries<any>(d.ccFlags || {})) if (v) ccState[f] = true;
     return { ...u, buffs: nb, debuffs: nd, ccState };
   };
 
@@ -959,7 +954,7 @@ const CombatBridge = (() => {
       if (!ab || ab.passive || ab.outOfCombatOnly || (unit.cooldowns[id] || 0) > 0) return false;
       if (unit.ccState.disarmed && ab.tags?.includes("physical")) return false;
       if (ab.tags?.includes("ranged") && !unit.rangedReady) return false;
-      for (const [r, a] of Object.entries(ab.resourceCost || {}))
+      for (const [r, a] of Object.entries<any>(ab.resourceCost || {}))
         if ((unit.resources[r]?.current || 0) < a) return false;
       if (ab.spendComboPoints && (unit.resources.combo_points?.current || 0) < 1) return false;
       if (ab.requiresCondition === "in_stealth"   && !unit.buffs.some(b => b.isStealth))   return false;
@@ -1074,7 +1069,7 @@ const CombatBridge = (() => {
     return { ...unit, cooldowns: cd, resources: res };
   };
 
-  const run = (encounter, partyInstances, opts = {}) => {
+  const run = (encounter, partyInstances, opts: any = {}) => {
     const logs = [], MAX = 30, ammoUsed = {};
     _abilityUse = {}; // reset per-run ability-usage tracker
     const _trackAmmo = (ab, actor) => {
@@ -1530,7 +1525,7 @@ const DeathHandler = (() => {
     }) };
 
     // Reset in-progress kill objectives that have resetOnWipe
-    for (const [questId, questState] of Object.entries(s.quests || {})) {
+    for (const [questId, questState] of Object.entries<any>(s.quests || {})) {
       if (questState.completed) continue;
       const qr = Loader.load(`templates/quests/${questId}`, "quest");
       if (!qr.ok) continue;
@@ -1588,7 +1583,7 @@ const RewardEngine = (() => {
 
   const apply = (combatResult, encounter, save) => {
     let s     = { ...save };
-    const sum = { xp: 0, currency: 0, loot: [], questProgress: [], skillXp: {}, levelUps: [] };
+    const sum: any = { xp: 0, currency: 0, loot: [], questProgress: [], skillXp: {}, levelUps: [] };
 
     // always clear tracking/flee flags after an encounter
     s = Modifiers.clearFlag(s, "trackingBoost");
@@ -1611,10 +1606,10 @@ const RewardEngine = (() => {
       // 10 XP/use is a placeholder rate — tune later.
       const used = combatResult.abilityUse?.[m.instanceId] || {};
       if (typeof skillForAbilityUse === "function" && Object.keys(used).length) {
-        const mhId   = updated.gear?.mainhand;
+        const mhId   = (updated as any).gear?.mainhand;
         const mhLoad = mhId ? Loader.load(`templates/items/${mhId}`, "item") : null;
         const mhWeaponType = (mhLoad && mhLoad.ok) ? mhLoad.data.weaponType : null;
-        for (const [abilityId, count] of Object.entries(used)) {
+        for (const [abilityId, count] of Object.entries<any>(used)) {
           const skillId = skillForAbilityUse(abilityId, mhWeaponType);
           // Bare-handed basic attacks only train unarmed if the character has the skill.
           const hasSkill = skillId !== "unarmed" || getSkillLevel(updated, "unarmed") >= 1;
@@ -1648,7 +1643,7 @@ const RewardEngine = (() => {
       sum.loot.push({ itemId: node.nodeId || node.itemId, qty: node.qty, source: "gathering" });
     }
 
-    for (const [questId, questSt] of Object.entries(s.quests || {})) {
+    for (const [questId, questSt] of Object.entries<any>(s.quests || {})) {
       if (questSt.completed) continue;
       const qr = Loader.load(`templates/quests/${questId}`, "quest");
       if (!qr.ok) continue;
@@ -1927,7 +1922,7 @@ const TrapSystem = (() => {
     const det = rollDetection(party);
 
     // Working copies keyed by instanceId so XP and damage merge into one write.
-    const work = new Map(party.map(p => [p.member.instanceId, { member: p.member, inst: { ...p.inst } }]));
+    const work = new Map<string, any>(party.map(p => [p.member.instanceId, { member: p.member, inst: { ...p.inst } }]));
 
     // XP to every member who met the trap (alive at encounter time), detected or not.
     const xpAmount = (trap && trap.xp != null) ? trap.xp : DEFAULT_XP;
@@ -1992,7 +1987,7 @@ const TrapSystem = (() => {
 const ShopSystem = (() => {
   const getStock   = (save, zoneId, keeperName, itemId) => { const key = `${zoneId}_${keeperName}_${itemId}`; return save.shopStocks?.[key] ?? null; };
   const setStock   = (save, zoneId, keeperName, itemId, value) => { const key = `${zoneId}_${keeperName}_${itemId}`; return { ...save, shopStocks: { ...(save.shopStocks || {}), [key]: value } }; };
-  const getBuyList = (zone, save, keeperName) => {
+  const getBuyList = (zone, save, keeperName?) => {
     const inv = zone.shopkeepers?.[keeperName]?.inventory || [];
     return inv.map(entry => { const saved = getStock(save, zone.id, keeperName, entry.itemId); return { ...entry, stock: saved !== null ? saved : entry.stock }; }).filter(e => e.stock !== 0);
   };
@@ -2082,10 +2077,10 @@ const SyntheticGameData = (() => {
 
     DataStore.write("templates/buffs/burning_ember", { id: "burning_ember", name: "Burning Ember", _version: 1, duration: 3, tickDamage: { damageType: "fire", flat: 6, scaling: "sp", multiplier: 0.05 }, modifiers: {}, ccFlags: {}, stacks: true, maxStacks: 3, tags: ["fire","dot"], description: "Burns the target." });
 
-    for (const [id, mob] of Object.entries(_mobsData.mobs))
+    for (const [id, mob] of Object.entries<any>(_mobsData.mobs))
       DataStore.write(`templates/enemies/${id}`, mob);
 
-    for (const [id, item] of Object.entries(_itemsData.items))
+    for (const [id, item] of Object.entries<any>(_itemsData.items))
       DataStore.write(`templates/items/${id}`, item);
 
     // Random-suffix variants ("<Item> of the Bear", etc.) for every item
@@ -2093,10 +2088,10 @@ const SyntheticGameData = (() => {
     for (const variant of ItemSuffixes.generateAllVariants(_itemsData.items))
       DataStore.write(`templates/items/${variant.id}`, variant);
 
-    for (const [id, recipe] of Object.entries(_craftingData.recipes))
+    for (const [id, recipe] of Object.entries<any>(_craftingData.recipes))
       DataStore.write(`templates/recipes/${id}`, recipe);
 
-    for (const [id, node] of Object.entries(_gatheringData.nodes))
+    for (const [id, node] of Object.entries<any>(_gatheringData.nodes))
       DataStore.write(`templates/nodes/${id}`, node);
 
     // Shop level ranges are sourced from shop.json (minLevel/maxLevel per shop).
@@ -2112,10 +2107,10 @@ const SyntheticGameData = (() => {
 
 
     // ── Dungeon zones (Data/dungeons.json) ────────────────────────────────────
-    for (const [zoneId, zone] of Object.entries(_dungeonsData.zones || {}))
+    for (const [zoneId, zone] of Object.entries<any>(_dungeonsData.zones || {}))
       DataStore.write(`templates/zones/${zoneId}`, { id: zoneId, _version: 1, ambientBuffs: [], shopInventory: [], ...zone });
 
-    if (typeof seedCompanions !== "undefined") seedCompanions(DataStore);
+    seedCompanions(DataStore);
 
     // Starting character: Lati Ashera, level 1 Illusionist. Abilities derive from skills
     // (all illusionist skills + universal riding/trading at level 1).
@@ -2245,7 +2240,7 @@ const HomeScreen = (() => {
       if ((cr.pickpocketGold || 0) > 0) emit(`   Pickpocket: +${Currency.toString(cr.pickpocketGold)}`);
       if ((cr.soulShardsGained || 0) > 0) emit(`   Soul Shard: +${cr.soulShardsGained} added to bag`);
       if (summary.loot.length)     emit(`   Loot:      ${summary.loot.map(l => `${l.qty}x ${tag("item", l.itemId)}`).join(", ")}`);
-      for (const [skillId, amount] of Object.entries(summary.skillXp || {})) emit(`   ${skillId} skill +${amount} xp`);
+      for (const [skillId, amount] of Object.entries<any>(summary.skillXp || {})) emit(`   ${skillId} skill +${amount} xp`);
       for (const qp of (summary.questProgress || [])) { if (qp.completed) emit(`   ✓ Quest complete: ${qp.questId}`); else emit(`   Quest "${qp.questId}" � ${qp.objectiveId}: ${qp.next}/${qp.goal}`); }
       if (summary.reputation?.length) for (const rr of summary.reputation) emit(`   Rep: +${rr.amount} ${rr.factionId}`);
       if ((summary.butcherableKills || []).length > 0) emit(`   🐾 ${summary.butcherableKills.length} beast corpse${summary.butcherableKills.length > 1 ? "s" : ""} can be butchered. Type 'butcher'.`);
@@ -2262,7 +2257,7 @@ const HomeScreen = (() => {
       trackCollections(cr.kills, summary.loot);
       checkAchievements();
 
-      for (const [ammoId, count] of Object.entries(cr.ammoUsed || {})) {
+      for (const [ammoId, count] of Object.entries<any>(cr.ammoUsed || {})) {
         const inv = (save.inventory || []).find(e => e.itemId === ammoId);
         const toDeduct = Math.min(count, inv?.qty ?? 0);
         if (toDeduct > 0)
@@ -2318,7 +2313,7 @@ const HomeScreen = (() => {
                 lootMap[drop.itemId] = (lootMap[drop.itemId] || 0) + drop.qty;
             }
           }
-          const loot = Object.entries(lootMap).map(([itemId, qty]) => ({ itemId, qty }));
+          const loot = Object.entries<any>(lootMap).map(([itemId, qty]) => ({ itemId, qty }));
           if (!loot.length) loot.push({ itemId: n.nodeId, qty: 1 });
           for (const { itemId, qty } of loot) save = Modifiers.addToInventory(save, itemId, qty);
           emit(`   Gathered: ${loot.map(l => `${l.qty}x ${l.itemId}`).join(", ")}`);
@@ -2702,9 +2697,9 @@ const HomeScreen = (() => {
         emit(`     HP: ${inst.currentHp}/${inst.maxHp}  MP: ${inst.currentMp}/${inst.maxMp}`);
         emit(`     STR:${raw.str} DEX:${raw.dex} CON:${raw.con} INT:${raw.int} SPI:${raw.spi} WIS:${raw.wis ?? 0} SPD:${raw.spd ?? 0} CHA:${raw.cha ?? 0}`);
         emit(`     Profession: ${inst.profession || "none"}`);
-        const sk = inst.skills || {}; if (Object.keys(sk).length) emit(`     Skills: ${Object.entries(sk).map(([k, v]) => `${k}:${v}`).join(", ")}`);
+        const sk = inst.skills || {}; if (Object.keys(sk).length) emit(`     Skills: ${Object.entries<any>(sk).map(([k, v]) => `${k}:${v}`).join(", ")}`);
       }
-      const ts = save.talentSchools || {}; if (Object.keys(ts).length) emit(`   Talents: ${Object.entries(ts).map(([k, v]) => `${k}:${v}`).join(", ")}`);
+      const ts = save.talentSchools || {}; if (Object.keys(ts).length) emit(`   Talents: ${Object.entries<any>(ts).map(([k, v]) => `${k}:${v}`).join(", ")}`);
     };
 
     const renderParty = () => {
@@ -2715,7 +2710,7 @@ const HomeScreen = (() => {
     const renderReputation = () => {
       state = STATES.REPUTATION; emit(`\n── Reputation ──`);
       const rep = save.reputation || {}; if (!Object.keys(rep).length) { emit(`   (no faction standing yet)`); return; }
-      for (const [faction, val] of Object.entries(rep)) { const label = val >= 75 ? "Exalted" : val >= 50 ? "Revered" : val >= 25 ? "Honored" : val >= 0 ? "Friendly" : "Hostile"; emit(`   ${faction.padEnd(24)} ${val.toString().padStart(4)}  (${label})`); }
+      for (const [faction, val] of Object.entries<any>(rep)) { const label = val >= 75 ? "Exalted" : val >= 50 ? "Revered" : val >= 25 ? "Honored" : val >= 0 ? "Friendly" : "Hostile"; emit(`   ${faction.padEnd(24)} ${val.toString().padStart(4)}  (${label})`); }
     };
 
     const renderAbilities = () => {
@@ -2897,7 +2892,7 @@ const HomeScreen = (() => {
         const inst = ir.data;
         if (!(inst.learnedAbilities || []).includes(abilityId)) continue;
         let canAfford = true;
-        for (const [res, cost] of Object.entries(ab.resourceCost || {})) {
+        for (const [res, cost] of Object.entries<any>(ab.resourceCost || {})) {
           const cur = res === "mana" ? (inst.currentMp || 0) : 0;
           if (cur < cost) { canAfford = false; break; }
         }
@@ -3046,7 +3041,7 @@ const HomeScreen = (() => {
 
     const checkAchievements = () => {
       const defs = _achievementsData?.achievements || {};
-      for (const [achId, def] of Object.entries(defs)) {
+      for (const [achId, def] of Object.entries<any>(defs)) {
         if ((save.achievements || {})[achId]) continue;
         let met = false;
         if (def.criteria?.type === 'unique_items_collected') {

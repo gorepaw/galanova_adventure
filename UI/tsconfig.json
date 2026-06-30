@@ -13,6 +13,16 @@
     "allowJs": true,
     "checkJs": false,
     "noEmit": true,
+    // Deliberate "strict except noImplicitAny" tier (same as Engine's
+    // gameplayloop): the renderer is glue over the engine's dynamically-shaped
+    // IPC snapshot data. EVERY other strict check — strictNullChecks included —
+    // is ON and passes clean, so real bugs (null access, wrong properties, bad
+    // state types) are still caught. Turning noImplicitAny on here surfaces only
+    // ~300 callback/prop params that would all just get `: any` over dynamic
+    // data — zero safety gain. The real path to full strict is to TYPE the IPC
+    // payloads (the engine view-models / getSnapshot shape) and thread them
+    // through; flip this on once that exists.
+    "noImplicitAny": false,
     "allowImportingTsExtensions": true,
     "resolveJsonModule": true
   },

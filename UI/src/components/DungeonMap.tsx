@@ -1,5 +1,5 @@
 import React from 'react'
-import { formatCurrency } from '../currency.js'
+import { formatCurrency } from '../currency'
 
 const TYPE_LABEL = { combat: 'Combat', shop: 'Shop', dungeon: 'Dungeon', unknown: '?' }
 const TYPE_CLASS = { combat: 'zone-combat', shop: 'zone-shop', dungeon: 'zone-dungeon', unknown: '' }
@@ -34,7 +34,7 @@ export default function DungeonMap({
   onSelectZone,
   filterTypes = null,
   showCurrent = true,
-}) {
+}: any) {
   const allZones = filterTypes
     ? (travelZones || []).filter(z => filterTypes.includes(z.type))
     : (travelZones || [])
@@ -44,7 +44,7 @@ export default function DungeonMap({
   const crossRegion = allZones.filter(z => (z.travelCost ?? 0) > 0)
 
   // Group cross-region zones by their region
-  const regionGroups = {}
+  const regionGroups: Record<string, any[]> = {}
   for (const z of crossRegion) {
     const key = z.region || 'unknown'
     if (!regionGroups[key]) regionGroups[key] = []

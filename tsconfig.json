@@ -10,5 +10,11 @@
     "moduleResolution": "node16",
     "types": ["node"]
   },
+  // gameplayloop.ts is checked by tsconfig.gameplayloop.json (relaxed:
+  // noImplicitAny/strictNullChecks off) because it's the ~3400-line combat core
+  // over dynamically-shaped objects. It's excluded here so this config stays
+  // FULLY strict; electron-main.ts and dungeons.ts pull its exports via require()
+  // so it isn't dragged back into this strict program.
+  "exclude": ["Engine/gameplayloop.ts"],
   "include": ["Engine/**/*.ts", "electron-main.ts", "preload.ts"]
 }

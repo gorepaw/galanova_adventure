@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import ItemTooltip, { buildTipItem } from './ItemTooltip.jsx'
+import ItemTooltip, { buildTipItem } from './ItemTooltip'
 
 const SLOT_LABEL = {
   head: 'Head', neck: 'Neck', shoulders: 'Shoulders', back: 'Back',
@@ -23,7 +23,7 @@ function tipPos(e) {
 function GearSheet({ inst, itemCatalog }) {
   if (!inst) return null
   const gear = inst.gear || {}
-  const [tip, setTip] = useState(null)
+  const [tip, setTip] = useState<any>(null)
 
   return (
     <div className="gear-sheet">

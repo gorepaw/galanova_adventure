@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
-import ItemTooltip, { buildTipItem } from './ItemTooltip.jsx'
-import { formatCurrency } from '../currency.js'
+import ItemTooltip, { buildTipItem } from './ItemTooltip'
+import { formatCurrency } from '../currency'
 
 const USABLE = new Set([
   'minor_health_potion', 'rough_bandage', 'ember_shard',
@@ -24,7 +24,7 @@ function tipPos(e) {
 }
 
 export default function InventoryPanel({ inventory, currency, isShopZone, itemCatalog, onUse, onSell, onEquip }) {
-  const [tip, setTip] = useState(null)
+  const [tip, setTip] = useState<any>(null)
 
   return (
     <div className="inventory-panel">

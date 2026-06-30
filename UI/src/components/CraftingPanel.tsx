@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import ItemTooltip, { buildTipItem } from './ItemTooltip.jsx'
+import ItemTooltip, { buildTipItem } from './ItemTooltip'
 
 function tipPos(e) {
   const x = e.clientX + 14 + 240 > window.innerWidth ? e.clientX - 254 : e.clientX + 14
@@ -7,7 +7,7 @@ function tipPos(e) {
 }
 
 function RecipeRow({ recipe, itemCatalog, onCraft, loading }) {
-  const [tip, setTip] = useState(null)
+  const [tip, setTip] = useState<any>(null)
 
   return (
     <div className={`recipe-row ${recipe.matsOk ? '' : 'recipe-mats-missing'}`}>

@@ -4,9 +4,9 @@
   "private": true,
   "main": "electron-main.js",
   "scripts": {
-    "build:engine": "tsc -p tsconfig.json",
+    "build:engine": "tsc -p tsconfig.json && tsc -p tsconfig.gameplayloop.json",
     "watch:engine": "tsc -p tsconfig.json --watch --preserveWatchOutput",
-    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.gameplayloop.json --noEmit",
     "typecheck:ui": "tsc -p UI/tsconfig.json",
     "dev": "npm run build:engine && concurrently \"npm:watch:engine\" \"vite\" \"wait-on http://localhost:5173 && electron .\"",
     "build": "npm run build:engine && vite build",

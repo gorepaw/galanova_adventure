@@ -26,7 +26,7 @@ function SkillRow({ id, entry }) {
   )
 }
 
-export default function SkillsPanel({ partyInstances = [] }) {
+export default function SkillsPanel({ partyInstances = [] }: any) {
   const [index, setIndex] = useState(0)
 
   if (!partyInstances.length) {

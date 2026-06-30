@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 
-function CompanionCard({ companion, selected, onClick, badge }) {
+function CompanionCard({ companion, selected, onClick, badge }: any) {
   const isDead = (companion.deathState ?? 'alive') !== 'alive'
   return (
     <div
@@ -21,9 +21,9 @@ function CompanionCard({ companion, selected, onClick, badge }) {
   )
 }
 
-export default function GuildhallPanel({ roster = [], onSwap, onBench, onRecruit, loading, gameState }) {
-  const [selectedPartyId,  setSelectedPartyId]  = useState(null)
-  const [selectedRosterId, setSelectedRosterId] = useState(null)
+export default function GuildhallPanel({ roster = [], onSwap, onBench, onRecruit, loading, gameState }: any) {
+  const [selectedPartyId,  setSelectedPartyId]  = useState<any>(null)
+  const [selectedRosterId, setSelectedRosterId] = useState<any>(null)
 
   const partyMembers  = roster.filter(c => c.inParty)
   const rosterMembers = roster.filter(c => !c.inParty)

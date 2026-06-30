@@ -2,20 +2,20 @@ import React from 'react'
 
 // Hover tooltip for non-item entities referenced in the combat log:
 // abilities, characters (party + enemies), zones, and regions.
-const TYPE_LABEL = { ability: 'Ability', character: 'Character', zone: 'Zone', region: 'Region' }
+const TYPE_LABEL: Record<string, string> = { ability: 'Ability', character: 'Character', zone: 'Zone', region: 'Region' }
 
-function costText(resourceCost) {
+function costText(resourceCost: Record<string, number> | null | undefined) {
   if (!resourceCost) return null
   const parts = Object.entries(resourceCost).filter(([, v]) => v > 0).map(([k, v]) => `${v} ${k}`)
   return parts.length ? parts.join(' · ') : null
 }
 
-export default function EntityTooltip({ entry, x, y }) {
+export default function EntityTooltip({ entry, x, y }: { entry: any; x: number; y: number }) {
   if (!entry) return null
   const { type, name, data = {} } = entry
   const title = (name || entry.id || '').replace(/_/g, ' ')
 
-  const lines = []
+  const lines: string[] = []
   if (type === 'ability') {
     lines.push(data.passive ? 'Passive' : 'Active ability')
     const c = costText(data.resourceCost)

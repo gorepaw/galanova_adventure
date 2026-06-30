@@ -1,6 +1,6 @@
 import React from 'react'
 
-export default function ProfessionsPanel({ companions = [] }) {
+export default function ProfessionsPanel({ companions = [] }: { companions?: any[] }) {
   const withProfession = companions.filter(c => c.profession && c.profession !== 'none')
 
   if (!withProfession.length) {

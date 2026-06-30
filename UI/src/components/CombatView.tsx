@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react'
 import abilitiesData from '../../../Data/abilities.json'
 import classesData   from '../../../Data/classes.json'
-import { skillAbilities } from './skillAbilities.js'
+import { skillAbilities } from './skillAbilities'
 
 const ABILITY_DEFS = abilitiesData.abilities
 const CLASS_DEFS   = classesData.classes
@@ -85,7 +85,7 @@ function CombatMemberCard({ inst, selected, isFriendlyTarget, showFriendlyTarget
 // ── Ability button ───────────────────────────────────────────────────────────
 
 function CombatAbilityBtn({ def, learnedAt, hotkey, disabled, queued, casting, onUse }) {
-  const costs = Object.entries(def.resourceCost || {}).filter(([, v]) => v > 0)
+  const costs = Object.entries<any>(def.resourceCost || {}).filter(([, v]) => v > 0)
   const hasCd = (def.cooldown ?? 0) > 0
   const title = casting ? `Cancel cast → ${def.name}` : (def.description ?? '')
 
@@ -122,7 +122,7 @@ export default function CombatView({
   const [selectedIdx, setSelectedIdx]         = useState(0)
   const [selectedTargetIdx, setSelectedTargetIdx] = useState(0)
   const [friendlyTargetIdx, setFriendlyTargetIdx] = useState(0)
-  const [pendingActions, setPendingActions]   = useState({})
+  const [pendingActions, setPendingActions]   = useState<Record<string, any>>({})
   const [abilityPage, setAbilityPage]         = useState(0)
 
   // Reset pending queue when combat state changes
@@ -192,7 +192,7 @@ export default function CombatView({
 
   // ── Keyboard handler (slot keys + page nav) ──────────────────────────────
   // Use a ref so the single registered listener always reads current values.
-  const kbRef = useRef(null)
+  const kbRef = useRef<any>(null)
   kbRef.current = { pageAbilities, currentPage, totalPages, handleUseAbility }
 
   useEffect(() => {

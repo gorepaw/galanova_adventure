@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react'
-import { HOTKEY_DEFS, HOTKEY_CATEGORIES, normalizeKey, formatKeyLabel } from '../hotkeys.js'
+import { HOTKEY_DEFS, HOTKEY_CATEGORIES, normalizeKey, formatKeyLabel } from '../hotkeys'
 
 export default function SettingsPanel({
   combatMode, onSetCombatMode, loading, gameState,
   bindings, keyMap, onUpdateBinding, onResetBinding, onResetAll,
 }) {
-  const [capturing, setCapturing] = useState(null)   // actionId currently being rebound
-  const [conflict,  setConflict]  = useState(null)   // { key, conflictId }
+  const [capturing, setCapturing] = useState<any>(null)   // actionId currently being rebound
+  const [conflict,  setConflict]  = useState<any>(null)   // { key, conflictId }
 
   // Capture mode: listen at the capture phase so we can preventDefault and
   // stopPropagation before the main App hotkey listener sees the key.
