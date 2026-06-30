@@ -1,39 +1,36 @@
-const { app, BrowserWindow, ipcMain } = require('electron')
-const path = require('path')
-const fs = require('fs')
+import { app, BrowserWindow, ipcMain } from 'electron'
+import path from 'path'
+import fs from 'fs'
+
+// Engine modules — imported directly. The engine is TypeScript now, so each
+// module imports its own siblings; the old loadGlobal concatenation is gone.
+// These are the symbols the IPC layer drives. characterSheet is the single
+// source of truth for the numbers the renderer shows (it never recomputes).
+import { DataStore, Loader } from './Engine/datalayer.js'
+import { ItemSuffixes } from './Engine/itemsuffixes.js'
+import { characterSheet } from './Engine/charsheet.js'
+import { SaveManager, HomeScreen, SyntheticGameData } from './Engine/gameplayloop.js'
 
 const isDev = !app.isPackaged
-
-// Display view-model for the character screen (single source of truth for the
-// numbers the UI shows — the renderer no longer recomputes derived stats).
-const { characterSheet } = require('./Engine/charsheet.js')
 
 // Clean name/tooltip data for combat-log entity recognition (abilities, mobs).
 const _abilitiesCatalog = require('./Data/abilities.json')
 const _mobsCatalog      = require('./Data/mobs.json')
 
-// Load an engine module and merge its exports into global scope.
-// Mirrors Testing/run_tests.js bootstrap so engine files that check
-// `typeof DataStore === "undefined"` can find each other at top level.
-function loadGlobal(modulePath) {
-  const exports = require(modulePath)
-  if (exports && typeof exports === 'object') Object.assign(global, exports)
-}
-
 // Load recipe definitions directly from disk — bypasses in-memory DataStore
 // so getCraftingData works even if seed timing is off.
-let _recipeTemplates = []
+let _recipeTemplates: any[] = []
 function loadRecipeTemplates() {
   try {
     const raw = JSON.parse(fs.readFileSync(path.join(__dirname, 'Data/crafting.json'), 'utf8'))
     _recipeTemplates = Object.values(raw.recipes || {})
-  } catch (e) {
+  } catch (e: any) {
     console.error('[loadRecipeTemplates] failed:', e.message)
     _recipeTemplates = []
   }
 }
 
-let _itemTemplates = {}
+let _itemTemplates: Record<string, any> = {}
 function loadItemTemplates() {
   try {
     const raw = JSON.parse(fs.readFileSync(path.join(__dirname, 'Data/items.json'), 'utf8').replace(/^﻿/, ''))
@@ -43,24 +40,24 @@ function loadItemTemplates() {
     for (const variant of ItemSuffixes.generateAllVariants(_itemTemplates)) {
       _itemTemplates[variant.id] = variant
     }
-  } catch (e) {
+  } catch (e: any) {
     console.error('[loadItemTemplates] failed:', e.message)
     _itemTemplates = {}
   }
 }
 
-let _questTemplates = {}
+let _questTemplates: Record<string, any> = {}
 function loadQuestTemplates() {
   try {
     const raw = JSON.parse(fs.readFileSync(path.join(__dirname, 'Data/quests.json'), 'utf8').replace(/^﻿/, ''))
     _questTemplates = raw.realQuests || {}
-  } catch (e) {
+  } catch (e: any) {
     console.error('[loadQuestTemplates] failed:', e.message)
     _questTemplates = {}
   }
 }
 
-let session = null
+let session: any = null
 let _activeSlotId = 'slot_start'
 
 // ── Save persistence ──────────────────────────────────────────────────────────
@@ -89,16 +86,16 @@ function loadSavesFromDisk() {
             }
           }
         }
-      } catch (e) { console.error('[loadSaves] bad file', file, e.message) }
+      } catch (e: any) { console.error('[loadSaves] bad file', file, e.message) }
     }
-  } catch (e) { console.error('[loadSaves] dir error:', e.message) }
+  } catch (e: any) { console.error('[loadSaves] dir error:', e.message) }
 }
 
-function writeSaveToDisk(slotId) {
+function writeSaveToDisk(slotId: string) {
   const raw = DataStore.read(`saves/save_${slotId}`)
   if (!raw) return
   // Bundle companion instances so they survive app restarts
-  const companions = {}
+  const companions: Record<string, any> = {}
   for (const m of [...(raw.party || []), ...(raw.roster || [])]) {
     if (!m.instanceId) continue
     const inst = DataStore.read(`instances/companions/${m.instanceId}`)
@@ -113,32 +110,27 @@ function writeSaveToDisk(slotId) {
   )
 }
 
-function deleteSaveFromDisk(slotId) {
+function deleteSaveFromDisk(slotId: string) {
   const p = path.join(getSavesDir(), `${slotId}.json`)
   if (fs.existsSync(p)) fs.unlinkSync(p)
 }
 
 function listSaveSlots() {
   return SaveManager.listSlots()
-    .map(slot => ({
+    .map((slot: any) => ({
       ...slot,
       saveName: DataStore.read(`saves/save_${slot.slotId}`)?.saveName || null,
       isActive: slot.slotId === _activeSlotId,
     }))
-    .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
+    .sort((a: any, b: any) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
 }
 
 function initEngine() {
-  loadGlobal(path.join(__dirname, 'Engine/datalayer.js'))
-  loadGlobal(path.join(__dirname, 'Engine/itemsuffixes.js'))
-  loadGlobal(path.join(__dirname, 'Engine/leveltables.js'))
-  loadGlobal(path.join(__dirname, 'Engine/skills.js'))
-  loadGlobal(path.join(__dirname, 'Engine/equipment.js'))
-  loadGlobal(path.join(__dirname, 'Engine/companions.js'))
-  loadGlobal(path.join(__dirname, 'Engine/encounters.js'))
-  loadGlobal(path.join(__dirname, 'Engine/gameplayloop.js'))
-  // Seed the real game data (zones, enemies, items, the starting character/save).
-  // Self-tests do NOT run on launch — they are gated behind GALANOVA_RUN_TESTS.
+  // Engine modules are imported at the top of this file, so requiring them has
+  // already run their bootstraps (datalayer seeds its fixtures on load). Seed the
+  // real game data (zones, enemies, items, the starting character/save), then
+  // load the on-disk template catalogs the IPC layer serves. Self-tests do NOT
+  // run on launch — they are gated behind GALANOVA_RUN_TESTS.
   SyntheticGameData.seed()
   loadRecipeTemplates()
   loadItemTemplates()
@@ -151,17 +143,17 @@ function getSnapshot() {
   }
   const save = session.getSave()
 
-  const partyInstances = (save?.party || []).map(m => {
+  const partyInstances = (save?.party || []).map((m: any) => {
     const r = Loader.load(`instances/companions/${m.instanceId}`, 'companionInstance')
     const inst = r.ok ? r.data : { instanceId: m.instanceId, name: m.instanceId }
     // Attach the display view-model so the UI renders numbers instead of deriving them.
     return { ...inst, sheet: characterSheet(inst, _itemTemplates) }
   })
 
-  const highestLevel = partyInstances.reduce((max, inst) => Math.max(max, inst.level || 1), 1)
+  const highestLevel = partyInstances.reduce((max: any, inst: any) => Math.max(max, inst.level || 1), 1)
 
   let zoneData = null
-  let travelZones = []
+  let travelZones: any[] = []
   if (save?.currentZone) {
     const zr = Loader.load(`templates/zones/${save.currentZone}`, 'zone')
     const currentRegion = zr.ok ? zr.data.regionId : null
@@ -198,7 +190,7 @@ function getSnapshot() {
       currency: save.currency,
       mode: save.mode,
       party: save.party,
-      inventory: (save.inventory || []).map(e => {
+      inventory: (save.inventory || []).map((e: any) => {
         const tpl = _itemTemplates[e.itemId]
         return tpl ? { ...e, itemType: tpl.type, slot: tpl.slot, quality: tpl.quality } : e
       }),
@@ -225,7 +217,7 @@ function getSnapshot() {
 function respond() {
   const messages = session ? session.flush() : []
   // Persist the active slot to disk whenever the engine auto-saves
-  if (session && messages.some(m => m.includes('Auto-saved'))) {
+  if (session && messages.some((m: any) => m.includes('Auto-saved'))) {
     writeSaveToDisk(_activeSlotId)
   }
   return { messages, ...getSnapshot() }
@@ -326,10 +318,10 @@ ipcMain.handle('game:getQuestCatalog', () => {
 // characters come from partyInstances. Built from validated loaders/data so the
 // UI never parses raw (messy) JSON.
 ipcMain.handle('game:getEntityCatalog', () => {
-  const titleCase = (s) => String(s || '').replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
+  const titleCase = (s: any) => String(s || '').replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
 
-  const abilities = {}
-  for (const [id, def] of Object.entries(_abilitiesCatalog.abilities || {})) {
+  const abilities: Record<string, any> = {}
+  for (const [id, def] of Object.entries<any>(_abilitiesCatalog.abilities || {})) {
     if (id.startsWith('_') || !def?.name) continue
     abilities[id] = {
       name: def.name, resourceCost: def.resourceCost || null, cooldown: def.cooldown || 0,
@@ -337,7 +329,7 @@ ipcMain.handle('game:getEntityCatalog', () => {
     }
   }
 
-  const zones = {}, regions = {}
+  const zones: Record<string, any> = {}, regions: Record<string, any> = {}
   for (const key of (DataStore.list('templates/zones/') || [])) {
     const r = Loader.load(key, 'zone')
     if (!r.ok) continue
@@ -349,8 +341,8 @@ ipcMain.handle('game:getEntityCatalog', () => {
     if (z.regionId && !regions[z.regionId]) regions[z.regionId] = { name: titleCase(z.regionId) }
   }
 
-  const mobs = {}
-  for (const [id, def] of Object.entries(_mobsCatalog.mobs || {})) {
+  const mobs: Record<string, any> = {}
+  for (const [id, def] of Object.entries<any>(_mobsCatalog.mobs || {})) {
     if (!/^[a-z0-9_]+$/.test(id) || !def?.name) continue
     mobs[id] = { name: def.name, type: def.type || null }
   }
@@ -362,7 +354,7 @@ ipcMain.handle('game:getBuffCatalog', () => {
   try {
     const raw = require('./Data/abilities.json')
     return raw.buffs || {}
-  } catch (e) {
+  } catch (e: any) {
     return {}
   }
 })
@@ -371,7 +363,7 @@ ipcMain.handle('game:getShopData', () => {
   if (!session) return { zoneName: '', sellMultiplier: 0.25, shopkeepers: {}, sellList: [] }
   try {
     return session.getShopData()
-  } catch (err) {
+  } catch (err: any) {
     console.error('[getShopData] error:', err)
     return { zoneName: '', sellMultiplier: 0.25, shopkeepers: {}, sellList: [] }
   }
@@ -390,7 +382,7 @@ ipcMain.handle('game:getCraftingData', () => {
     // Build profession → { skill, crafterName } from live companion instances.
     // Read raw from DataStore to avoid Loader validation issues; fall back to
     // Loader if DataStore isn't global yet.
-    const profMap = {}
+    const profMap: Record<string, any> = {}
     for (const m of (save?.party || [])) {
       let inst = null
       try {
@@ -416,7 +408,7 @@ ipcMain.handle('game:getCraftingData', () => {
       '| inventory size:', inventory.length)
 
     const recipes = _recipeTemplates
-      .map(rec => {
+      .map((rec: any) => {
         let skillOk = true
         let crafterName = null
         if (rec.requiredProfession) {
@@ -428,11 +420,11 @@ ipcMain.handle('game:getCraftingData', () => {
           }
         }
 
-        const inputs = (rec.inputs || []).map(({ itemId, qty }) => {
-          const entry = inventory.find(e => e.itemId === itemId)
+        const inputs = (rec.inputs || []).map(({ itemId, qty }: any) => {
+          const entry = inventory.find((e: any) => e.itemId === itemId)
           return { itemId, qty, have: entry?.qty ?? 0 }
         })
-        const matsOk = inputs.every(i => i.have >= i.qty)
+        const matsOk = inputs.every((i: any) => i.have >= i.qty)
 
         return {
           id: rec.id,
@@ -450,7 +442,7 @@ ipcMain.handle('game:getCraftingData', () => {
 
     console.log('[getCraftingData] returning', recipes.length, 'skill-unlocked recipes')
     return { recipes }
-  } catch (err) {
+  } catch (err: any) {
     console.error('[getCraftingData] error:', err)
     return { recipes: [] }
   }

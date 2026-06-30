@@ -1,0 +1,14 @@
+{
+  // Engine / Electron-main side (Node CommonJS). During the JS→TS migration each
+  // converted .ts emits a .js NEXT TO IT (no outDir), so every existing runtime
+  // require path keeps working and the not-yet-converted .js files load the
+  // compiled output unchanged. allowJs is OFF so tsc never tries to emit a .js
+  // over an input .js (TS5055). The generated .js/.js.map are gitignored.
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "module": "node16",
+    "moduleResolution": "node16",
+    "types": ["node"]
+  },
+  "include": ["Engine/**/*.ts", "electron-main.ts", "preload.ts"]
+}

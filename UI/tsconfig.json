@@ -1,0 +1,20 @@
+{
+  // Renderer (React + Vite) TypeScript config. Vite/esbuild does the actual
+  // transpile; this config is for `tsc --noEmit` type-checking only. During the
+  // .jsx→.tsx migration allowJs keeps the still-untyped .jsx files loadable while
+  // checkJs:false means only .ts/.tsx are type-checked.
+  "extends": "../tsconfig.base.json",
+  "compilerOptions": {
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "jsx": "react-jsx",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "types": [],
+    "allowJs": true,
+    "checkJs": false,
+    "noEmit": true,
+    "allowImportingTsExtensions": true,
+    "resolveJsonModule": true
+  },
+  "include": ["src"]
+}

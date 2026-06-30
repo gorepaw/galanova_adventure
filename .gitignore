@@ -5,6 +5,35 @@ node_modules/
 dist/
 dist-ssr/
 
+# Generated from TypeScript during the JS→TS migration.
+# Engine .ts files compile to .js IN PLACE (no outDir) so runtime require paths
+# stay stable; the emitted .js / .js.map are build artifacts, not source.
+# Listed per converted module — switch to "/Engine/**/*.js" once every engine
+# module is TypeScript.
+/Engine/**/*.js.map
+/Engine/types/*.js
+/Engine/logtags.js
+/Engine/charsheet.js
+/Engine/skills.js
+/Engine/leveltables.js
+/Engine/datalayer.js
+/Engine/equipment.js
+/Engine/companions.js
+/Engine/itemsuffixes.js
+/Engine/encounters.js
+/Engine/dungeons.js
+/Engine/gameplayloop.js
+
+# Electron entry/preload compiled from TS (emit in place; package.json main +
+# BrowserWindow preload path point at these generated .js).
+/electron-main.js
+/electron-main.js.map
+/preload.js
+/preload.js.map
+
+# TypeScript incremental build info
+*.tsbuildinfo
+
 # Logs
 *.log
 npm-debug.log*

@@ -1,0 +1,21 @@
+{
+  // Shared compiler options for every part of the project (engine, UI, tooling).
+  // Per-area tsconfigs extend this and set module/target/include appropriately.
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2022"],
+    "esModuleInterop": true,
+    "resolveJsonModule": true,
+    "forceConsistentCasingInFileNames": true,
+    "skipLibCheck": true,
+
+    // Strict is the migration target. Explicit `any` stays legal, so modules can
+    // be converted incrementally without a big-bang break.
+    "strict": true,
+    "noImplicitAny": true,
+
+    // Emit even when type errors remain, so a half-migrated tree still runs.
+    "noEmitOnError": false,
+    "sourceMap": true
+  }
+}

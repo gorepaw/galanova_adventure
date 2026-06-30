@@ -6,27 +6,27 @@
 // prints an aggregated summary and exits non-zero on any failure.
 //
 // The self-tests live next to the code they cover, so they stay current as the
-// systems evolve — this harness just loads the engine in dependency order and
-// invokes them. Run with:  node Testing/run_tests.js
+// systems evolve — this harness just loads the engine and invokes them. Run
+// with:  node Testing/run_tests.js  (after `npm run build:engine`, which `npm
+// test` does for you).
+//
+// The engine is now TypeScript: every module imports its siblings directly, so
+// this harness no longer concatenates exports onto `global` — it just requires
+// each compiled module and reads the suites off the returned exports.
 // =============================================================================
 
-// Load engine modules into the global scope (they reference each other as
-// globals, mirroring how electron-main concatenates them).
-function load(rel) {
-  const exports = require(rel);
-  if (exports && typeof exports === "object") Object.assign(global, exports);
-  return exports;
-}
+const datalayer    = require("../Engine/datalayer.js");
+const itemsuffixes = require("../Engine/itemsuffixes.js");
+require("../Engine/leveltables.js");
+const skills       = require("../Engine/skills.js");
+require("../Engine/companions.js");
+const encounters   = require("../Engine/encounters.js");
+const dungeons     = require("../Engine/dungeons.js");
+const equipment    = require("../Engine/equipment.js");
+const gameplay     = require("../Engine/gameplayloop.js");
 
-load("../Engine/datalayer.js");      // DataStore, Loader, SyntheticData, TestSuite
-const itemsuffixes = load("../Engine/itemsuffixes.js");
-load("../Engine/leveltables.js");
-const skills     = load("../Engine/skills.js");
-load("../Engine/companions.js");
-const encounters = load("../Engine/encounters.js");
-const dungeons   = load("../Engine/dungeons.js");
-const equipment  = load("../Engine/equipment.js");
-load("../Engine/gameplayloop.js");   // SyntheticGameData, GameLoopTests, HomeScreen…
+const { DataStore, Loader, TestSuite } = datalayer;
+const { SyntheticGameData, GameLoopTests } = gameplay;
 
 // Seed the real game data (zones, enemies, items, the starting character/save)
 // so the self-tests that drive DataStore/Loader have current content to use.

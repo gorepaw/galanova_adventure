@@ -11,6 +11,11 @@
 //   charsheet.js    � deriveCore (shared stat derivation for combat + sheet)
 // =============================================================================
 
+// @ts-nocheck — TRANSITIONAL: gameplayloop is the ~3400-line combat core. It is
+// now a real TS module (sibling imports below — no more ambient globals), but
+// type-checking is deferred so the combat math is never refactored by type
+// narrowing in a single pass. Remove this directive and add types section by
+// section as a focused follow-up.
 "use strict";
 
 const _abilitiesData      = require('../Data/abilities.json');
@@ -26,13 +31,23 @@ const _summoningData      = require('../Data/summoning.json');
 const _necromancyData     = require('../Data/necromancy.json');
 const _roboticsData       = require('../Data/robotics.json');
 
+// Engine sibling modules — imported directly now (no more ambient globals).
+// gameplayloop was the last consumer of the loadGlobal concatenation pattern.
+import { DataStore, Loader, Saver, Validator, Modifiers } from './datalayer.js';
+import { ItemSuffixes } from './itemsuffixes.js';
+import { getStatsAtLevel, addXpToInst, buildResources, allocateStat, xpToNextLevel } from './leveltables.js';
+import { getSkillLevel, addSkillXp, abilitiesFromSkills, skillForAbilityUse, canEquipWeaponType } from './skills.js';
+import { ClassDB } from './equipment.js';
+import { buildCompanionInstance } from './companions.js';
+import { EncounterGenerator, PartySkills, checkReroll } from './encounters.js';
+
 // Shared stat derivation — the SAME core the character sheet uses, so combat and
 // the sheet can never disagree (Engine/charsheet.js).
-const { deriveCore } = require('./charsheet.js');
+import { deriveCore } from './charsheet.js';
 
 // Combat-log entity tags: wrap entity refs so the UI resolves name + tooltip
 // with zero matching cost (Engine/logtags.js). Migrate emit sites to tag() over time.
-const { tag } = require('./logtags.js');
+import { tag } from './logtags.js';
 
 
 // =============================================================================
@@ -3382,12 +3397,10 @@ if (typeof DataStore === "undefined") {
   console.log(GameLoopTests.report(testResults));
 }
 
-if (typeof module !== "undefined") {
-  module.exports = {
-    Currency,
-    RidingSystem, TrapSystem,
-    CombatBridge, DeathHandler,
-    RewardEngine, ShopSystem, SaveManager,
-    SyntheticGameData, HomeScreen, GameLoopTests,
-  };
-}
+export {
+  Currency,
+  RidingSystem, TrapSystem,
+  CombatBridge, DeathHandler,
+  RewardEngine, ShopSystem, SaveManager,
+  SyntheticGameData, HomeScreen, GameLoopTests,
+};

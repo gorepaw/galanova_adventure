@@ -54,6 +54,18 @@
       "startingBaseline": { "str": 10, "dex": 16, "con": 10, "int": 8, "spi": 10, "wis": 9, "spd": 16, "cha": 9 },
       "description": "A fast, evasive killer who manipulates and poisons."
     },
+    "axeman": {
+      "id": "axeman",
+      "name": "Axeman",
+      "armorTier": "medium",
+      "coreStats": ["str", "con"],
+      "guaranteedLevelUp": { "str": 2, "con": 1 },
+      "resources": ["stamina", "rage"],
+      "primaryResource": "stamina",
+      "skills": ["one_handed_axes", "two_handed_axes", "berserking", "woodcuting", "firemaking", "tracking"],
+      "startingBaseline": { "str": 17, "dex": 10, "con": 12, "int": 8, "spi": 9, "wis": 9, "spd": 10, "cha": 8 },
+      "description": "A durable and strong fighter who blends axes with rage."
+    },
     "barbarian": {
       "id": "barbarian",
       "name": "Barbarian",
@@ -232,6 +244,18 @@
       "startingBaseline": { "str": 15, "dex": 10, "con": 15, "int": 8, "spi": 10, "wis": 12, "spd": 10, "cha": 9 },
       "description": "A durable and strong fighter who blends weapons with restoration."
     },
+    "maceman": {
+      "id": "maceman",
+      "name": "Maceman",
+      "armorTier": "medium",
+      "coreStats": ["str", "con"],
+      "guaranteedLevelUp": { "str": 2, "con": 1 },
+      "resources": ["stamina", "rage"],
+      "primaryResource": "stamina",
+      "skills": ["one_handed_maces", "two_handed_maces", "mining", "berserking"],
+      "startingBaseline": { "str": 17, "dex": 10, "con": 12, "int": 8, "spi": 9, "wis": 9, "spd": 10, "cha": 8 },
+      "description": "A durable and strong fighter who blends maces with rage."
+    },
     "mage": {
       "id": "mage",
       "name": "Mage",
@@ -293,6 +317,18 @@
       "morale"],
       "startingBaseline": { "str": 15, "dex": 10, "con": 15, "int": 8, "spi": 10, "wis": 12, "spd": 10, "cha": 9 },
       "description": "A durable and strong fighter who blends weapons with restoration."
+    },
+    "pikeman": {
+      "id": "pikeman",
+      "name": "Pikeman",
+      "armorTier": "medium",
+      "coreStats": ["str", "con"],
+      "guaranteedLevelUp": { "str": 2, "con": 1 },
+      "resources": ["stamina", "rage"],
+      "primaryResource": "stamina",
+      "skills": ["polearms", "dueling", "fishing", "armorsmithing"],
+      "startingBaseline": { "str": 17, "dex": 10, "con": 12, "int": 8, "spi": 9, "wis": 9, "spd": 10, "cha": 8 },
+      "description": "A durable and strong fighter who blends polearms with rage."
     },
     "pirate": {
       "id": "pirate",
