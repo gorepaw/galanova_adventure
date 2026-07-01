@@ -1,29 +1,30 @@
 import React, { useState } from 'react'
 import ItemTooltip, { buildTipItem } from './ItemTooltip'
 import { formatCurrency } from '../currency'
+import type { InventoryItemView } from '../../../Engine/types/viewmodel'
 
 const USABLE = new Set([
   'minor_health_potion', 'rough_bandage', 'ember_shard',
 ])
 
-const QUALITY_CLASS = {
+const QUALITY_CLASS: Record<string, string> = {
   poor: 'q-poor', common: 'q-common', uncommon: 'q-uncommon',
   rare: 'q-rare', epic: 'q-epic', legendary: 'q-legendary',
 }
 
-const SLOT_ICON = {
+const SLOT_ICON: Record<string, string> = {
   mainhand: '⚔', offhand: '🛡', head: '⛑', chest: '👕',
   legs: '👖', feet: '👟', hands: '🧤', waist: '🎽',
   back: '🧣', wrist: '📿', neck: '📿', ring: '💍',
   trinket: '🔮', ranged: '🏹',
 }
 
-function tipPos(e) {
+function tipPos(e: any) {
   const x = e.clientX + 14 + 240 > window.innerWidth ? e.clientX - 254 : e.clientX + 14
   return { x, y: e.clientY - 8 }
 }
 
-export default function InventoryPanel({ inventory, currency, isShopZone, itemCatalog, onUse, onSell, onEquip }) {
+export default function InventoryPanel({ inventory, currency, isShopZone, itemCatalog, onUse, onSell, onEquip }: { inventory: InventoryItemView[]; currency: number; isShopZone: boolean; itemCatalog: Record<string, any>; onUse: (id: string) => void; onSell: (id: string) => void; onEquip: (id: string) => void }) {
   const [tip, setTip] = useState<any>(null)
 
   return (
@@ -39,14 +40,14 @@ export default function InventoryPanel({ inventory, currency, isShopZone, itemCa
         <div className="inv-list">
           {inventory.map(entry => {
             const isEquipment = entry.itemType === 'weapon' || entry.itemType === 'armor'
-            const qualityCls = QUALITY_CLASS[entry.quality] || ''
-            const slotIcon = SLOT_ICON[entry.slot] || '📦'
+            const qualityCls = QUALITY_CLASS[entry.quality ?? ""] || "";
+            const slotIcon = SLOT_ICON[entry.slot ?? ""] || "📦";
             return (
               <div
                 key={entry.itemId}
                 className="inv-row"
                 onMouseEnter={(e) => setTip({ item: buildTipItem(entry.itemId, itemCatalog), ...tipPos(e) })}
-                onMouseMove={(e) => setTip(prev => prev ? { ...prev, ...tipPos(e) } : prev)}
+                onMouseMove={(e) => setTip((prev: any) => prev ? { ...prev, ...tipPos(e) } : prev)}
                 onMouseLeave={() => setTip(null)}
               >
                 <div className="inv-icon">{isEquipment ? slotIcon : '📦'}</div>

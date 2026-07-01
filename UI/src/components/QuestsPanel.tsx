@@ -1,12 +1,12 @@
 import React, { useState } from 'react'
 
-function formatDate(iso) {
+function formatDate(iso: string) {
   if (!iso) return ''
   const d = new Date(iso)
   return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
 }
 
-function QuestRow({ questId, state, def }) {
+function QuestRow({ questId, state, def }: { questId: string; state: any; def: any }) {
   const [expanded, setExpanded] = useState(true)
 
   const name = def?.name ?? questId.replace(/_/g, ' ')
@@ -36,7 +36,7 @@ function QuestRow({ questId, state, def }) {
             <p className="quest-desc">{description}</p>
           )}
           <div className="quest-objectives">
-            {objectives.map(obj => {
+            {objectives.map((obj: any) => {
               const current = state.objectives?.[obj.id] ?? 0
               const goal = obj.count ?? 1
               const done = current >= goal
@@ -72,7 +72,7 @@ function QuestRow({ questId, state, def }) {
   )
 }
 
-export default function QuestsPanel({ quests = {}, questCatalog = {} }: any) {
+export default function QuestsPanel({ quests = {}, questCatalog = {} }: { quests?: Record<string, any>; questCatalog?: Record<string, any> }) {
   const entries = Object.entries<any>(quests)
   const active    = entries.filter(([, q]) => !q.completed)
   const completed = entries.filter(([, q]) =>  q.completed)

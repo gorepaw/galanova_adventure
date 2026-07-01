@@ -4,7 +4,7 @@ import { HOTKEY_DEFS, HOTKEY_CATEGORIES, normalizeKey, formatKeyLabel } from '..
 export default function SettingsPanel({
   combatMode, onSetCombatMode, loading, gameState,
   bindings, keyMap, onUpdateBinding, onResetBinding, onResetAll,
-}) {
+}: any) {
   const [capturing, setCapturing] = useState<any>(null)   // actionId currently being rebound
   const [conflict,  setConflict]  = useState<any>(null)   // { key, conflictId }
 
@@ -12,7 +12,7 @@ export default function SettingsPanel({
   // stopPropagation before the main App hotkey listener sees the key.
   useEffect(() => {
     if (!capturing) return
-    const handler = (e) => {
+    const handler = (e: KeyboardEvent) => {
       e.preventDefault()
       e.stopPropagation()
       if (e.key === 'Escape') { setCapturing(null); setConflict(null); return }
@@ -31,7 +31,7 @@ export default function SettingsPanel({
     return () => document.removeEventListener('keydown', handler, true)
   }, [capturing, keyMap, onUpdateBinding])
 
-  const startCapture = (actionId) => { setConflict(null); setCapturing(actionId) }
+  const startCapture = (actionId: string) => { setConflict(null); setCapturing(actionId) }
 
   return (
     <div className="settings-panel">

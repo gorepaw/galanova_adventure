@@ -3,7 +3,7 @@ import React from 'react'
 export default function AbilityBar({
   gameState, loading, canButcher,
   autoRun, autoEngage, autoFlee,
-  bindings = {}, formatKeyLabel = k => k,
+  bindings = {}, formatKeyLabel = (k: any) => k,
   onRunEncounter, onEngage, onFlee, onButcher,
   onToggleAutoRun, onToggleAutoEngage, onToggleAutoFlee,
 }: any) {

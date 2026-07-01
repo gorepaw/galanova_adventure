@@ -25,8 +25,8 @@ export default function GuildhallPanel({ roster = [], onSwap, onBench, onRecruit
   const [selectedPartyId,  setSelectedPartyId]  = useState<any>(null)
   const [selectedRosterId, setSelectedRosterId] = useState<any>(null)
 
-  const partyMembers  = roster.filter(c => c.inParty)
-  const rosterMembers = roster.filter(c => !c.inParty)
+  const partyMembers  = roster.filter((c: any) => c.inParty)
+  const rosterMembers = roster.filter((c: any) => !c.inParty)
 
   const inCombat = gameState === 'in_combat' || gameState === 'combat_pending'
 
@@ -53,8 +53,8 @@ export default function GuildhallPanel({ roster = [], onSwap, onBench, onRecruit
   const canBench   = selectedPartyId && !inCombat && !loading
   const canRecruit = selectedRosterId && !inCombat && !loading
 
-  const selectedPartyName  = partyMembers.find(c => c.instanceId === selectedPartyId)?.name
-  const selectedRosterName = rosterMembers.find(c => c.instanceId === selectedRosterId)?.name
+  const selectedPartyName  = partyMembers.find((c: any) => c.instanceId === selectedPartyId)?.name
+  const selectedRosterName = rosterMembers.find((c: any) => c.instanceId === selectedRosterId)?.name
 
   return (
     <div className="guildhall-panel">
@@ -71,7 +71,7 @@ export default function GuildhallPanel({ roster = [], onSwap, onBench, onRecruit
         )}
       </div>
       <div className="gh-list">
-        {partyMembers.map(c => (
+        {partyMembers.map((c: any) => (
           <CompanionCard
             key={c.instanceId}
             companion={c}
@@ -115,7 +115,7 @@ export default function GuildhallPanel({ roster = [], onSwap, onBench, onRecruit
         Guildhall <span className="gh-count">({rosterMembers.length})</span>
       </div>
       <div className="gh-list">
-        {rosterMembers.map(c => (
+        {rosterMembers.map((c: any) => (
           <CompanionCard
             key={c.instanceId}
             companion={c}

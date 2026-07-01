@@ -4,24 +4,24 @@ import classesData   from '../../../Data/classes.json'
 import skillsData    from '../../../Data/skills.json'
 import { skillAbilities } from './skillAbilities'
 
-const ABILITY_DEFS = abilitiesData.abilities
-const CLASS_DEFS   = classesData.classes
+const ABILITY_DEFS: Record<string, any> = (abilitiesData as any).abilities
+const CLASS_DEFS: Record<string, any> = (classesData as any).classes
 const PER_PAGE     = 24
 
 // Pretty labels for scaling sources: combat stats, the 8 attributes, then skills.
 const SKILL_NAMES = Object.fromEntries(
-  Object.values(skillsData.skills || {}).map(s => [s.id, s.name])
+  Object.values<any>((skillsData as any).skills || {}).map((s: any) => [s.id, s.name])
 )
-const STAT_LABELS = {
+const STAT_LABELS: Record<string, string> = {
   ap: 'AP', rap: 'RAP', sp: 'SP',
   str: 'STR', dex: 'DEX', con: 'CON', int: 'INT',
   spi: 'SPI', wis: 'WIS', spd: 'SPD', cha: 'CHA',
 }
-const statLabel = k => STAT_LABELS[k] || SKILL_NAMES[k] || k
+const statLabel = (k: any) => STAT_LABELS[k] || SKILL_NAMES[k] || k
 
 // Build the human-readable scaling breakdown for one damage/heal effect, e.g.
 // "melee weapon + 0.8× AP + 0.5× STR + 1.0× One-Handed Swords + 10".
-function fmtEffect(eff) {
+function fmtEffect(eff: any) {
   const parts: string[] = []
   if (eff.usesWeapon === 'melee')       parts.push('melee weapon')
   else if (eff.usesWeapon === 'ranged') parts.push('ranged weapon')
@@ -39,14 +39,14 @@ function fmtEffect(eff) {
   return { icon: eff.type === 'heal' ? '✚' : '⚔', text: parts.join(' + ') }
 }
 
-const RESOURCE_COLORS = {
+const RESOURCE_COLORS: Record<string, any> = {
   rage:   { label: 'Rage',   color: '#ff6644' },
   mana:   { label: 'Mana',   color: '#4a90d9' },
   stamina: { label: 'Stamina', color: '#ffee44' },
   runic:  { label: 'Runic',  color: '#88aaff' },
 }
 
-const TAG_STYLE = {
+const TAG_STYLE: Record<string, any> = {
   physical: { bg: 'rgba(200,100,50,0.12)',  border: 'rgba(200,100,50,0.3)',  color: '#d08050' },
   melee:    { bg: 'rgba(200,100,50,0.12)',  border: 'rgba(200,100,50,0.3)',  color: '#d08050' },
   magic:    { bg: 'rgba(74,144,217,0.12)',  border: 'rgba(74,144,217,0.3)',  color: '#4a90d9' },
@@ -59,20 +59,20 @@ const TAG_STYLE = {
   nature:   { bg: 'rgba(60,200,80,0.10)',   border: 'rgba(60,200,80,0.3)',   color: '#3cc850' },
 }
 
-function fmtCost(resourceCost) {
+function fmtCost(resourceCost: any) {
   if (!resourceCost) return null
   return Object.entries<any>(resourceCost)
     .filter(([, v]) => v > 0)
     .map(([k, v]) => ({ key: k, amount: v, ...RESOURCE_COLORS[k] }))
 }
 
-function SpellEntry({ def, learnedAt }) {
+function SpellEntry({ def, learnedAt }: any) {
   const isPassive = !!def.passive
   const costs     = fmtCost(def.resourceCost) || []
   const cooldown  = def.cooldown > 0 ? def.cooldown : null
   const tags      = (def.tags || []).slice(0, 2)
   const scalingLines = (def.effects || [])
-    .filter(e => e.type === 'damage' || e.type === 'heal')
+    .filter((e: any) => e.type === 'damage' || e.type === 'heal')
     .map(fmtEffect)
     .filter(Boolean)
 
@@ -83,7 +83,7 @@ function SpellEntry({ def, learnedAt }) {
         <span className="spell-name">{def.name}</span>
         <div className="spell-badges">
           {isPassive && <span className="spell-badge badge-passive">Passive</span>}
-          {!isPassive && tags.map(t => {
+          {!isPassive && tags.map((t: any) => {
             const s = TAG_STYLE[t] || {}
             return (
               <span
@@ -114,7 +114,7 @@ function SpellEntry({ def, learnedAt }) {
 
       {!isPassive && scalingLines.length > 0 && (
         <div className="spell-scaling">
-          {scalingLines.map((l, i) => (
+          {scalingLines.map((l: any, i: number) => (
             <span key={i} className="spell-scaling-line">
               <span className="spell-scaling-icon">{l.icon}</span> {l.text}
             </span>
@@ -129,7 +129,7 @@ function EmptySlot() {
   return <div className="spell-entry spell-empty" />
 }
 
-export default function SpellBook({ inst }) {
+export default function SpellBook({ inst }: { inst: any }) {
   const [page, setPage] = useState(0)
 
   useEffect(() => { setPage(0) }, [inst?.instanceId ?? inst?.name])

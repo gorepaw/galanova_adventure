@@ -16,6 +16,7 @@ import type {
   ClassesData, SkillsData, ClassDef, SkillDef,
   StatBlock, StatKey, Gear, Item, CompanionInstance, SkillEntry,
 } from "./types/data.js";
+import type { CharacterSheet } from "./types/viewmodel.js";
 
 const _classData = require("../Data/classes.json") as ClassesData;
 const _skillsData = require("../Data/skills.json") as SkillsData;
@@ -118,7 +119,7 @@ export function deriveCore(
 
 // Build the display view-model for one character instance. Formats the shared
 // core into the percentages/labels the UI renders (crit ×100, maxMp, mitigation).
-export function characterSheet(inst: CompanionInstance | undefined, catalog: Record<string, Item> = {}) {
+export function characterSheet(inst: CompanionInstance | undefined, catalog: Record<string, Item> = {}): CharacterSheet {
   const classId = inst?.classId ?? "";
   const { totals, gearBonuses: gb, derived: c } = deriveCore(
     { raw: inst?.stats?.raw, level: inst?.level, classId, gear: inst?.gear },

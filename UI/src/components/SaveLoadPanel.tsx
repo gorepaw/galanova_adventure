@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
+import type { SaveSlotView } from '../../../Engine/types/viewmodel'
 
-function formatPlaytime(seconds) {
+function formatPlaytime(seconds: number) {
   const h = Math.floor(seconds / 3600)
   const m = Math.floor((seconds % 3600) / 60)
   const s = seconds % 60
@@ -9,14 +10,14 @@ function formatPlaytime(seconds) {
   return `${s}s`
 }
 
-function formatTimestamp(ts) {
+function formatTimestamp(ts: string | null | undefined) {
   if (!ts) return '—'
   const d = new Date(ts)
   return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
     + '  ' + d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })
 }
 
-function SlotRow({ slot, isActive, loading, onLoad, onOverwrite, onDelete }) {
+function SlotRow({ slot, isActive, loading, onLoad, onOverwrite, onDelete }: any) {
   const [confirming, setConfirming] = useState(false)
 
   const displayName = slot.saveName || slot.slotId
@@ -68,14 +69,14 @@ function SlotRow({ slot, isActive, loading, onLoad, onOverwrite, onDelete }) {
   )
 }
 
-export default function SaveLoadPanel({ slots = [], activeSlotId, loading, onSaveToSlot, onLoadFromSlot, onDeleteSlot, onNewGame }: any) {
+export default function SaveLoadPanel({ slots = [], activeSlotId, loading, onSaveToSlot, onLoadFromSlot, onDeleteSlot, onNewGame }: { slots?: SaveSlotView[]; activeSlotId: string; loading: boolean; onSaveToSlot: (id: string, name: string) => void; onLoadFromSlot: (id: string) => void; onDeleteSlot: (id: string) => void; onNewGame: () => void }) {
   const [newName, setNewName] = useState('')
   const [confirmingNew, setConfirmingNew] = useState(false)
 
   const handleNewSave = () => {
     const slotId = `slot_${Date.now()}`
     const name = newName.trim() || null
-    onSaveToSlot(slotId, name)
+    onSaveToSlot(slotId, name ?? "")
     setNewName('')
   }
 
@@ -134,7 +135,7 @@ export default function SaveLoadPanel({ slots = [], activeSlotId, loading, onSav
               isActive={slot.slotId === activeSlotId}
               loading={loading}
               onLoad={() => onLoadFromSlot(slot.slotId)}
-              onOverwrite={() => onSaveToSlot(slot.slotId, slot.saveName)}
+              onOverwrite={() => onSaveToSlot(slot.slotId, slot.saveName ?? "")}
               onDelete={() => onDeleteSlot(slot.slotId)}
             />
           ))

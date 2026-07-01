@@ -1,7 +1,8 @@
 import React from 'react'
 import { formatCurrency as fmtCopper } from '../currency'
+import type { PartyInstanceView } from '../../../Engine/types/viewmodel'
 
-function Bar({ value, max, className }) {
+function Bar({ value, max, className }: { value: number; max: number; className: string }) {
   const pct = max > 0 ? Math.max(0, Math.min(100, (value / max) * 100)) : 0
   return (
     <div className="bar-track">
@@ -10,15 +11,15 @@ function Bar({ value, max, className }) {
   )
 }
 
-function xpToNext(level) {
+function xpToNext(level: number) {
   if (level >= 60) return Infinity
   return Math.floor(400 * Math.pow(level, 1.6))
 }
 
 // Skills are stored as { level, xp } (legacy: plain number). Read the level safely.
-const skillLevel = (v) => (typeof v === 'number' ? v : (v?.level ?? null))
+const skillLevel = (v: any) => (typeof v === 'number' ? v : (v?.level ?? null))
 
-function MemberCard({ inst, currency, onRez }) {
+function MemberCard({ inst, currency, onRez }: any) {
   if (!inst) return null
   const raw = inst.stats?.raw ?? {}
   const hp = inst.currentHp ?? inst.maxHp ?? 0
@@ -115,7 +116,7 @@ function MemberCard({ inst, currency, onRez }) {
   )
 }
 
-export default function CharacterPanel({ partyInstances, currency, onRez }) {
+export default function CharacterPanel({ partyInstances, currency, onRez }: { partyInstances: PartyInstanceView[]; currency: number; onRez: (id: string) => void }) {
   return (
     <div className="char-panel">
       <div className="panel-title">Party</div>

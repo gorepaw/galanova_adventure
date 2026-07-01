@@ -2,21 +2,21 @@ import React from 'react'
 import achievementsData from '../../../Data/achievements.json'
 import { formatCurrency as baseFormatCurrency } from '../currency'
 
-const DEFS = Object.values(achievementsData.achievements || {})
+const DEFS = Object.values<any>((achievementsData as any).achievements || {})
 
 // Rewards hide the line entirely when there's no coin, so empty/zero render as null.
-const formatCurrency = (copper) => baseFormatCurrency(copper, { empty: null, zero: null })
+const formatCurrency = (copper: number | null | undefined) => baseFormatCurrency(copper, { empty: null, zero: null })
 
-function RewardLine({ rewards }) {
+function RewardLine({ rewards }: { rewards: any }) {
   const parts: string[] = []
   if (rewards.xp)       parts.push(`+${rewards.xp} XP`)
   if (rewards.currency) parts.push(`+${formatCurrency(rewards.currency)}`)
-  if (rewards.items)    rewards.items.forEach(r => parts.push(`+${r.qty}x ${r.itemId}`))
+  if (rewards.items)    rewards.items.forEach((r: any) => parts.push(`+${r.qty}x ${r.itemId}`))
   if (!parts.length)    return null
   return <div className="ach-rewards">{parts.join('  ·  ')}</div>
 }
 
-function progressFor(def, collections) {
+function progressFor(def: any, collections: any) {
   if (def.criteria?.type === 'unique_items_collected') {
     return {
       current: Object.keys(collections?.items || {}).length,
@@ -26,11 +26,11 @@ function progressFor(def, collections) {
   return null
 }
 
-export default function AchievementsPanel({ achievements = {}, collections = {} }) {
+export default function AchievementsPanel({ achievements = {}, collections = {} }: { achievements?: Record<string, any>; collections?: any }) {
   const unlocked = DEFS.filter(d => achievements[d.id])
   const locked   = DEFS.filter(d => !achievements[d.id])
 
-  const renderCard = (def) => {
+  const renderCard = (def: any) => {
     const isUnlocked = !!achievements[def.id]
     const progress   = progressFor(def, collections)
     const pct        = progress ? Math.min(100, (progress.current / progress.total) * 100) : 0

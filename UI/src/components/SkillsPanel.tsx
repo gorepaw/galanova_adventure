@@ -1,16 +1,17 @@
 import React, { useState } from 'react'
 import skillsData from '../../../Data/skills.json'
+import type { PartyInstanceView } from '../../../Engine/types/viewmodel'
 
-const SKILL_DEFS = skillsData.skills || {}
+const SKILL_DEFS: Record<string, any> = (skillsData as any).skills || {}
 const SKILL_MAX  = skillsData.maxLevel || 99
 // Mirror Engine/skills.js SKILL_XP_TABLE: 50 * L * (L+1)
-const skillXpToNext = (level) => (level >= SKILL_MAX ? Infinity : 50 * level * (level + 1))
+const skillXpToNext = (level: number) => (level >= SKILL_MAX ? Infinity : 50 * level * (level + 1))
 
-const norm = (v) => (typeof v === 'number') ? { level: v, xp: 0 } : { level: v?.level ?? 1, xp: v?.xp ?? 0 }
+const norm = (v: any) => (typeof v === 'number') ? { level: v, xp: 0 } : { level: v?.level ?? 1, xp: v?.xp ?? 0 }
 
-const TYPE_LABEL = { weapon: 'Weapon', magic: 'Magic', profession: 'Profession', utility: 'Utility' }
+const TYPE_LABEL: Record<string, string> = { weapon: 'Weapon', magic: 'Magic', profession: 'Profession', utility: 'Utility' }
 
-function SkillRow({ id, entry }) {
+function SkillRow({ id, entry }: { id: string; entry: any }) {
   const def = SKILL_DEFS[id] || { name: id, type: 'misc' }
   const { level, xp } = norm(entry)
   const next = skillXpToNext(level)
@@ -26,7 +27,7 @@ function SkillRow({ id, entry }) {
   )
 }
 
-export default function SkillsPanel({ partyInstances = [] }: any) {
+export default function SkillsPanel({ partyInstances = [] }: { partyInstances?: PartyInstanceView[] }) {
   const [index, setIndex] = useState(0)
 
   if (!partyInstances.length) {
@@ -37,8 +38,8 @@ export default function SkillsPanel({ partyInstances = [] }: any) {
   const inst    = partyInstances[clamped]
   const skills  = inst.skills || {}
   const ids     = Object.keys(skills)
-  const cat     = (id) => SKILL_DEFS[id]?.category || 'combat'
-  const byName  = (a, b) => (SKILL_DEFS[a]?.name || a).localeCompare(SKILL_DEFS[b]?.name || b)
+  const cat     = (id: string) => SKILL_DEFS[id]?.category || 'combat'
+  const byName  = (a: string, b: string) => (SKILL_DEFS[a]?.name || a).localeCompare(SKILL_DEFS[b]?.name || b)
   const combat     = ids.filter(id => cat(id) === 'combat').sort(byName)
   const nonCombat  = ids.filter(id => cat(id) === 'non_combat').sort(byName)
 

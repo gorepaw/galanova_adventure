@@ -1,12 +1,12 @@
 import React from 'react'
 import { formatCurrency } from '../currency'
 
-const QUALITY_CLASS = {
+const QUALITY_CLASS: Record<string, string> = {
   poor: 'q-poor', common: 'q-common', uncommon: 'q-uncommon',
   rare: 'q-rare', epic: 'q-epic', legendary: 'q-legendary',
 }
 
-const SLOT_LABEL = {
+const SLOT_LABEL: Record<string, string> = {
   mainhand: 'Main Hand', offhand: 'Off Hand', ranged: 'Ranged',
   head: 'Head', chest: 'Chest', legs: 'Legs', feet: 'Feet',
   hands: 'Hands', waist: 'Waist', wrist: 'Wrist', back: 'Back',
@@ -14,7 +14,7 @@ const SLOT_LABEL = {
   shoulders: 'Shoulders',
 }
 
-const WEAPON_LABEL = {
+const WEAPON_LABEL: Record<string, string> = {
   sword_1h: 'One-Handed Sword', sword_2h: 'Two-Handed Sword',
   axe_1h: 'One-Handed Axe', axe_2h: 'Two-Handed Axe',
   mace_1h: 'One-Handed Mace', mace_2h: 'Two-Handed Mace',
@@ -24,9 +24,9 @@ const WEAPON_LABEL = {
 }
 
 // Missing/negative value yields null (caller hides the line); 0 still shows "0c".
-const formatCopper = (copper) => formatCurrency(copper, { empty: null })
+const formatCopper = (copper: number | null | undefined) => formatCurrency(copper, { empty: null })
 
-function describeOnUse(onUse) {
+function describeOnUse(onUse: any) {
   if (!onUse) return null
   const parts: string[] = []
   if (onUse.type === 'heal') {
@@ -45,7 +45,7 @@ function describeOnUse(onUse) {
   return parts.length ? parts.join(' ') : null
 }
 
-export function buildTipItem(itemId, catalog, overrides = {}) {
+export function buildTipItem(itemId: string, catalog: Record<string, any>, overrides: any = {}) {
   const tpl = (catalog && catalog[itemId]) || {}
   const statBonuses = tpl.statBonuses && Object.keys(tpl.statBonuses).length > 0
     ? tpl.statBonuses : undefined
@@ -69,7 +69,7 @@ export function buildTipItem(itemId, catalog, overrides = {}) {
   }
 }
 
-export default function ItemTooltip({ item, x, y }) {
+export default function ItemTooltip({ item, x, y }: { item: any; x: number; y: number }) {
   if (!item) return null
 
   const qualityCls = QUALITY_CLASS[item.quality] || 'q-common'

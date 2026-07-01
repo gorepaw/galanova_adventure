@@ -3,49 +3,60 @@
 // Ambient declaration of the bridge preload.ts exposes via
 // contextBridge.exposeInMainWorld('gameAPI', …). Keep in sync with preload.ts.
 //
-// Return types are Promise<any> for now (the IPC payloads are the engine's
-// loosely-typed snapshot objects). Tighten these to real shapes once the
-// engine's view-model types stabilise.
+// Return types are the engine view-model (Engine/types/viewmodel.ts): the
+// "dispatch" methods all funnel through electron-main respond() → RespondResult
+// (snapshot + flushed log lines). Catalog/data getters use their own view types.
 // =============================================================================
 
+import type {
+  RespondResult, SaveSlotView, EntityCatalog, ShopData, CraftingData,
+} from '../../Engine/types/viewmodel'
+
+type Slots = { slots: SaveSlotView[] }
+
 export interface GameAPI {
-  init(): Promise<any>;
-  runEncounter(): Promise<any>;
-  engageCombat(): Promise<any>;
-  tryFlee(): Promise<any>;
-  selectZone(zoneId: string): Promise<any>;
-  renderBag(): Promise<any>;
-  renderStats(): Promise<any>;
-  renderMap(): Promise<any>;
-  renderShop(): Promise<any>;
-  getShopData(): Promise<any>;
-  buyItem(id: string, qty: number, keeperName: string): Promise<any>;
-  sellItem(id: string, qty: number): Promise<any>;
-  renderParty(): Promise<any>;
-  getCraftingData(): Promise<any>;
-  craftItem(recipeId: string): Promise<any>;
-  butcherCorpses(): Promise<any>;
-  equipItem(id: string, iid: string): Promise<any>;
-  rezMember(instanceId: string): Promise<any>;
-  allocateStat(instanceId: string, stat: string): Promise<any>;
-  useItem(itemId: string): Promise<any>;
-  back(): Promise<any>;
-  getItemCatalog(): Promise<any>;
-  getBuffCatalog(): Promise<any>;
-  getQuestCatalog(): Promise<any>;
-  getEntityCatalog(): Promise<any>;
-  setCombatMode(mode: string): Promise<any>;
-  executePlayerAction(actions: unknown): Promise<any>;
+  // ── dispatch (mutate engine state → fresh snapshot + log) ──────────────────
+  init(): Promise<RespondResult>;
+  runEncounter(): Promise<RespondResult>;
+  engageCombat(): Promise<RespondResult>;
+  tryFlee(): Promise<RespondResult>;
+  selectZone(zoneId: string): Promise<RespondResult>;
+  renderBag(): Promise<RespondResult>;
+  renderStats(): Promise<RespondResult>;
+  renderMap(): Promise<RespondResult>;
+  renderShop(): Promise<RespondResult>;
+  buyItem(id: string, qty: number, keeperName: string): Promise<RespondResult>;
+  sellItem(id: string, qty: number): Promise<RespondResult>;
+  renderParty(): Promise<RespondResult>;
+  craftItem(recipeId: string): Promise<RespondResult>;
+  butcherCorpses(): Promise<RespondResult>;
+  equipItem(id: string, iid: string | null): Promise<RespondResult>;
+  rezMember(instanceId: string): Promise<RespondResult>;
+  allocateStat(instanceId: string, stat: string): Promise<RespondResult>;
+  useItem(itemId: string): Promise<RespondResult>;
+  back(): Promise<RespondResult>;
+  setCombatMode(mode: string): Promise<RespondResult>;
+  executePlayerAction(actions: unknown): Promise<RespondResult>;
+  swapPartyMember(outId: string, inId: string): Promise<RespondResult>;
+  removeFromParty(id: string): Promise<RespondResult>;
+  addToParty(id: string): Promise<RespondResult>;
+  setPetForCompanion(id: string, petId: string): Promise<RespondResult>;
+
+  // ── catalog / data getters ─────────────────────────────────────────────────
+  getItemCatalog(): Promise<Record<string, any>>;
+  getBuffCatalog(): Promise<Record<string, any>>;
+  getQuestCatalog(): Promise<Record<string, any>>;
+  getEntityCatalog(): Promise<EntityCatalog>;
+  getShopData(): Promise<ShopData>;
+  getCraftingData(): Promise<CraftingData>;
   getRosterData(): Promise<any>;
-  swapPartyMember(outId: string, inId: string): Promise<any>;
-  removeFromParty(id: string): Promise<any>;
-  addToParty(id: string): Promise<any>;
-  setPetForCompanion(id: string, petId: string): Promise<any>;
   getAvailablePets(id: string): Promise<any>;
-  listSaveSlots(): Promise<any>;
-  saveToSlot(slotId: string, saveName: string): Promise<any>;
-  loadFromSlot(slotId: string): Promise<any>;
-  deleteSaveSlot(slotId: string): Promise<any>;
+
+  // ── save slots ──────────────────────────────────────────────────────────────
+  listSaveSlots(): Promise<SaveSlotView[]>;
+  saveToSlot(slotId: string, saveName: string): Promise<RespondResult & Slots>;
+  loadFromSlot(slotId: string): Promise<RespondResult & Slots>;
+  deleteSaveSlot(slotId: string): Promise<{ slots?: SaveSlotView[]; error?: string }>;
 }
 
 declare global {

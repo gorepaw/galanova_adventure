@@ -20,29 +20,33 @@ import SettingsPanel from './components/SettingsPanel'
 import useHotkeys from './hooks/useHotkeys'
 import { normalizeKey, formatKeyLabel } from './hotkeys'
 import { formatCurrency } from './currency'
+import type {
+  RespondResult, SaveView, PartyInstanceView, ZoneView, TravelZoneView,
+  ShopData, EntityCatalog, SaveSlotView,
+} from '../../Engine/types/viewmodel'
 
 const api = window.gameAPI
 
 export default function App() {
-  const [gameState, setGameState]         = useState<any>(null)
-  const [save, setSave]                   = useState<any>(null)
-  const [partyInstances, setPartyInstances] = useState<any[]>([])
-  const [zoneData, setZoneData]           = useState<any>(null)
-  const [travelZones, setTravelZones] = useState<any[]>([])
+  const [gameState, setGameState]         = useState<string | null>(null)
+  const [save, setSave]                   = useState<SaveView | null>(null)
+  const [partyInstances, setPartyInstances] = useState<PartyInstanceView[]>([])
+  const [zoneData, setZoneData]           = useState<ZoneView | null>(null)
+  const [travelZones, setTravelZones] = useState<TravelZoneView[]>([])
   const [canButcher, setCanButcher]             = useState(false)
-  const [log, setLog]                     = useState<any[]>([])
-  const [activeTab, setActiveTab]         = useState<any>(null)
+  const [log, setLog]                     = useState<string[]>([])
+  const [activeTab, setActiveTab]         = useState<string | null>(null)
   const [loading, setLoading]             = useState(false)
   const [combatMode, setCombatMode]       = useState('auto')
   const [manualCombat, setManualCombat]   = useState<any>(null)
   const [craftingRecipes, setCraftingRecipes] = useState<any[]>([])
-  const [shopData, setShopData]           = useState<any>(null)
-  const [itemCatalog, setItemCatalog]     = useState({})
-  const [buffCatalog, setBuffCatalog]     = useState({})
-  const [questCatalog, setQuestCatalog]   = useState({})
-  const [entityCatalog, setEntityCatalog] = useState<any>(null)
+  const [shopData, setShopData]           = useState<ShopData | null>(null)
+  const [itemCatalog, setItemCatalog]     = useState<Record<string, any>>({})
+  const [buffCatalog, setBuffCatalog]     = useState<Record<string, any>>({})
+  const [questCatalog, setQuestCatalog]   = useState<Record<string, any>>({})
+  const [entityCatalog, setEntityCatalog] = useState<EntityCatalog | null>(null)
   const [rosterData, setRosterData]       = useState<any[]>([])
-  const [saveSlots, setSaveSlots]         = useState<any[]>([])
+  const [saveSlots, setSaveSlots]         = useState<SaveSlotView[]>([])
   const [activeSlotId, setActiveSlotId]   = useState('slot_start')
   const { bindings, keyMap, updateBinding, resetBinding, resetAll } = useHotkeys()
   const [autoRun, setAutoRun]         = useState(false)
@@ -55,7 +59,7 @@ export default function App() {
   const justRanAutoEncounterRef   = useRef(false)
   const prevLoadingRef            = useRef(false)
 
-  const applyResult = useCallback((result) => {
+  const applyResult = useCallback((result: RespondResult & { slots?: SaveSlotView[] }) => {
     if (result.messages?.length) setLog(prev => [...prev, ...result.messages])
     setGameState(result.state)
     setSave(result.save)
@@ -89,7 +93,7 @@ export default function App() {
     }
   }, [])
 
-  const dispatch = useCallback(async (apiCall) => {
+  const dispatch = useCallback(async (apiCall: () => Promise<any>) => {
     setLoading(true)
     try {
       const result = await apiCall()
@@ -176,7 +180,7 @@ export default function App() {
     }
   }, [])
 
-  const handleTab = useCallback((tab) => {
+  const handleTab = useCallback((tab: string) => {
     setActiveTab(tab)
     activeTabRef.current = tab
     if (tab === 'crafting') fetchCraftingData()
@@ -185,8 +189,8 @@ export default function App() {
     if (tab === 'save_load') fetchSaveSlots()
   }, [fetchCraftingData, fetchShopData, fetchRosterData]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  const handleAction = useCallback((action, ...args) => {
-    dispatch(() => api[action](...args))
+  const handleAction = useCallback((action: string, ...args: any[]) => {
+    dispatch(() => (api as any)[action](...args))
   }, [dispatch])
 
   const handleToggleAutoEngage = useCallback(() => {
@@ -197,44 +201,44 @@ export default function App() {
     setAutoFlee(v => { const next = !v; if (next) setAutoEngage(false); return next })
   }, [])
 
-  const handleSetCombatMode = useCallback((mode) => {
+  const handleSetCombatMode = useCallback((mode: string) => {
     dispatch(() => api.setCombatMode(mode))
   }, [dispatch])
 
-  const handleExecuteAction = useCallback((actions) => {
+  const handleExecuteAction = useCallback((actions: any) => {
     dispatch(() => api.executePlayerAction(actions))
   }, [dispatch])
 
-  const handleCraft = useCallback(async (recipeId) => {
+  const handleCraft = useCallback(async (recipeId: string) => {
     await dispatch(() => api.craftItem(recipeId))
     fetchCraftingData()
   }, [dispatch, fetchCraftingData])
 
-  const handleBuy = useCallback(async (itemId, qty, keeperName) => {
+  const handleBuy = useCallback(async (itemId: string, qty: number, keeperName: string) => {
     await dispatch(() => api.buyItem(itemId, qty, keeperName))
     fetchShopData()
   }, [dispatch, fetchShopData])
 
-  const handleSell = useCallback(async (itemId, qty) => {
+  const handleSell = useCallback(async (itemId: string, qty: number) => {
     await dispatch(() => api.sellItem(itemId, qty))
     fetchShopData()
   }, [dispatch, fetchShopData])
 
-  const handleEquip = useCallback((itemId, instanceId) => {
+  const handleEquip = useCallback((itemId: string, instanceId?: string) => {
     dispatch(() => api.equipItem(itemId, instanceId ?? null))
   }, [dispatch])
 
-  const handleSwapPartyMember = useCallback(async (outId, inId) => {
+  const handleSwapPartyMember = useCallback(async (outId: string, inId: string) => {
     await dispatch(() => api.swapPartyMember(outId, inId))
     fetchRosterData()
   }, [dispatch, fetchRosterData])
 
-  const handleRemoveFromParty = useCallback(async (instanceId) => {
+  const handleRemoveFromParty = useCallback(async (instanceId: string) => {
     await dispatch(() => api.removeFromParty(instanceId))
     fetchRosterData()
   }, [dispatch, fetchRosterData])
 
-  const handleAddToParty = useCallback(async (instanceId) => {
+  const handleAddToParty = useCallback(async (instanceId: string) => {
     await dispatch(() => api.addToParty(instanceId))
     fetchRosterData()
   }, [dispatch, fetchRosterData])
@@ -246,7 +250,7 @@ export default function App() {
     } catch (err) { console.error('[fetchSaveSlots]', err) }
   }, [])
 
-  const handleSaveToSlot = useCallback(async (slotId, saveName) => {
+  const handleSaveToSlot = useCallback(async (slotId: string, saveName: string) => {
     setLoading(true)
     try {
       const result = await api.saveToSlot(slotId, saveName)
@@ -254,7 +258,7 @@ export default function App() {
     } finally { setLoading(false) }
   }, [applyResult])
 
-  const handleLoadFromSlot = useCallback(async (slotId) => {
+  const handleLoadFromSlot = useCallback(async (slotId: string) => {
     setLoading(true)
     try {
       const result = await api.loadFromSlot(slotId)
@@ -264,7 +268,7 @@ export default function App() {
     } finally { setLoading(false) }
   }, [applyResult])
 
-  const handleDeleteSaveSlot = useCallback(async (slotId) => {
+  const handleDeleteSaveSlot = useCallback(async (slotId: string) => {
     try {
       const result = await api.deleteSaveSlot(slotId)
       if (result.slots) setSaveSlots(result.slots)
@@ -282,7 +286,7 @@ export default function App() {
     } finally { setLoading(false) }
   }, [applyResult])
 
-  const handleSelectZone = useCallback((zoneId) => {
+  const handleSelectZone = useCallback((zoneId: string) => {
     setShopData(null)
     dispatch(() => api.selectZone(zoneId))
     setActiveTab('log')
@@ -314,15 +318,16 @@ export default function App() {
   }), [handleTab, handleAction]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
-    const handler = (e) => {
-      const tag = e.target?.tagName
-      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || e.target?.isContentEditable) return
+    const handler = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement | null
+      const tag = target?.tagName
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || target?.isContentEditable) return
       if (loading) return
       const key = normalizeKey(e)
       if (!key) return
       const actionId = keyMap[key]
       if (!actionId) return
-      const fn = actionMap[actionId]
+      const fn = (actionMap as any)[actionId]
       if (!fn) return
       e.preventDefault()
       fn()
@@ -413,7 +418,7 @@ export default function App() {
         </aside>
 
         <main className="main-area">
-          {!CONTENT_TABS.includes(activeTab) ? (
+          {!CONTENT_TABS.includes(activeTab ?? '') ? (
             <ErrorBoundary key="combat" label="Combat view"><CombatView
               partyInstances={partyInstances}
               gameState={gameState}
@@ -441,8 +446,8 @@ export default function App() {
                   currency={save?.currency ?? 0}
                   isShopZone={isShopZone}
                   itemCatalog={itemCatalog}
-                  onUse={(id) => handleAction('useItem', id)}
-                  onSell={(id) => handleAction('sellItem', id, 1)}
+                  onUse={(id: string) => handleAction('useItem', id)}
+                  onSell={(id: string) => handleAction('sellItem', id, 1)}
                   onEquip={handleEquip}
                 />
               )}
@@ -499,7 +504,7 @@ export default function App() {
                 />
               )}
               {activeTab === 'character' && (
-                <CharacterScreen partyInstances={partyInstances} itemCatalog={itemCatalog} buffCatalog={buffCatalog} inventory={save?.inventory ?? []} onEquip={handleEquip} currency={save?.currency ?? 0} onRez={(instanceId) => handleAction('rezMember', instanceId)} onAllocate={(instanceId, stat) => handleAction('allocateStat', instanceId, stat)} />
+                <CharacterScreen partyInstances={partyInstances} itemCatalog={itemCatalog} buffCatalog={buffCatalog} inventory={save?.inventory ?? []} onEquip={handleEquip} currency={save?.currency ?? 0} onRez={(instanceId: string) => handleAction('rezMember', instanceId)} onAllocate={(instanceId: string, stat: string) => handleAction('allocateStat', instanceId, stat)} />
               )}
               {activeTab === 'reputation' && (
                 <ReputationPanel reputation={save?.reputation ?? {}} />

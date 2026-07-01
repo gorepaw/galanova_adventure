@@ -1,12 +1,12 @@
 import React, { useState } from 'react'
 import ItemTooltip, { buildTipItem } from './ItemTooltip'
 
-function tipPos(e) {
+function tipPos(e: any) {
   const x = e.clientX + 14 + 240 > window.innerWidth ? e.clientX - 254 : e.clientX + 14
   return { x, y: e.clientY - 8 }
 }
 
-function RecipeRow({ recipe, itemCatalog, onCraft, loading }) {
+function RecipeRow({ recipe, itemCatalog, onCraft, loading }: any) {
   const [tip, setTip] = useState<any>(null)
 
   return (
@@ -16,10 +16,10 @@ function RecipeRow({ recipe, itemCatalog, onCraft, loading }) {
         <span
           className="recipe-output"
           onMouseEnter={(e) => setTip({ item: buildTipItem(recipe.output.itemId, itemCatalog), ...tipPos(e) })}
-          onMouseMove={(e) => setTip(prev => prev ? { ...prev, ...tipPos(e) } : prev)}
+          onMouseMove={(e) => setTip((prev: any) => prev ? { ...prev, ...tipPos(e) } : prev)}
           onMouseLeave={() => setTip(null)}
         >
-          → {recipe.output.qty}× {itemCatalog[recipe.output.itemId]?.name || recipe.output.itemId.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}
+          → {recipe.output.qty}× {itemCatalog[recipe.output.itemId]?.name || recipe.output.itemId.replace(/_/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase())}
         </span>
         {recipe.requiredProfession && (
           <span className="recipe-prof">
@@ -30,7 +30,7 @@ function RecipeRow({ recipe, itemCatalog, onCraft, loading }) {
       </div>
       <div className="recipe-bottom">
         <div className="recipe-mats">
-          {recipe.inputs.map(inp => {
+          {recipe.inputs.map((inp: any) => {
             const ok = inp.have >= inp.qty
             return (
               <span
@@ -40,10 +40,10 @@ function RecipeRow({ recipe, itemCatalog, onCraft, loading }) {
                   item: buildTipItem(inp.itemId, itemCatalog, { note: `Have: ${inp.have} / Need: ${inp.qty}` }),
                   ...tipPos(e),
                 })}
-                onMouseMove={(e) => setTip(prev => prev ? { ...prev, ...tipPos(e) } : prev)}
+                onMouseMove={(e) => setTip((prev: any) => prev ? { ...prev, ...tipPos(e) } : prev)}
                 onMouseLeave={() => setTip(null)}
               >
-                {inp.qty}× {itemCatalog[inp.itemId]?.name || inp.itemId.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}
+                {inp.qty}× {itemCatalog[inp.itemId]?.name || inp.itemId.replace(/_/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase())}
                 <span className="mat-have">({inp.have})</span>
               </span>
             )
@@ -63,7 +63,7 @@ function RecipeRow({ recipe, itemCatalog, onCraft, loading }) {
   )
 }
 
-export default function CraftingPanel({ recipes, itemCatalog, onCraft, loading }) {
+export default function CraftingPanel({ recipes, itemCatalog, onCraft, loading }: { recipes: any[]; itemCatalog: Record<string, any>; onCraft: (id: string) => void; loading: boolean }) {
   if (!recipes || recipes.length === 0) {
     return (
       <div className="crafting-panel">

@@ -2,8 +2,9 @@ import React, { useEffect, useRef, useState, useMemo } from 'react'
 import ItemTooltip, { buildTipItem } from './ItemTooltip'
 import EntityTooltip from './EntityTooltip'
 import { buildMatcher, tokenizeLine } from '../logTokenizer'
+import type { EntityCatalog, PartyInstanceView } from '../../../Engine/types/viewmodel'
 
-function classifyLine(line) {
+function classifyLine(line: any) {
   if (!line) return 'log-empty'
   const t = line.trim()
   if (t.startsWith('──') || t.startsWith('─')) return 'log-divider'
@@ -18,9 +19,9 @@ function classifyLine(line) {
   return 'log-default'
 }
 
-const spaces = (s) => s.replace(/_/g, ' ')
+const spaces = (s: any) => s.replace(/_/g, ' ')
 
-function buildEntries(itemCatalog, entityCatalog, partyInstances) {
+function buildEntries(itemCatalog: any, entityCatalog: any, partyInstances: any) {
   const entries: any[] = []
   const ec = entityCatalog || {}
   for (const [id, def] of Object.entries<any>(itemCatalog || {})) {
@@ -35,14 +36,14 @@ function buildEntries(itemCatalog, entityCatalog, partyInstances) {
   return entries
 }
 
-export default function CombatLog({ messages, itemCatalog = {}, entityCatalog = null, partyInstances = [] }: any) {
+export default function CombatLog({ messages, itemCatalog = {}, entityCatalog = null, partyInstances = [] }: { messages: string[]; itemCatalog?: Record<string, any>; entityCatalog?: EntityCatalog | null; partyInstances?: PartyInstanceView[] }) {
   const bottomRef = useRef<any>(null)
   const [tip, setTip] = useState<any>(null)
 
   // Party names rarely change, but partyInstances is a fresh array every snapshot.
   // Key the (potentially large) matcher on a stable signature so the trie is only
   // rebuilt when the catalogs load or the roster/names actually change.
-  const partyKey = (partyInstances || []).map(p => `${p.instanceId}:${p.name}`).join('|')
+  const partyKey = (partyInstances || []).map((p: any) => `${p.instanceId}:${p.name}`).join('|')
   const matcher = useMemo(
     () => buildMatcher(buildEntries(itemCatalog, entityCatalog, partyInstances)),
     [itemCatalog, entityCatalog, partyKey], // eslint-disable-line react-hooks/exhaustive-deps
@@ -58,7 +59,7 @@ export default function CombatLog({ messages, itemCatalog = {}, entityCatalog = 
     setTip({ entry, x, y: e.clientY - 8 })
   }
 
-  const renderParts = (line) =>
+  const renderParts = (line: any) =>
     tokenizeLine(line, matcher).map((part, i) => {
       if (part.kind === 'text') return spaces(part.text)
       const { entry } = part

@@ -7,13 +7,13 @@ import { formatCurrency as fmtCopper } from '../currency'
 // (Engine/charsheet.js) and arrive on inst.sheet — this component only renders them.
 
 // Non-mana resources and how their (placeholder) full pools display on the sheet.
-const RESOURCE_META = {
+const RESOURCE_META: Record<string, any> = {
   rage:         { label: 'Rage',         display: '0 / 100' },
   stamina:      { label: 'Stamina',      display: '100 / 100' },
   combo_points: { label: 'Combo Points', display: '0 / 5' },
 }
 
-const SLOT_LABEL = {
+const SLOT_LABEL: Record<string, string> = {
   head: 'Head', neck: 'Neck', shoulders: 'Shoulders', back: 'Back',
   chest: 'Chest', shirt: 'Shirt', tabard: 'Tabard', waist: 'Waist',
   wrist: 'Wrist', hands: 'Hands', feet: 'Feet', legs: 'Legs',
@@ -28,16 +28,16 @@ const DISPLAY_SLOTS = [
 ]
 
 
-function pct(n, digits = 2) { return `${n.toFixed(digits)}%` }
+function pct(n: number, digits = 2) { return `${n.toFixed(digits)}%` }
 
-function tipPos(e) {
+function tipPos(e: any) {
   const x = e.clientX + 14 + 240 > window.innerWidth ? e.clientX - 254 : e.clientX + 14
   return { x, y: e.clientY - 8 }
 }
 
-function fmtModifier(key, val) {
-  const sign = v => v > 0 ? `+${v}` : `${v}`
-  const pp   = v => `${v > 0 ? '+' : ''}${Math.round(v * 100)}%`
+function fmtModifier(key: string, val: any) {
+  const sign = (v: any) => v > 0 ? `+${v}` : `${v}`
+  const pp   = (v: any) => `${v > 0 ? '+' : ''}${Math.round(v * 100)}%`
   switch (key) {
     case 'attackPower':           return `${sign(val)} AP`
     case 'rangedAttackPower':     return `${sign(val)} Ranged AP`
@@ -78,7 +78,7 @@ function fmtModifier(key, val) {
   }
 }
 
-function buffEffectLines(def) {
+function buffEffectLines(def: any) {
   const lines: string[] = []
   for (const [k, v] of Object.entries<any>(def.ccFlags || {})) {
     if (v) lines.push(k.charAt(0).toUpperCase() + k.slice(1))
@@ -115,7 +115,7 @@ function buffEffectLines(def) {
 function EffectRow({ entry, buffCatalog }: any) {
   const id  = typeof entry === 'string' ? entry : entry.id
   const dur = typeof entry === 'object'  ? entry.remainingDuration : undefined
-  const def = buffCatalog[id] || { name: id.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()), modifiers: {}, ccFlags: {} }
+  const def = buffCatalog[id] || { name: id.replace(/_/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase()), modifiers: {}, ccFlags: {} }
   const isDebuff = !!(def.isDebuff || Object.values(def.ccFlags || {}).some(Boolean) || def.tickDamage)
   const effects  = buffEffectLines(def)
   const durLabel = dur == null ? (def.duration === 'infinite' ? '∞' : '?') : dur === 99 ? '∞' : `${dur}t`
@@ -192,12 +192,12 @@ function CharacterSheet({ inst, itemCatalog, buffCatalog, inventory = [], onEqui
   const activeBuffs = inst.activeBuffs || []
   const unspent    = inst.unspentStatPoints || 0
 
-  const buffs = activeBuffs.filter(e => {
+  const buffs = activeBuffs.filter((e: any) => {
     const id = typeof e === 'string' ? e : e.id
     const def = buffCatalog[id] || {}
     return !(def.isDebuff || Object.values(def.ccFlags || {}).some(Boolean) || def.tickDamage)
   })
-  const debuffs = activeBuffs.filter(e => {
+  const debuffs = activeBuffs.filter((e: any) => {
     const id = typeof e === 'string' ? e : e.id
     const def = buffCatalog[id] || {}
     return !!(def.isDebuff || Object.values(def.ccFlags || {}).some(Boolean) || def.tickDamage)
@@ -207,7 +207,7 @@ function CharacterSheet({ inst, itemCatalog, buffCatalog, inventory = [], onEqui
   const mhItem = gear.mainhand ? itemCatalog[gear.mainhand] : null
   const hasDmg = mhItem?.minDamage != null && mhItem?.maxDamage != null
 
-  const getSlotItems = (slot) => (inventory || []).filter(e => e.slot === slot && e.qty > 0)
+  const getSlotItems = (slot: any) => (inventory || []).filter((e: any) => e.slot === slot && e.qty > 0)
 
   return (
     <div className={`char-sheet ${isDead ? 'char-sheet-dead' : ''}`}>
@@ -260,7 +260,7 @@ function CharacterSheet({ inst, itemCatalog, buffCatalog, inventory = [], onEqui
           {/* ── Resources ── */}
           <CsSection label="Resources">
             <CsRow label="Health" value={`${inst.currentHp ?? d.maxHp} / ${d.maxHp}`} />
-            {classResources.map(r => r === 'mana'
+            {classResources.map((r: any) => r === 'mana'
               ? <CsRow key={r} label="Mana" value={`${inst.currentMp ?? d.maxMp} / ${d.maxMp}`} />
               : <CsRow key={r} label={RESOURCE_META[r]?.label || r} value={RESOURCE_META[r]?.display || ''} />
             )}
@@ -313,8 +313,8 @@ function CharacterSheet({ inst, itemCatalog, buffCatalog, inventory = [], onEqui
           {activeBuffs.length > 0 && (
             <CsSection label="Effects">
               <div className="effect-list">
-                {buffs.map((e, i)   => <EffectRow key={`b${i}`} entry={e} buffCatalog={buffCatalog} />)}
-                {debuffs.map((e, i) => <EffectRow key={`d${i}`} entry={e} buffCatalog={buffCatalog} />)}
+                {buffs.map((e: any, i: number)   => <EffectRow key={`b${i}`} entry={e} buffCatalog={buffCatalog} />)}
+                {debuffs.map((e: any, i: number) => <EffectRow key={`d${i}`} entry={e} buffCatalog={buffCatalog} />)}
               </div>
             </CsSection>
           )}
@@ -324,7 +324,7 @@ function CharacterSheet({ inst, itemCatalog, buffCatalog, inventory = [], onEqui
             <CsSection label="Skills">
               <div className="char-skills">
                 {Object.entries<any>(skillsView).map(([k, sk]) => {
-                  const name   = sk.name || k.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
+                  const name   = sk.name || k.replace(/_/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase())
                   const lvlPct = Math.min(100, (sk.level / skillMax) * 100)
                   const xpPct  = sk.atMax ? 100 : Math.min(100, (sk.xp / sk.xpToNext) * 100)
                   return (
@@ -356,7 +356,7 @@ function CharacterSheet({ inst, itemCatalog, buffCatalog, inventory = [], onEqui
           {inst.profession && inst.profession !== 'none' && (
             <CsSection label="Profession">
               <div className="member-prof">
-                {inst.profession.replace(/\b\w/g, c => c.toUpperCase())}
+                {inst.profession.replace(/\b\w/g, (c: string) => c.toUpperCase())}
                 {skillsView[inst.profession] ? ` (Lv ${skillsView[inst.profession].level})` : ''}
               </div>
             </CsSection>
@@ -380,25 +380,25 @@ function CharacterSheet({ inst, itemCatalog, buffCatalog, inventory = [], onEqui
                   onClick={(e) => {
                     e.stopPropagation()
                     setTip(null)
-                    setOpenSlot(s => s === slot ? null : slot)
+                    setOpenSlot((s: any) => s === slot ? null : slot)
                   }}
                   onMouseEnter={itemId && !isOpen ? (e) => setTip({ item: buildTipItem(itemId, itemCatalog), ...tipPos(e) }) : undefined}
-                  onMouseMove={itemId && !isOpen  ? (e) => setTip(prev => prev ? { ...prev, ...tipPos(e) } : prev) : undefined}
+                  onMouseMove={itemId && !isOpen  ? (e) => setTip((prev: any) => prev ? { ...prev, ...tipPos(e) } : prev) : undefined}
                   onMouseLeave={itemId ? () => setTip(null) : undefined}
                 >
                   <span className="gear-slot-label">{SLOT_LABEL[slot]}</span>
                   <span className="gear-item-name">
                     {itemId
-                      ? (itemCatalog[itemId]?.name || itemId.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()))
+                      ? (itemCatalog[itemId]?.name || itemId.replace(/_/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase()))
                       : '—'}
                   </span>
                   {isOpen && (
                     <div className="equip-popup" onClick={e => e.stopPropagation()}>
                       {slotItems.length === 0
                         ? <div className="equip-popup-empty">Nothing to equip</div>
-                        : slotItems.map(e => {
+                        : slotItems.map((e: any) => {
                             const def     = itemCatalog[e.itemId]
-                            const name    = def?.name || e.itemId.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
+                            const name    = def?.name || e.itemId.replace(/_/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase())
                             const quality = (e.quality || def?.quality || 'common').toLowerCase()
                             return (
                               <button
@@ -428,7 +428,7 @@ function CharacterSheet({ inst, itemCatalog, buffCatalog, inventory = [], onEqui
 
 const PET_CLASSES = new Set(['hunter', 'warlock'])
 
-const PET_ROLE_LABEL = {
+const PET_ROLE_LABEL: Record<string, string> = {
   dps: 'DPS', tank: 'Tank', caster: 'Caster', ranged_dps: 'Ranged', utility: 'Utility',
 }
 
@@ -440,7 +440,7 @@ function PetSelector({ inst }: any) {
     window.gameAPI.getAvailablePets(inst.instanceId).then(setPetData)
   }, [inst?.instanceId])
 
-  const handleSelect = async (petId) => {
+  const handleSelect = async (petId: any) => {
     const next = petData?.activePetId === petId ? null : petId
     await window.gameAPI.setPetForCompanion(inst.instanceId, next)
     const updated = await window.gameAPI.getAvailablePets(inst.instanceId)
@@ -456,11 +456,11 @@ function PetSelector({ inst }: any) {
       <div className="cs-section-label">Combat Pet</div>
       <div className="pet-hint">
         {activePetId
-          ? `Active: ${pets.find(p => p.id === activePetId)?.name ?? activePetId}. Click to deselect or switch.`
+          ? `Active: ${pets.find((p: any) => p.id === activePetId)?.name ?? activePetId}. Click to deselect or switch.`
           : 'Select a pet to summon it into your next combat.'}
       </div>
       <div className="pet-list">
-        {pets.map(p => {
+        {pets.map((p: any) => {
           const isActive  = p.id === activePetId
           const isLocked  = !p.unlocked
           return (

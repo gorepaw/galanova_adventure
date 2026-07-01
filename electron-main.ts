@@ -9,6 +9,7 @@ import fs from 'fs'
 import { DataStore, Loader } from './Engine/datalayer.js'
 import { ItemSuffixes } from './Engine/itemsuffixes.js'
 import { characterSheet } from './Engine/charsheet.js'
+import type { GameSnapshot, RespondResult } from './Engine/types/viewmodel.js'
 // gameplayloop is checked under its own relaxed tsconfig (tsconfig.gameplayloop.json),
 // so it's pulled in via require() here to keep it out of this strict program.
 const { SaveManager, HomeScreen, SyntheticGameData } = require('./Engine/gameplayloop.js')
@@ -139,9 +140,12 @@ function initEngine() {
   loadQuestTemplates()
 }
 
-function getSnapshot() {
+function getSnapshot(): GameSnapshot {
   if (!session) {
-    return { state: null, save: null, partyInstances: [], zoneData: null, travelZones: [], canButcher: false }
+    return {
+      state: null, save: null, partyInstances: [], zoneData: null, travelZones: [],
+      canButcher: false, combatMode: 'auto', manualCombat: null, activeSlotId: _activeSlotId,
+    }
   }
   const save = session.getSave()
 
@@ -216,7 +220,7 @@ function getSnapshot() {
   }
 }
 
-function respond() {
+function respond(): RespondResult {
   const messages = session ? session.flush() : []
   // Persist the active slot to disk whenever the engine auto-saves
   if (session && messages.some((m: any) => m.includes('Auto-saved'))) {

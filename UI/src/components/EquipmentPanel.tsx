@@ -1,7 +1,8 @@
 import React, { useState } from 'react'
 import ItemTooltip, { buildTipItem } from './ItemTooltip'
+import type { PartyInstanceView } from '../../../Engine/types/viewmodel'
 
-const SLOT_LABEL = {
+const SLOT_LABEL: Record<string, string> = {
   head: 'Head', neck: 'Neck', shoulders: 'Shoulders', back: 'Back',
   chest: 'Chest', shirt: 'Shirt', tabard: 'Tabard', waist: 'Waist',
   wrist: 'Wrist', hands: 'Hands', feet: 'Feet', legs: 'Legs',
@@ -15,12 +16,12 @@ const DISPLAY_SLOTS = [
   'mainhand', 'offhand', 'ranged', 'ammo',
 ]
 
-function tipPos(e) {
+function tipPos(e: any) {
   const x = e.clientX + 14 + 240 > window.innerWidth ? e.clientX - 254 : e.clientX + 14
   return { x, y: e.clientY - 8 }
 }
 
-function GearSheet({ inst, itemCatalog }) {
+function GearSheet({ inst, itemCatalog }: { inst: any; itemCatalog: Record<string, any> }) {
   if (!inst) return null
   const gear = inst.gear || {}
   const [tip, setTip] = useState<any>(null)
@@ -39,11 +40,11 @@ function GearSheet({ inst, itemCatalog }) {
               key={slot}
               className={`gear-row ${itemId ? 'gear-filled' : 'gear-empty'}`}
               onMouseEnter={itemId ? (e) => setTip({ item: buildTipItem(itemId, itemCatalog), ...tipPos(e) }) : undefined}
-              onMouseMove={itemId ? (e) => setTip(prev => prev ? { ...prev, ...tipPos(e) } : prev) : undefined}
+              onMouseMove={itemId ? (e) => setTip((prev: any) => prev ? { ...prev, ...tipPos(e) } : prev) : undefined}
               onMouseLeave={itemId ? () => setTip(null) : undefined}
             >
               <span className="gear-slot-label">{SLOT_LABEL[slot]}</span>
-              <span className="gear-item-name">{itemId ? (itemCatalog[itemId]?.name || itemId.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())) : '—'}</span>
+              <span className="gear-item-name">{itemId ? (itemCatalog[itemId]?.name || itemId.replace(/_/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase())) : '—'}</span>
             </div>
           )
         })}
@@ -53,7 +54,7 @@ function GearSheet({ inst, itemCatalog }) {
   )
 }
 
-export default function EquipmentPanel({ partyInstances, itemCatalog }) {
+export default function EquipmentPanel({ partyInstances, itemCatalog }: { partyInstances: PartyInstanceView[]; itemCatalog: Record<string, any> }) {
   if (!partyInstances || partyInstances.length === 0) {
     return <div className="equipment-panel"><div className="panel-empty">No party members.</div></div>
   }

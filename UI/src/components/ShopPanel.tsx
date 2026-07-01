@@ -1,16 +1,17 @@
 import React, { useState, useEffect } from 'react'
 import ItemTooltip, { buildTipItem } from './ItemTooltip'
 import { formatCurrency as baseFormatCurrency } from '../currency'
+import type { ShopData } from '../../../Engine/types/viewmodel'
 
 // Missing prices render as an em dash; 0 still shows "0c".
-const formatCurrency = (copper) => baseFormatCurrency(copper, { empty: '—' })
+const formatCurrency = (copper: number | null | undefined) => baseFormatCurrency(copper, { empty: '—' })
 
-const QUALITY_CLASS = {
+const QUALITY_CLASS: Record<string, string> = {
   poor: 'q-poor', common: 'q-common', uncommon: 'q-uncommon',
   rare: 'q-rare', epic: 'q-epic', legendary: 'q-legendary',
 }
 
-const SLOT_LABEL = {
+const SLOT_LABEL: Record<string, string> = {
   mainhand: 'Main Hand', offhand: 'Off Hand', ranged: 'Ranged',
   head: 'Head', chest: 'Chest', legs: 'Legs', feet: 'Feet',
   hands: 'Hands', waist: 'Waist', wrist: 'Wrist', back: 'Back',
@@ -18,7 +19,7 @@ const SLOT_LABEL = {
   shoulders: 'Shoulders', none: '—',
 }
 
-const WEAPON_LABEL = {
+const WEAPON_LABEL: Record<string, string> = {
   sword_1h: 'One-Handed Sword', sword_2h: 'Two-Handed Sword',
   axe_1h: 'One-Handed Axe', axe_2h: 'Two-Handed Axe',
   mace_1h: 'One-Handed Mace', mace_2h: 'Two-Handed Mace',
@@ -27,7 +28,7 @@ const WEAPON_LABEL = {
   crossbow: 'Crossbow', gun: 'Gun', thrown: 'Thrown',
 }
 
-function StatLine({ statBonuses }) {
+function StatLine({ statBonuses }: { statBonuses: any }) {
   if (!statBonuses) return null
   const entries = Object.entries<any>(statBonuses).filter(([, v]) => v !== 0)
   if (!entries.length) return null
@@ -40,12 +41,12 @@ function StatLine({ statBonuses }) {
   )
 }
 
-function tipPos(e) {
+function tipPos(e: any) {
   const x = e.clientX + 14 + 240 > window.innerWidth ? e.clientX - 254 : e.clientX + 14
   return { x, y: e.clientY - 8 }
 }
 
-function BuyRow({ entry, currency, itemCatalog, onBuy, loading }) {
+function BuyRow({ entry, currency, itemCatalog, onBuy, loading }: any) {
   const [tip, setTip] = useState<any>(null)
   const canAfford = currency >= entry.buyPrice
   const qualityCls = QUALITY_CLASS[entry.quality] || ''
@@ -57,7 +58,7 @@ function BuyRow({ entry, currency, itemCatalog, onBuy, loading }) {
         item: buildTipItem(entry.itemId, itemCatalog, { name: entry.name }),
         ...tipPos(e),
       })}
-      onMouseMove={(e) => setTip(prev => prev ? { ...prev, ...tipPos(e) } : prev)}
+      onMouseMove={(e) => setTip((prev: any) => prev ? { ...prev, ...tipPos(e) } : prev)}
       onMouseLeave={() => setTip(null)}
     >
       <div className="shop-row-main">
@@ -106,7 +107,7 @@ function BuyRow({ entry, currency, itemCatalog, onBuy, loading }) {
   )
 }
 
-function SellRow({ entry, itemCatalog, onSell, loading }) {
+function SellRow({ entry, itemCatalog, onSell, loading }: any) {
   const [tip, setTip] = useState<any>(null)
   const qualityCls = QUALITY_CLASS[entry.quality] || ''
 
@@ -117,7 +118,7 @@ function SellRow({ entry, itemCatalog, onSell, loading }) {
         item: buildTipItem(entry.itemId, itemCatalog, { sellValue: entry.sellValue, value: undefined }),
         ...tipPos(e),
       })}
-      onMouseMove={(e) => setTip(prev => prev ? { ...prev, ...tipPos(e) } : prev)}
+      onMouseMove={(e) => setTip((prev: any) => prev ? { ...prev, ...tipPos(e) } : prev)}
       onMouseLeave={() => setTip(null)}
     >
       <div className="shop-row-main">
@@ -141,7 +142,7 @@ function SellRow({ entry, itemCatalog, onSell, loading }) {
   )
 }
 
-export default function ShopPanel({ shopData, currency, itemCatalog, onBuy, onSell, loading }) {
+export default function ShopPanel({ shopData, currency, itemCatalog, onBuy, onSell, loading }: { shopData: ShopData; currency: number; itemCatalog: Record<string, any>; onBuy: (id: string, qty: number, keeper: string) => void; onSell: (id: string, qty: number) => void; loading: boolean }) {
   const [tab, setTab] = useState('buy')
   const keeperNames = Object.keys(shopData?.shopkeepers || {})
   const [selectedKeeper, setSelectedKeeper] = useState(keeperNames[0] ?? null)
@@ -158,7 +159,7 @@ export default function ShopPanel({ shopData, currency, itemCatalog, onBuy, onSe
 
   const { zoneName, minLevel, maxLevel, sellMultiplier, shopkeepers = {}, sellList = [] } = shopData
   const inventory = selectedKeeper ? (shopkeepers[selectedKeeper]?.inventory ?? []) : []
-  const handleBuy = (itemId, qty) => onBuy(itemId, qty, selectedKeeper)
+  const handleBuy = (itemId: string, qty: number) => onBuy(itemId, qty, selectedKeeper)
 
   return (
     <div className="shop-panel">
@@ -208,7 +209,7 @@ export default function ShopPanel({ shopData, currency, itemCatalog, onBuy, onSe
         {tab === 'buy' && (
           !selectedKeeper || inventory.length === 0
             ? <div className="panel-empty">Nothing for sale.</div>
-            : inventory.map(entry => (
+            : inventory.map((entry: any) => (
                 <BuyRow
                   key={entry.itemId}
                   entry={entry}

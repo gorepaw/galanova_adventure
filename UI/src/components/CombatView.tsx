@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react'
 import abilitiesData from '../../../Data/abilities.json'
+import type { PartyInstanceView, InventoryItemView } from '../../../Engine/types/viewmodel'
 import classesData   from '../../../Data/classes.json'
 import { skillAbilities } from './skillAbilities'
 
-const ABILITY_DEFS = abilitiesData.abilities
-const CLASS_DEFS   = classesData.classes
+const ABILITY_DEFS: Record<string, any> = (abilitiesData as any).abilities
+const CLASS_DEFS: Record<string, any> = (classesData as any).classes
 
 const PAGE_SIZE  = 12
 const SLOT_KEYS  = ['1','2','3','4','5','6','7','8','9','0','-','=']
@@ -13,13 +14,13 @@ const SLOT_KEY_MAP = Object.fromEntries(SLOT_KEYS.map((k, i) => [k, i]))
 // Ability targeting types that need a player-chosen friendly target
 const NEEDS_FRIENDLY_TARGET = new Set(['single_ally', 'single_ally_dead'])
 
-function pct(val, max) {
+function pct(val: number, max: number) {
   return max > 0 ? Math.max(0, Math.min(100, (val / max) * 100)) : 0
 }
 
 // ── Compact party card ───────────────────────────────────────────────────────
 
-function CombatMemberCard({ inst, selected, isFriendlyTarget, showFriendlyTarget, queuedLabel, isCasting, onSetFriendlyTarget, onClick }) {
+function CombatMemberCard({ inst, selected, isFriendlyTarget, showFriendlyTarget, queuedLabel, isCasting, onSetFriendlyTarget, onClick }: any) {
   const hp     = inst.currentHp ?? inst.maxHp ?? 0
   const maxHp  = inst.maxHp ?? 1
   const mp     = inst.currentMp ?? 0
@@ -59,13 +60,13 @@ function CombatMemberCard({ inst, selected, isFriendlyTarget, showFriendlyTarget
           <span className="cmc-bar-val">{hp}/{maxHp}</span>
         </div>
 
-        {(CLASS_DEFS[inst.classId]?.resources || []).map(res => {
-          const meta = {
+        {(CLASS_DEFS[inst.classId]?.resources || []).map((res: any) => {
+          const meta = ({
             mana:         { label: 'MP',    cls: 'mp-bar',      cur: mp,                       max: maxMp },
             rage:         { label: 'Rage',  cls: 'rage-bar',    cur: inst.currentRage ?? 0,    max: inst.maxRage ?? 100 },
             stamina:      { label: 'Stam',  cls: 'stamina-bar', cur: inst.currentStamina ?? 0, max: inst.maxStamina ?? 100 },
             combo_points: { label: 'Combo', cls: 'combo-bar',   cur: inst.currentCombo ?? 0,   max: inst.maxCombo ?? 5 },
-          }[res]
+          } as Record<string, any>)[res]
           if (!meta || meta.max <= 0) return null
           return (
             <div key={res} className="cmc-bar-row">
@@ -84,7 +85,7 @@ function CombatMemberCard({ inst, selected, isFriendlyTarget, showFriendlyTarget
 
 // ── Ability button ───────────────────────────────────────────────────────────
 
-function CombatAbilityBtn({ def, learnedAt, hotkey, disabled, queued, casting, onUse }) {
+function CombatAbilityBtn({ def, learnedAt, hotkey, disabled, queued, casting, onUse }: any) {
   const costs = Object.entries<any>(def.resourceCost || {}).filter(([, v]) => v > 0)
   const hasCd = (def.cooldown ?? 0) > 0
   const title = casting ? `Cancel cast → ${def.name}` : (def.description ?? '')
@@ -118,7 +119,7 @@ export default function CombatView({
   combatMode, manualCombat,
   inventory, itemCatalog,
   onEngage, onFlee, onExecuteAction,
-}) {
+}: { partyInstances: PartyInstanceView[]; gameState: string | null; loading: boolean; combatMode: string; manualCombat: any; inventory: InventoryItemView[]; itemCatalog: Record<string, any>; onEngage: () => void; onFlee: () => void; onExecuteAction: (actions: any) => void }) {
   const [selectedIdx, setSelectedIdx]         = useState(0)
   const [selectedTargetIdx, setSelectedTargetIdx] = useState(0)
   const [friendlyTargetIdx, setFriendlyTargetIdx] = useState(0)
@@ -138,14 +139,14 @@ export default function CombatView({
   const disabled      = loading
 
   const selectedInst       = partyInstances[Math.min(selectedIdx, partyInstances.length - 1)]
-  const selectedManualUnit = manualCombat?.partyUnits?.find(u => u.id === selectedInst?.instanceId)
+  const selectedManualUnit = manualCombat?.partyUnits?.find((u: any) => u.id === selectedInst?.instanceId)
   const friendlyInst       = partyInstances[Math.min(friendlyTargetIdx, partyInstances.length - 1)]
 
   const memberAbilities = (() => {
     if (!selectedInst) return []
     // Abilities come from the character's skills (Galanova model), not class level.
     return skillAbilities(selectedInst)
-      .map(e => ({ entry: e, def: ABILITY_DEFS[e.id] }))
+      .map((e: any) => ({ entry: e, def: ABILITY_DEFS[e.id] }))
       .filter(({ def }) => {
         if (!def || def.passive) return false
         if (def.tags?.includes('ranged') && selectedManualUnit && !selectedManualUnit.rangedReady) return false
@@ -157,10 +158,10 @@ export default function CombatView({
   const currentPage  = Math.min(abilityPage, totalPages - 1)
   const pageAbilities = memberAbilities.slice(currentPage * PAGE_SIZE, (currentPage + 1) * PAGE_SIZE)
 
-  const liveEnemies  = manualCombat?.enemyUnits?.filter(e => e.alive) || []
+  const liveEnemies  = manualCombat?.enemyUnits?.filter((e: any) => e.alive) || []
   const targetEnemy  = liveEnemies[Math.min(selectedTargetIdx, liveEnemies.length - 1)]
 
-  const handleUseAbility = (abilityId) => {
+  const handleUseAbility = (abilityId: any) => {
     if (!isInCombat || !isManualMode || !selectedManualUnit || !selectedManualUnit.alive) return
     const def = ABILITY_DEFS[abilityId]
     const useFriendly = NEEDS_FRIENDLY_TARGET.has(def?.targeting)
@@ -173,7 +174,7 @@ export default function CombatView({
     }
   }
 
-  const handleUseItem = (itemId) => {
+  const handleUseItem = (itemId: any) => {
     if (!isInCombat || !isManualMode || !selectedManualUnit || !selectedManualUnit.alive) return
     const action = { actorId: selectedManualUnit.id, type: 'use_item', itemId }
     if (isStreamlined) {
@@ -196,7 +197,7 @@ export default function CombatView({
   kbRef.current = { pageAbilities, currentPage, totalPages, handleUseAbility }
 
   useEffect(() => {
-    const handler = (e) => {
+    const handler = (e: any) => {
       const tag = e.target?.tagName
       if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || e.target?.isContentEditable) return
       const { pageAbilities, currentPage, totalPages, handleUseAbility } = kbRef.current
@@ -222,11 +223,11 @@ export default function CombatView({
 
   const enemyUnits       = manualCombat?.enemyUnits || []
   const showRealEnemies  = isInCombat && enemyUnits.length > 0
-  const livePartyUnits     = manualCombat?.partyUnits?.filter(u => u.alive) || []
-  const liveNonPetUnits    = livePartyUnits.filter(u => !u.isPet)
+  const livePartyUnits     = manualCombat?.partyUnits?.filter((u: any) => u.alive) || []
+  const liveNonPetUnits    = livePartyUnits.filter((u: any) => !u.isPet)
   const allActionsQueued   = isFullManual && liveNonPetUnits.length > 0 &&
-    liveNonPetUnits.every(u => pendingActions[u.id] || (u.castQueue?.length > 0))
-  const petUnits           = manualCombat?.partyUnits?.filter(u => u.isPet) || []
+    liveNonPetUnits.every((u: any) => pendingActions[u.id] || (u.castQueue?.length > 0))
+  const petUnits           = manualCombat?.partyUnits?.filter((u: any) => u.isPet) || []
 
   // True when the selected character has a pending cast and hasn't been overridden yet
   const selectedIsCasting = !!(
@@ -247,7 +248,7 @@ export default function CombatView({
           </div>
         ) : showRealEnemies ? (
           <div className="combat-enemy-row">
-            {enemyUnits.map((enemy, i) => (
+            {enemyUnits.map((enemy: any, i: number) => (
               <div
                 key={enemy.id}
                 className={`combat-enemy-slot${!enemy.alive ? ' dead' : ''}${isManualMode && selectedTargetIdx === i ? ' ces-targeted' : ''}`}
@@ -271,7 +272,7 @@ export default function CombatView({
         <div className="combat-section-label">Party — select to view abilities</div>
         <div className="combat-party-cards">
           {partyInstances.map((inst, i) => {
-            const liveUnit = manualCombat?.partyUnits?.find(u => u.id === inst.instanceId)
+            const liveUnit = manualCombat?.partyUnits?.find((u: any) => u.id === inst.instanceId)
             const liveInst = liveUnit ? {
               ...inst,
               currentHp:     liveUnit.hp,
@@ -310,7 +311,7 @@ export default function CombatView({
               />
             )
           })}
-          {petUnits.map(pet => (
+          {petUnits.map((pet: any) => (
             <div key={pet.id} className={`combat-pet-card${!pet.alive ? ' dead' : ''}`}>
               <div className="cmc-header">
                 <div className="cmc-avatar cmc-avatar-pet">{pet.name?.[0] ?? 'P'}</div>
@@ -352,7 +353,7 @@ export default function CombatView({
             {isFullManual && isInCombat && (
               <div className="combat-queue-bar">
                 <span className="combat-queue-label">
-                  {liveNonPetUnits.filter(u => pendingActions[u.id] || u.castQueue?.length > 0).length}/{liveNonPetUnits.length} queued
+                  {liveNonPetUnits.filter((u: any) => pendingActions[u.id] || u.castQueue?.length > 0).length}/{liveNonPetUnits.length} queued
                 </span>
                 {selectedIsCasting && (
                   <button
@@ -418,14 +419,14 @@ export default function CombatView({
             </div>
 
             {(() => {
-              const usable = (inventory || []).filter(e => {
+              const usable = (inventory || []).filter((e: any) => {
                 const def = itemCatalog?.[e.itemId]
                 return def?.onUse && !def.onUse.outOfCombatOnly && e.qty > 0
               })
               if (!usable.length || !isInCombat || !isManualMode) return null
               return (
                 <div className="combat-item-row">
-                  {usable.map(e => {
+                  {usable.map((e: any) => {
                     const def = itemCatalog[e.itemId]
                     const isQueued = isFullManual && selectedManualUnit &&
                       pendingActions[selectedManualUnit.id]?.type === 'use_item' &&

@@ -1,18 +1,19 @@
 import React from 'react'
 import { formatCurrency } from '../currency'
+import type { TravelZoneView } from '../../../Engine/types/viewmodel'
 
-const TYPE_LABEL = { combat: 'Combat', shop: 'Shop', dungeon: 'Dungeon', unknown: '?' }
-const TYPE_CLASS = { combat: 'zone-combat', shop: 'zone-shop', dungeon: 'zone-dungeon', unknown: '' }
+const TYPE_LABEL: Record<string, string> = { combat: 'Combat', shop: 'Shop', dungeon: 'Dungeon', unknown: '?' }
+const TYPE_CLASS: Record<string, string> = { combat: 'zone-combat', shop: 'zone-shop', dungeon: 'zone-dungeon', unknown: '' }
 
 // Travel cost shows only the largest coin unit; free/unknown travel renders nothing.
-const fmtCost = (copper) => formatCurrency(copper, { compact: true, empty: null, zero: null })
+const fmtCost = (copper: number | null | undefined) => formatCurrency(copper, { compact: true, empty: null, zero: null })
 
-function regionLabel(r) {
+function regionLabel(r: string | null | undefined) {
   if (!r) return 'Unknown'
   return r.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
 }
 
-function ZoneBtn({ zone, onSelectZone }) {
+function ZoneBtn({ zone, onSelectZone }: { zone: any; onSelectZone: (id: string) => void }) {
   const cost = fmtCost(zone.travelCost ?? 0)
   return (
     <button
@@ -34,9 +35,9 @@ export default function DungeonMap({
   onSelectZone,
   filterTypes = null,
   showCurrent = true,
-}: any) {
+}: { currentZone?: string; zoneData?: any; travelZones?: TravelZoneView[]; onSelectZone: (id: string) => void; filterTypes?: string[] | null; showCurrent?: boolean }) {
   const allZones = filterTypes
-    ? (travelZones || []).filter(z => filterTypes.includes(z.type))
+    ? (travelZones || []).filter(z => filterTypes.includes(z.type ?? ''))
     : (travelZones || [])
 
   // Split: same-region (free) vs cross-region (grouped by region)
@@ -89,7 +90,7 @@ export default function DungeonMap({
             <span className="map-region-cost-hint">✦ Travel fee</span>
           </div>
           <div className="zone-list">
-            {zones.map(zone => <ZoneBtn key={zone.id} zone={zone} onSelectZone={onSelectZone} />)}
+            {zones.map((zone: any) => <ZoneBtn key={zone.id} zone={zone} onSelectZone={onSelectZone} />)}
           </div>
         </div>
       ))}
