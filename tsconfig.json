@@ -10,11 +10,9 @@
     "moduleResolution": "node16",
     "types": ["node"]
   },
-  // gameplayloop.ts is checked by tsconfig.gameplayloop.json (relaxed:
-  // noImplicitAny/strictNullChecks off) because it's the ~3400-line combat core
-  // over dynamically-shaped objects. It's excluded here so this config stays
-  // FULLY strict; electron-main.ts and dungeons.ts pull its exports via require()
-  // so it isn't dragged back into this strict program.
-  "exclude": ["Engine/gameplayloop.ts"],
+  // gameplayloop.ts is now FULLY typed and checked here like everything else: its
+  // combat objects have real Unit/BuffInstance/Ov interfaces (Engine/types/combat.ts)
+  // and its dynamic save/shop/home payloads carry explicit `: any`. It used to be
+  // excluded and checked under a relaxed config; that isolation is gone.
   "include": ["Engine/**/*.ts", "electron-main.ts", "preload.ts"]
 }

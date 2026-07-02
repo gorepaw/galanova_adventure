@@ -44,6 +44,11 @@ import { deriveCore } from './charsheet.js';
 // with zero matching cost (Engine/logtags.js). Migrate emit sites to tag() over time.
 import { tag } from './logtags.js';
 
+// Runtime combat shapes: the per-fight Unit, live buff instances, scaling
+// overrides, and the reward summary. buildUnit produces Unit; the turn loop
+// mutates it. See Engine/types/combat.ts.
+import type { Unit, BuffInstance, Ov, CasterSnapshot, RewardSummary, CombatEffect, CombatDerived, CcState } from './types/combat.js';
+
 
 // =============================================================================
 // COMBAT PETS — unlocked by skill, not class
@@ -61,8 +66,8 @@ const PETS_BY_SKILL = {
 };
 
 // All pet templates a character can use, based on the pet skills they've learned.
-const petsForUnit = (unit) => {
-  const out = [];
+const petsForUnit = (unit: any): any[] => {
+  const out: any[] = [];
   for (const [skillId, list] of Object.entries<any>(PETS_BY_SKILL)) {
     if (typeof getSkillLevel === "function" && getSkillLevel(unit, skillId) >= 1) out.push(...list);
   }
@@ -78,7 +83,7 @@ const petsForUnit = (unit) => {
 // writes instances to DataStore and returns the (unchanged) save for chaining.
 // =============================================================================
 
-const awardProfessionXp = (save, professionId, xp) => {
+const awardProfessionXp = (save: any, professionId: string, xp: number) => {
   if (!professionId || !xp || xp <= 0) return save;
   for (const member of (save.party || [])) {
     const ir = Loader.load(`instances/companions/${member.instanceId}`, "companionInstance");
@@ -100,7 +105,7 @@ const Currency = (() => {
   const toCopperFromParts = (platinum = 0, gold = 0, silver = 0, copper = 0) =>
     platinum * 1000000 + gold * 10000 + silver * 100 + copper;
 
-  const toDisplay = (totalCopper) => ({
+  const toDisplay = (totalCopper: number) => ({
     platinum: Math.floor(totalCopper / 1000000),
     gold:     Math.floor((totalCopper % 1000000) / 10000),
     silver:   Math.floor((totalCopper % 10000) / 100),
@@ -108,9 +113,9 @@ const Currency = (() => {
     total:    totalCopper,
   });
 
-  const toString = (totalCopper) => {
+  const toString = (totalCopper: number) => {
     const { platinum, gold, silver, copper } = toDisplay(totalCopper);
-    const parts = [];
+    const parts: string[] = [];
     if (platinum > 0) parts.push(`${platinum}p`);
     if (gold     > 0) parts.push(`${gold}g`);
     if (silver   > 0) parts.push(`${silver}s`);
@@ -118,9 +123,9 @@ const Currency = (() => {
     return parts.join(" ");
   };
 
-  const canAfford = (save, cost) => (save.currency || 0) >= cost;
-  const deduct    = (save, amount) => ({ ...save, currency: Math.max(0, (save.currency || 0) - amount) });
-  const add       = (save, amount) => ({ ...save, currency: (save.currency || 0) + amount });
+  const canAfford = (save: any, cost: number) => (save.currency || 0) >= cost;
+  const deduct    = (save: any, amount: number) => ({ ...save, currency: Math.max(0, (save.currency || 0) - amount) });
+  const add       = (save: any, amount: number) => ({ ...save, currency: (save.currency || 0) + amount });
 
   return { toCopperFromParts, toDisplay, toString, canAfford, deduct, add };
 })();
@@ -138,15 +143,15 @@ const CombatBridge = (() => {
 
   // Per-class flat HP/MP bonuses — TBD for the Galanova classes; empty for now
   // so maxHp/maxMana derive purely from stats (con*10 + level*20 / int*15).
-  const CLASS_BASE_HP = {};
-  const CLASS_BASE_MP = {};
+  const CLASS_BASE_HP: Record<string, number> = {};
+  const CLASS_BASE_MP: Record<string, number> = {};
 
-  const ABILITY_DATA     = _abilitiesData.abilities;
-  const BUFF_DEFS_BRIDGE = _abilitiesData.buffs;
+  const ABILITY_DATA:     Record<string, any> = _abilitiesData.abilities;
+  const BUFF_DEFS_BRIDGE: Record<string, any> = _abilitiesData.buffs;
 
   // ── always-on passive stat mods applied at buildUnit time ──────────────────
-  const applyAlwaysPassives = (derived, abilities) => {
-    const d = { ...derived };
+  const applyAlwaysPassives = (derived: Record<string, any>, abilities: string[]): CombatDerived => {
+    const d: CombatDerived = { ...derived } as CombatDerived;
     for (const abId of abilities) {
       const ab = ABILITY_DATA[abId];
       if (!ab || !ab.passive || ab.trigger !== "always") continue;
@@ -160,7 +165,7 @@ const CombatBridge = (() => {
     return d;
   };
 
-  const buildUnit = (cfg, isEnemy = false) => {
+  const buildUnit = (cfg: any, isEnemy = false): Unit => {
     const classId  = cfg.classId || "armsman";
     const level    = cfg.level || 1;
     const raw      = cfg.stats?.raw || cfg.baseStats || getStatsAtLevel(cfg.raceId || "sephir", classId, level);
@@ -223,7 +228,7 @@ const CombatBridge = (() => {
         return !!(offItem && (offItem.tags || []).includes('shield'));
       })(),
       rangedReady:              (() => {
-        const AMMO_FOR_WEAPON = { bow: 'arrow', crossbow: 'bolt', gun: 'bullet' };
+        const AMMO_FOR_WEAPON: Record<string, string> = { bow: 'arrow', crossbow: 'bolt', gun: 'bullet' };
         const rangedId = typeof cfg.gear?.ranged === 'string' ? cfg.gear.ranged : null;
         const ammoId   = typeof cfg.gear?.ammo   === 'string' ? cfg.gear.ammo   : null;
         const rangedItem = rangedId ? _itemsData.items[rangedId] : null;
@@ -234,7 +239,7 @@ const CombatBridge = (() => {
         if (!neededTag) return false;
         const ammoItem = ammoId ? _itemsData.items[ammoId] : null;
         if (!(ammoItem && (ammoItem.tags || []).includes(neededTag))) return false;
-        const ammoQty = (cfg._inventory || []).find(e => e.itemId === ammoId)?.qty ?? 0;
+        const ammoQty = (cfg._inventory || []).find((e: any) => e.itemId === ammoId)?.qty ?? 0;
         return ammoQty > 0;
       })(),
       damageReceivedThisTurn:   0,
@@ -245,15 +250,15 @@ const CombatBridge = (() => {
     };
   };
 
-  const buildPetUnit = (petTemplate, owner) => {
+  const buildPetUnit = (petTemplate: any, owner: Unit): Unit => {
     const level = owner.level || 1;
     const raw: Record<string, number> = {};
     for (const stat of ['str','dex','con','int','spi','wis','spd','cha']) {
       raw[stat] = Math.floor((petTemplate.baseStats[stat] || 0) + (petTemplate.statGrowthPerLevel[stat] || 0) * (level - 1));
     }
     const abilities = (petTemplate.abilities || [])
-      .filter(a => (a.level || 1) <= level)
-      .map(a => a.id);
+      .filter((a: any) => (a.level || 1) <= level)
+      .map((a: any) => a.id);
     if (!abilities.length) abilities.push('pet_bite');
 
     // Pets derive ALL stats through the same shared core as everyone else
@@ -275,6 +280,8 @@ const CombatBridge = (() => {
       hp:                    maxHp,
       maxHp,
       stats:                 { raw, derived },
+      skills:                {},
+      gear:                  {},
       resources:             {},
       cooldowns:             {},
       castQueue:             [],
@@ -306,7 +313,7 @@ const CombatBridge = (() => {
   //   the 8 attributes (str,dex,con,int,spi,wis,spd,cha) → gear-inclusive total
   //   anything else  → a skill id, resolved to that skill's level
   const SCALE_ATTRS = ['str','dex','con','int','spi','wis','spd','cha'];
-  const resolveScaleStat = (attacker, key, ov) => {
+  const resolveScaleStat = (attacker: any, key: string, ov: Ov): number => {
     if (key === "ap")  return ov.ap;
     if (key === "sp")  return ov.sp;
     if (key === "rap") return ov.rap;
@@ -320,7 +327,7 @@ const CombatBridge = (() => {
   //   legacy form: scaling: "ap", multiplier: 1.0
   // `legacyMult` is the default coefficient for the legacy string form when no
   // `multiplier` is present (1 for damage, 0 for heals — preserves old behavior).
-  const scalingSum = (effect, attacker, ov, legacyMult) => {
+  const scalingSum = (effect: any, attacker: any, ov: Ov, legacyMult: number): number => {
     const s = effect.scaling;
     if (s && typeof s === "object") {
       let sum = 0;
@@ -333,15 +340,15 @@ const CombatBridge = (() => {
   // Weapon-damage contribution for an effect's `usesWeapon` mode. For each weapon
   // in the relevant slot, rolls min..max and divides by weaponSpeed; main-hand is
   // counted in full, off-hand at 50%. `none`/unset contributes nothing.
-  const weaponContribution = (attacker, mode) => {
+  const weaponContribution = (attacker: Unit, mode: string | undefined): number => {
     if (!mode || mode === "none") return 0;
     const gear = attacker.gear || {};
-    const wpn = (slot) => {
+    const wpn = (slot: string) => {
       const id = typeof gear[slot] === "string" ? gear[slot] : null;
       const it = id ? _itemsData.items[id] : null;
       return (it && it.type === "weapon") ? it : null;
     };
-    const rollOne = (it) => {
+    const rollOne = (it: any) => {
       const lo = it.minDamage || 0, hi = it.maxDamage || 0;
       const dmg = lo + Math.random() * Math.max(0, hi - lo);
       const spd = it.weaponSpeed || 1;
@@ -355,19 +362,19 @@ const CombatBridge = (() => {
   // Scaling overrides built straight off a unit's derived stats (no buff
   // adjustment). Used by DoT/HoT ticks and on-hit retaliation/proc damage, which
   // scale off the unit the effect currently sits on rather than the live attacker.
-  const baseOv = (unit) => {
+  const baseOv = (unit: Unit): Ov => {
     const d = unit.stats.derived;
     return { ap: d.attackPower || 0, sp: d.spellPower || 0, rap: d.rangedAttackPower || 0 };
   };
   // DoT/HoT magnitude is snapshotted to the CASTER's scaling at application time,
   // so a damage/heal-over-time scales off whoever cast it — not off the victim it
   // sits on. Returns a minimal attacker-like { src, ov } that scalingSum can read.
-  const snapshotCaster = (s) => s ? {
+  const snapshotCaster = (s: any): CasterSnapshot | null => s ? {
     src: { stats: { totals: s.stats?.totals, raw: s.stats?.raw }, skills: s.skills },
     ov:  baseOv(s),
   } : null;
 
-  const rollDamage = (effect, attacker, target) => {
+  const rollDamage = (effect: any, attacker: Unit, target: Unit) => {
     const aD = attacker.stats.derived;
     // attacker's buff/debuff modifiers (weapon enchants, debuffs reducing attack power)
     let ap = aD.attackPower || 0, sp = aD.spellPower || 0, rap = aD.rangedAttackPower || 0;
@@ -395,7 +402,7 @@ const CombatBridge = (() => {
     return { damage: Math.max(1, Math.floor(base)), isCrit };
   };
 
-  const rollHeal = (effect, caster) => {
+  const rollHeal = (effect: any, caster: Unit) => {
     const d = caster.stats.derived;
     let sp = d.spellPower || 0;
     for (const b of [...caster.buffs, ...caster.debuffs]) if (b.modifiers?.spellPower) sp += b.modifiers.spellPower;
@@ -405,10 +412,10 @@ const CombatBridge = (() => {
     return Math.max(1, Math.floor((effect.flatBonus || 0) + scalingSum(effect, caster, ov, 0)));
   };
 
-  const applyBuff = (unit, buffId, sourceId, durationOverride, source) => {
+  const applyBuff = (unit: Unit, buffId: string, sourceId: string | null, durationOverride?: number | null, source?: Unit): Unit => {
     const def = BUFF_DEFS_BRIDGE[buffId];
     if (!def) return unit;
-    const inst = {
+    const inst: BuffInstance = {
       id: buffId, sourceId, duration: durationOverride != null ? durationOverride : def.duration,
       // snapshot the caster's scaling for DoT/HoT ticks (see snapshotCaster)
       casterScaling:    (source && (def.tickDamage || def.tickHeal)) ? snapshotCaster(source) : null,
@@ -451,7 +458,7 @@ const CombatBridge = (() => {
       retaliationLabel:   def.retaliationLabel   || null,
       blocksStealth:      def.blocksStealth      || false,
     };
-    const isDebuff = Object.values<any>(inst.ccFlags).some(Boolean) || !!inst.tickDamage || !!def.isDebuff;
+    const isDebuff = Object.values<any>(inst.ccFlags || {}).some(Boolean) || !!inst.tickDamage || !!def.isDebuff;
     const field    = isDebuff ? "debuffs" : "buffs";
 
     // mutual exclusion: weapon buffs, elemental shields, aspects, and blessings only allow one instance at a time
@@ -476,7 +483,7 @@ const CombatBridge = (() => {
       }
       u = { ...u, buffs: u.buffs.filter(b => !b.isShapeshift) };
       u = { ...u, debuffs: u.debuffs.filter(d => !d.removedOnShapeshift) };
-      const shiftCC = { stunned: false, silenced: false, disarmed: false, rooted: false, feared: false };
+      const shiftCC: CcState = { stunned: false, silenced: false, disarmed: false, rooted: false, feared: false };
       for (const d of u.debuffs) for (const [f, v] of Object.entries<any>(d.ccFlags || {})) if (v) shiftCC[f] = true;
       u = { ...u, ccState: shiftCC };
     }
@@ -485,8 +492,8 @@ const CombatBridge = (() => {
     const newList  = existIdx >= 0
       ? u[field].map((b, i) => i === existIdx ? { ...b, duration: inst.duration, charges: inst.charges } : b)
       : [...u[field], inst];
-    const ccState = { ...u.ccState };
-    for (const [f, v] of Object.entries<any>(inst.ccFlags)) if (v) ccState[f] = true;
+    const ccState: CcState = { ...u.ccState };
+    for (const [f, v] of Object.entries<any>(inst.ccFlags || {})) if (v) ccState[f] = true;
     let updated = { ...u, [field]: newList, ccState };
     if (def.maxHpBonus && existIdx < 0)
       updated = { ...updated, maxHp: updated.maxHp + def.maxHpBonus, hp: updated.hp + def.maxHpBonus };
@@ -495,9 +502,9 @@ const CombatBridge = (() => {
     return updated;
   };
 
-  const syncUnit = (all, updated) => all.map(u => u.id === updated.id ? updated : u);
+  const syncUnit = (all: Unit[], updated: Unit) => all.map(u => u.id === updated.id ? updated : u);
 
-  const fireProcAbilities = (unit, trigger, procTarget, logs) => {
+  const fireProcAbilities = (unit: Unit, trigger: string, procTarget: Unit, logs: string[]) => {
     let u  = { ...unit };
     let pt = { ...procTarget };
     for (const abId of (u.abilities || [])) {
@@ -523,20 +530,20 @@ const CombatBridge = (() => {
 
   // Per-run ability-usage tracker (party only) for skill XP. Reset at run() start;
   // surfaced in the run() result and turned into skill XP by runEncounter.
-  let _abilityUse = {};
-  const _recordAbilityUse = (caster, abilityId) => {
+  let _abilityUse: Record<string, Record<string, number>> = {};
+  const _recordAbilityUse = (caster: Unit, abilityId: string) => {
     if (!caster || caster.isEnemy) return;
     const bucket = (_abilityUse[caster.id] = _abilityUse[caster.id] || {});
     bucket[abilityId] = (bucket[abilityId] || 0) + 1;
   };
 
-  const execAbility = (abilityId, caster, targets, logs) => {
+  const execAbility = (abilityId: string, caster: Unit, targets: Unit[], logs: string[]) => {
     const ab = ABILITY_DATA[abilityId];
     if (!ab || ab.passive || ab.outOfCombatOnly) return { caster, targets };
     _recordAbilityUse(caster, abilityId);
     logs.push(`  ${caster.name} → ${abilityId.replace(/_/g, " ")}`);
 
-    let c = { ...caster, resources: { ...caster.resources } };
+    let c: Unit = { ...caster, resources: { ...caster.resources } };
 
     // manaCostPercent consumes a fraction of max mana (e.g. Resurrection = 100%)
     if (ab.manaCostPercent && c.resources.mana) {
@@ -553,7 +560,7 @@ const CombatBridge = (() => {
 
     for (const effect of ab.effects) {
       // per-effect targeting override (Holy Nova: damage→enemies, heal→allies)
-      let effectTs;
+      let effectTs: Unit[];
       if      (effect.effectTargeting === "all_allies")  effectTs = ts.filter(t => !t.isEnemy === !c.isEnemy);
       else if (effect.effectTargeting === "all_enemies") effectTs = ts.filter(t =>  t.isEnemy !== c.isEnemy);
       else if (effect.effectTargeting === "self")        effectTs = [c];
@@ -566,7 +573,7 @@ const CombatBridge = (() => {
         continue;
       }
 
-      const updated = [];
+      const updated: Unit[] = [];
       for (let i = 0; i < effectTs.length; i++) {
         let t = effectTs[i];
         if (!t.alive) { updated.push(t); continue; }
@@ -609,12 +616,12 @@ const CombatBridge = (() => {
           }
 
           // absorb shield intercepts damage before HP
-          const shieldIdx = t.buffs.findIndex(b => b.absorbShield > 0);
+          const shieldIdx = t.buffs.findIndex(b => (b.absorbShield || 0) > 0);
           if (shieldIdx >= 0) {
             const shield   = t.buffs[shieldIdx];
-            const absorbed = Math.min(shield.absorbShield, damage);
+            const absorbed = Math.min(shield.absorbShield || 0, damage);
             damage -= absorbed;
-            const rem = shield.absorbShield - absorbed;
+            const rem = (shield.absorbShield || 0) - absorbed;
             t = { ...t, buffs: rem <= 0
               ? t.buffs.filter((_, bi) => bi !== shieldIdx)
               : t.buffs.map((b, bi) => bi === shieldIdx ? { ...b, absorbShield: rem } : b) };
@@ -633,7 +640,7 @@ const CombatBridge = (() => {
           // removedOnDamage: debuffs that break when the target takes damage (e.g. Sap)
           if (t.debuffs.some(d => d.removedOnDamage)) {
             t = { ...t, debuffs: t.debuffs.filter(d => !d.removedOnDamage) };
-            const cs = { stunned: false, silenced: false, disarmed: false, rooted: false, feared: false };
+            const cs: CcState = { stunned: false, silenced: false, disarmed: false, rooted: false, feared: false };
             for (const d of t.debuffs) for (const [f, v] of Object.entries<any>(d.ccFlags || {})) if (v) cs[f] = true;
             t = { ...t, ccState: cs };
             logs.push(`    ↳ ${t.name}'s stun broken by damage`);
@@ -718,7 +725,7 @@ const CombatBridge = (() => {
         }
 
         if (effect.type === "buff") {
-          let durOverride;
+          let durOverride: number | undefined;
           if (effect.comboFinisher && effect.durationPerComboPoint) {
             const cp = c.resources.combo_points?.current || 0;
             durOverride = cp * effect.durationPerComboPoint;
@@ -742,7 +749,7 @@ const CombatBridge = (() => {
           if (def.ccFlags?.feared) {
             const wardIdx = t.buffs.findIndex(b => b.negatesNextFear);
             if (wardIdx >= 0) {
-              t = { ...t, buffs: t.buffs.map((b, i) => i === wardIdx ? { ...b, duration: 0 } : b).filter(b => b.duration > 0) };
+              t = { ...t, buffs: t.buffs.map((b, i) => i === wardIdx ? { ...b, duration: 0 } : b).filter(b => (b.duration as number) > 0) };
               logs.push(`    ↳ ${t.name} resists fear (Fear Ward consumed)`);
               updated.push(t); continue;
             }
@@ -762,7 +769,7 @@ const CombatBridge = (() => {
           } else if (!isTargetEnemy && t.debuffs.length > 0) {
             const removed = t.debuffs[0];
             t = { ...t, debuffs: t.debuffs.slice(1) };
-            const cs = { stunned: false, silenced: false, disarmed: false, rooted: false, feared: false };
+            const cs: CcState = { stunned: false, silenced: false, disarmed: false, rooted: false, feared: false };
             for (const d of t.debuffs) for (const [f, v] of Object.entries<any>(d.ccFlags || {})) if (v) cs[f] = true;
             t = { ...t, ccState: cs };
             logs.push(`    ↳ ${t.name} debuff dispelled (${removed.id})`);
@@ -780,7 +787,7 @@ const CombatBridge = (() => {
           } else {
             t = { ...t, debuffs: [] };
           }
-          const cs = { stunned: false, silenced: false, disarmed: false, rooted: false, feared: false };
+          const cs: CcState = { stunned: false, silenced: false, disarmed: false, rooted: false, feared: false };
           for (const d of t.debuffs) for (const [f, v] of Object.entries<any>(d.ccFlags || {})) if (v) cs[f] = true;
           t = { ...t, ccState: cs };
           logs.push(`    ↳ ${t.name} cleansed`);
@@ -826,7 +833,7 @@ const CombatBridge = (() => {
           const removes = new Set(effect.removes || []);
           const before  = t.debuffs.length;
           t = { ...t, debuffs: t.debuffs.filter(d => !removes.has(BUFF_DEFS_BRIDGE[d.id]?.debuffType)) };
-          const cs = { stunned: false, silenced: false, disarmed: false, rooted: false, feared: false };
+          const cs: CcState = { stunned: false, silenced: false, disarmed: false, rooted: false, feared: false };
           for (const d of t.debuffs) for (const [f, v] of Object.entries<any>(d.ccFlags || {})) if (v) cs[f] = true;
           t = { ...t, ccState: cs };
           const removed = before - t.debuffs.length;
@@ -864,7 +871,7 @@ const CombatBridge = (() => {
 
     // if caster just entered fade, zero out their threat on all known targets
     if (c.buffs.some(b => b.isFaded) && !caster.buffs.some(b => b.isFaded)) {
-      const zeroTable = {};
+      const zeroTable: Record<string, number> = {};
       for (const k of Object.keys(c.threatTable || {})) zeroTable[k] = 0;
       c = { ...c, threatTable: zeroTable };
     }
@@ -878,8 +885,8 @@ const CombatBridge = (() => {
     return { caster: c, targets: ts };
   };
 
-  const tickBuffsUnit = (unit) => {
-    const logs = [], drainHeals = []; let u = { ...unit };
+  const tickBuffsUnit = (unit: Unit) => {
+    const logs: string[] = [], drainHeals: any[] = []; let u = { ...unit };
     for (const eff of [...u.buffs, ...u.debuffs]) {
       if (eff.tickDamage) {
         const td  = eff.tickDamage;
@@ -887,7 +894,7 @@ const CombatBridge = (() => {
         let dmg   = (td.flat || 0) + scalingSum(td, cs ? cs.src : u, cs ? cs.ov : baseOv(u), 0);
         dmg = Math.max(1, Math.floor(dmg));
         if (eff.rampingTickDamage && (eff.initialDuration || 0) > 1) {
-          const progress = (eff.initialDuration - eff.duration) / (eff.initialDuration - 1);
+          const progress = (eff.initialDuration - (eff.duration as number)) / (eff.initialDuration - 1);
           dmg = Math.max(1, Math.floor(dmg * (0.5 + progress)));
         }
         u = { ...u, hp: Math.max(0, u.hp - dmg) };
@@ -913,11 +920,11 @@ const CombatBridge = (() => {
     return { unit: u, logs, drainHeals };
   };
 
-  const expireBuffsUnit = (unit) => {
+  const expireBuffsUnit = (unit: Unit) => {
     let u = { ...unit };
     // revert maxHpBonus before the buff expires
     for (const b of u.buffs) {
-      if (b.duration <= 1) {
+      if ((b.duration as number) <= 1) {
         const def = BUFF_DEFS_BRIDGE[b.id];
         if (def?.maxHpBonus) {
           const newMax = u.maxHp - def.maxHpBonus;
@@ -925,15 +932,15 @@ const CombatBridge = (() => {
         }
       }
     }
-    const process = list => list.map(b => ({ ...b, duration: b.duration - 1 })).filter(b => b.duration > 0);
+    const process = (list: BuffInstance[]) => list.map(b => ({ ...b, duration: (b.duration as number) - 1 })).filter(b => b.duration > 0);
     const nb = process(u.buffs), nd = process(u.debuffs);
-    const ccState = { stunned: false, silenced: false, disarmed: false, rooted: false, feared: false };
+    const ccState: CcState = { stunned: false, silenced: false, disarmed: false, rooted: false, feared: false };
     for (const d of nd) for (const [f, v] of Object.entries<any>(d.ccFlags || {})) if (v) ccState[f] = true;
     return { ...u, buffs: nb, debuffs: nd, ccState };
   };
 
   // sameTeam = own side (for heal/buff targeting), oppositeTeam = enemy side
-  const aiChoose = (unit, sameTeam, oppositeTeam, ctx) => {
+  const aiChoose = (unit: Unit, sameTeam: Unit[], oppositeTeam: Unit[], ctx: any) => {
     const liveOpp  = oppositeTeam.filter(t => t.alive && !t.buffs?.some(b => b.isFaded) && !t.buffs?.some(b => b.isStealth));
     const liveSame = sameTeam.filter(t => t.alive);
     if (unit.ccState.stunned) return null;
@@ -975,7 +982,7 @@ const CombatBridge = (() => {
         if (ab.requiresCondition === "self_no_damage_last_turn"  && (unit.damageReceivedLastTurn || 0) > 0) return false;
         if (ab.requiresTargetTag) {
           const tagReq = ab.requiresTargetTag;
-          const hasTag = (etags) => Array.isArray(tagReq) ? tagReq.some(r => etags.includes(r)) : etags.includes(tagReq);
+          const hasTag = (etags: string[]) => Array.isArray(tagReq) ? tagReq.some((r: string) => etags.includes(r)) : etags.includes(tagReq);
           if (!liveOpp.some(e => hasTag(e.tags || []))) return false;
         }
       }
@@ -986,23 +993,23 @@ const CombatBridge = (() => {
     const dmgAbils  = avail.filter(id => {
       const ab = ABILITY_DATA[id];
       const enemyTargeted = !["single_ally","all_allies","self"].includes(ab.targeting);
-      return enemyTargeted && ab.effects.some(e => e.type === "damage" || e.type === "debuff" || e.type === "threat" || e.type === "pick_pocket");
+      return enemyTargeted && ab.effects.some((e: any) => e.type === "damage" || e.type === "debuff" || e.type === "threat" || e.type === "pick_pocket");
     });
-    const healAbils = avail.filter(id => ABILITY_DATA[id].effects.some(e => e.type === "heal"));
+    const healAbils = avail.filter(id => ABILITY_DATA[id].effects.some((e: any) => e.type === "heal"));
     const buffAbils = avail.filter(id => {
       const ab = ABILITY_DATA[id];
-      return ab.effects.some(e => e.type === "buff") && ["self","single_ally","all_allies"].includes(ab.targeting);
+      return ab.effects.some((e: any) => e.type === "buff") && ["self","single_ally","all_allies"].includes(ab.targeting);
     });
 
     // setup buffs (self/party-wide enchants, seals, auras) not yet active on this unit
     const setupAbils = buffAbils.filter(id => {
       const ab = ABILITY_DATA[id];
       return ["self", "single_ally", "all_allies"].includes(ab.targeting) &&
-        ab.effects.some(e => e.type === "buff" && e.buffId && !unit.buffs.some(b => b.id === e.buffId));
+        ab.effects.some((e: any) => e.type === "buff" && e.buffId && !unit.buffs.some(b => b.id === e.buffId));
     });
 
     const injuredAlly = mostInjured && mostInjured.hp / mostInjured.maxHp < 0.5;
-    let chosen;
+    let chosen: string;
     if (injuredAlly && healAbils.length)  chosen = healAbils[0];
     else if (setupAbils.length)           chosen = setupAbils[0];
     else if (dmgAbils.length)             chosen = dmgAbils[0];
@@ -1011,7 +1018,7 @@ const CombatBridge = (() => {
     else                                  chosen = avail[0];
 
     const abChosen = ABILITY_DATA[chosen];
-    let targetId;
+    let targetId: string | undefined;
     if (abChosen.targeting === "self")                                   targetId = unit.id;
     else if (["single_ally","all_allies"].includes(abChosen.targeting))  targetId = mostInjured?.id || unit.id;
     else if (abChosen.targeting === "front_2_enemies")                   targetId = primaryOpp?.id;
@@ -1021,7 +1028,7 @@ const CombatBridge = (() => {
       targetId = buffedEnemy?.id || debuffedAlly?.id || primaryOpp?.id || mostInjured?.id;
     } else if (abChosen.requiresTargetTag) {
       const tagReq = abChosen.requiresTargetTag;
-      const hasTag = (etags) => Array.isArray(tagReq) ? tagReq.some(r => etags.includes(r)) : etags.includes(tagReq);
+      const hasTag = (etags: string[]) => Array.isArray(tagReq) ? tagReq.some((r: string) => etags.includes(r)) : etags.includes(tagReq);
       targetId = liveOpp.find(e => hasTag(e.tags || []))?.id;
     } else {
       targetId = primaryOpp?.id;
@@ -1031,7 +1038,7 @@ const CombatBridge = (() => {
   };
 
   // Resolve which unit array to pass to execAbility based on ability targeting type
-  const resolveTargets = (ab, targetId, actor, party, enemies) => {
+  const resolveTargets = (ab: any, targetId: string | undefined, actor: Unit, party: Unit[], enemies: Unit[]) => {
     const liveE = enemies.filter(u => u.alive);
     const liveP = party.filter(u => u.alive);
     switch (ab.targeting) {
@@ -1043,24 +1050,24 @@ const CombatBridge = (() => {
       case "cleave":          return (actor.isEnemy ? liveP : liveE).slice(0, 2);
       case "single_ally": {
         const pool = actor.isEnemy ? liveE : liveP;
-        return [pool.find(u => u.id === targetId) || pool[0]].filter(Boolean);
+        return [pool.find(u => u.id === targetId) || pool[0]].filter((u): u is Unit => !!u);
       }
       case "single_ally_dead": {
         const pool = actor.isEnemy ? enemies : party;
-        return [pool.find(u => u.id === targetId && !u.alive)].filter(Boolean);
+        return [pool.find(u => u.id === targetId && !u.alive)].filter((u): u is Unit => !!u);
       }
       case "single_any": {
         const all = [...liveP, ...liveE];
-        return [all.find(u => u.id === targetId) || all[0]].filter(Boolean);
+        return [all.find(u => u.id === targetId) || all[0]].filter((u): u is Unit => !!u);
       }
       default: {
         const pool = actor.isEnemy ? liveP : liveE;
-        return [pool.find(u => u.id === targetId) || pool[0]].filter(Boolean);
+        return [pool.find(u => u.id === targetId) || pool[0]].filter((u): u is Unit => !!u);
       }
     }
   };
 
-  const tickUnit = (unit) => {
+  const tickUnit = (unit: Unit) => {
     const cd = { ...unit.cooldowns };
     for (const id of Object.keys(cd)) { cd[id] = Math.max(0, cd[id] - 1); if (cd[id] === 0) delete cd[id]; }
     const res = { ...unit.resources };
@@ -1069,10 +1076,10 @@ const CombatBridge = (() => {
     return { ...unit, cooldowns: cd, resources: res };
   };
 
-  const run = (encounter, partyInstances, opts: any = {}) => {
-    const logs = [], MAX = 30, ammoUsed = {};
+  const run = (encounter: any, partyInstances: any[], opts: any = {}) => {
+    const logs: string[] = [], MAX = 30, ammoUsed: Record<string, number> = {};
     _abilityUse = {}; // reset per-run ability-usage tracker
-    const _trackAmmo = (ab, actor) => {
+    const _trackAmmo = (ab: any, actor: Unit) => {
       if (!(ab?.tags || []).includes('ranged')) return;
       const rItem = _itemsData.items[actor.gear?.ranged];
       if (rItem?.weaponType === 'wand' || rItem?.weaponType === 'thrown') return;
@@ -1081,7 +1088,7 @@ const CombatBridge = (() => {
     };
     const _baseParty = partyInstances.map(inst => buildUnit(inst, false));
     let party   = _injectPets(_baseParty, partyInstances);
-    let enemies = encounter.enemies.map(e => buildUnit(e, true));
+    let enemies: Unit[] = encounter.enemies.map((e: any) => buildUnit(e, true));
     logs.push(`⚔ ${encounter.zoneId.toUpperCase()}� ${party.map(u => u.name).join(",")} vs ${enemies.map(u => u.name).join(",")}`);
     let turn = 0, outcome = null;
 
@@ -1096,7 +1103,7 @@ const CombatBridge = (() => {
 
         let castFired = false;
         if (actor.castQueue?.length) {
-          const ready = [], pending = [];
+          const ready: any[] = [], pending: any[] = [];
           for (const e of actor.castQueue) {
             if (e.turnsRemaining <= 0) ready.push(e);
             else pending.push({ ...e, turnsRemaining: e.turnsRemaining - 1 });
@@ -1122,7 +1129,7 @@ const CombatBridge = (() => {
         // earth/fire totem replacement: strip old totem group before applying new totem
         if (ab.removesTotemGroup) {
           const g = ab.removesTotemGroup;
-          const clean = u => ({ ...u, buffs: u.buffs.filter(b => b.totemGroup !== g), debuffs: u.debuffs.filter(b => b.totemGroup !== g) });
+          const clean = (u: Unit) => ({ ...u, buffs: u.buffs.filter(b => b.totemGroup !== g), debuffs: u.debuffs.filter(b => b.totemGroup !== g) });
           party   = party.map(clean);
           enemies = enemies.map(clean);
           actor   = clean(actor);
@@ -1194,7 +1201,7 @@ const CombatBridge = (() => {
 
         if (ab.removesTotemGroup) {
           const g = ab.removesTotemGroup;
-          const clean = u => ({ ...u, buffs: u.buffs.filter(b => b.totemGroup !== g), debuffs: u.debuffs.filter(b => b.totemGroup !== g) });
+          const clean = (u: Unit) => ({ ...u, buffs: u.buffs.filter(b => b.totemGroup !== g), debuffs: u.debuffs.filter(b => b.totemGroup !== g) });
           party   = party.map(clean);
           enemies = enemies.map(clean);
           actor   = clean(actor);
@@ -1213,7 +1220,7 @@ const CombatBridge = (() => {
       }
 
       // ── tick DoTs/HoTs, collect drain heals, expire buffs, regen ─────────
-      const allDrains = [];
+      const allDrains: any[] = [];
       for (let i = 0; i < party.length;   i++) {
         const { unit: u, logs: l, drainHeals } = tickBuffsUnit(party[i]);
         logs.push(...l); allDrains.push(...drainHeals); party[i] = expireBuffsUnit(u);
@@ -1257,7 +1264,7 @@ const CombatBridge = (() => {
     return { outcome, turns: turn, logs, kills, totalXp, enemies, party, pickpocketGold, soulShardsGained, ammoUsed, abilityUse: _abilityUse };
   };
 
-  const _injectPets = (party, partyInstances) => {
+  const _injectPets = (party: Unit[], partyInstances: any[]) => {
     const result = [...party];
     for (const inst of partyInstances) {
       if (!inst.activePetId) continue;
@@ -1274,11 +1281,11 @@ const CombatBridge = (() => {
   };
 
   // Build initial manual combat state from encounter + party instances
-  const startCombat = (encounter, partyInstances) => {
+  const startCombat = (encounter: any, partyInstances: any[]) => {
     _abilityUse = {}; // reset per-encounter ability-usage tracker (manual combat)
     const baseParty = partyInstances.map(inst => buildUnit(inst, false));
     const party     = _injectPets(baseParty, partyInstances);
-    const enemies   = encounter.enemies.map(e => buildUnit(e, true));
+    const enemies   = encounter.enemies.map((e: any) => buildUnit(e, true)) as Unit[];
     const header    = `⚔ ${encounter.zoneId.toUpperCase()} ⚔ ${party.map(u => u.name).join(",")} vs ${enemies.map(u => u.name).join(",")}`;
     return { party, enemies, turn: 0, allLogs: [header] };
   };
@@ -1287,8 +1294,8 @@ const CombatBridge = (() => {
   // opts.mode: 'streamlined' � playerActions provides one actor's choice, rest use AI
   //            'full_manual' � playerActions provides all actors' choices, unspecified actors skip
   // playerActions = [{ actorId, abilityId, targetId }]
-  const stepTurn = (state, playerActions, opts) => {
-    let { party, enemies } = state;
+  const stepTurn = (state: any, playerActions: any, opts: any) => {
+    let { party, enemies }: { party: Unit[]; enemies: Unit[] } = state;
     const turn     = state.turn + 1;
     const ctx      = { turn, priorEncounterVictory: opts?.priorEncounterVictory };
     const mode     = opts?.mode || 'streamlined';
@@ -1318,7 +1325,7 @@ const CombatBridge = (() => {
       if (actor.ccState.stunned) { stepLogs.push(`  ${actor.name} is stunned`); continue; }
 
       // ── cast queue (channelled spells) ──────────────────────────────────────
-      const pAction = (playerActions || []).find(a => a.actorId === actor.id);
+      const pAction = (playerActions || []).find((a: any) => a.actorId === actor!.id);
       let castFired = false;
       if (actor.castQueue?.length) {
         if (!ref.isEnemy && pAction) {
@@ -1333,7 +1340,7 @@ const CombatBridge = (() => {
           // Otherwise fall through so pAction is used as the new action below
         } else {
           // No player override: fire ready entries or hold the cast
-          const ready = [], pending = [];
+          const ready: any[] = [], pending: any[] = [];
           for (const e of actor.castQueue) {
             if (e.turnsRemaining <= 0) ready.push(e);
             else pending.push({ ...e, turnsRemaining: e.turnsRemaining - 1 });
@@ -1354,7 +1361,7 @@ const CombatBridge = (() => {
       }
 
       // ── choose action ────────────────────────────────────────────────────────
-      let chosen;
+      let chosen: any;
       if (!ref.isEnemy && pAction && pAction.type === 'use_item') {
         // Item use: apply effect to combat state and consume the actor's turn.
         const onUse = pAction.itemDef?.onUse;
@@ -1418,7 +1425,7 @@ const CombatBridge = (() => {
 
       if (ab.removesTotemGroup) {
         const g = ab.removesTotemGroup;
-        const clean = u => ({ ...u, buffs: u.buffs.filter(b => b.totemGroup !== g), debuffs: u.debuffs.filter(b => b.totemGroup !== g) });
+        const clean = (u: Unit) => ({ ...u, buffs: u.buffs.filter(b => b.totemGroup !== g), debuffs: u.debuffs.filter(b => b.totemGroup !== g) });
         party = party.map(clean); enemies = enemies.map(clean); actor = clean(actor);
       }
 
@@ -1455,7 +1462,7 @@ const CombatBridge = (() => {
     }
 
     // ── tick DoTs/HoTs, regen ──────────────────────────────────────────────────
-    const allDrains = [];
+    const allDrains: any[] = [];
     for (let i = 0; i < party.length;   i++) { const { unit: u, logs: l, drainHeals } = tickBuffsUnit(party[i]);   stepLogs.push(...l); allDrains.push(...drainHeals); party[i]   = expireBuffsUnit(u); }
     for (let i = 0; i < enemies.length; i++) { const { unit: u, logs: l, drainHeals } = tickBuffsUnit(enemies[i]); stepLogs.push(...l); allDrains.push(...drainHeals); enemies[i] = expireBuffsUnit(u); }
     for (const dh of allDrains) {
@@ -1485,16 +1492,16 @@ const CombatBridge = (() => {
 
 const DeathHandler = (() => {
   const CONFIG = { rezBaseCost: 500, rezLevelMult: 200, wipePenalty: 0.25, wipeReturnHpMin: 0.20, wipeReturnHpMax: 1.00, wipeReturnHpStep: 0.10 };
-  const wipeReturnHpPct = (level) => Math.max(CONFIG.wipeReturnHpMin, CONFIG.wipeReturnHpMax - Math.max(0, level - 1) * CONFIG.wipeReturnHpStep);
-  const rezCostForLevel = (level) => CONFIG.rezBaseCost + level * CONFIG.rezLevelMult;
+  const wipeReturnHpPct = (level: number) => Math.max(CONFIG.wipeReturnHpMin, CONFIG.wipeReturnHpMax - Math.max(0, level - 1) * CONFIG.wipeReturnHpStep);
+  const rezCostForLevel = (level: number) => CONFIG.rezBaseCost + level * CONFIG.rezLevelMult;
 
-  const handleDeath = (inst, save) => {
+  const handleDeath = (inst: any, save: any) => {
     const mode = save.mode || "normal";
     if (mode === "hardcore") return { ...inst, deathState: "dead", permadead: true, downedAt: new Date().toISOString() };
     return { ...inst, deathState: "downed", downedAt: new Date().toISOString(), rezCost: rezCostForLevel(inst.level || 1) };
   };
 
-  const rezForGold = (inst, save) => {
+  const rezForGold = (inst: any, save: any) => {
     if ((save.mode || "normal") === "hardcore") return { ok: false, error: "Cannot rez in hardcore." };
     if (inst.deathState !== "downed")           return { ok: false, error: "Not downed." };
     if (inst.permadead)                         return { ok: false, error: "Permanently dead." };
@@ -1506,12 +1513,12 @@ const DeathHandler = (() => {
   // reviveIds: Set of instanceIds that died in this specific combat � only those
   // are revived.  Pre-downed companions (downed from earlier fights) are left
   // untouched so they still require an explicit gold rez.
-  const handleWipe = (save, reviveIds) => {
+  const handleWipe = (save: any, reviveIds?: Set<string> | null) => {
     const mode = save.mode || "normal";
     if (mode === "hardcore") return { ...save, wipedOut: true, wipeTimestamp: new Date().toISOString() };
     const penalty = Math.floor((save.currency || 0) * CONFIG.wipePenalty);
     let s = Currency.deduct(save, penalty);
-    s = { ...s, party: s.party.map(m => {
+    s = { ...s, party: s.party.map((m: any) => {
       if (reviveIds && !reviveIds.has(m.instanceId)) return m;
       const ir = Loader.load(`instances/companions/${m.instanceId}`, "companionInstance");
       if (!ir.ok) return m;
@@ -1545,8 +1552,8 @@ const DeathHandler = (() => {
     return { ...s, _wipeNote: `Lost ${Currency.toString(penalty)} on wipe` };
   };
 
-  const isWipe = (save) =>
-    save.party.every(m => {
+  const isWipe = (save: any) =>
+    save.party.every((m: any) => {
       const ir = Loader.load(`instances/companions/${m.instanceId}`, "companionInstance");
       return ir.ok ? ir.data.deathState !== "alive" : false;
     });
@@ -1560,8 +1567,8 @@ const DeathHandler = (() => {
 // =============================================================================
 
 const RewardEngine = (() => {
-  const rollLoot = (kills, activeQuestIds = []) => {
-    const drops = [];
+  const rollLoot = (kills: any[], activeQuestIds: string[] = []) => {
+    const drops: any[] = [];
     for (const enemy of kills)
       for (const le of (enemy.loot || [])) {
         if (le.questId && !activeQuestIds.includes(le.questId)) continue;
@@ -1581,7 +1588,7 @@ const RewardEngine = (() => {
     return drops;
   };
 
-  const apply = (combatResult, encounter, save) => {
+  const apply = (combatResult: any, encounter: any, save: any) => {
     let s     = { ...save };
     const sum: any = { xp: 0, currency: 0, loot: [], questProgress: [], skillXp: {}, levelUps: [] };
 
@@ -1597,7 +1604,7 @@ const RewardEngine = (() => {
     const xp = Math.floor(combatResult.totalXp * xpMult);
     sum.xp      = xp;
     sum.xpMult  = xpMult;
-    s = { ...s, party: s.party.map(m => {
+    s = { ...s, party: s.party.map((m: any) => {
       const ir = Loader.load(`instances/companions/${m.instanceId}`, "companionInstance");
       if (!ir.ok) return m;
       let { inst: updated, levelUpLines } = addXpToInst(ir.data, xp);
@@ -1635,7 +1642,7 @@ const RewardEngine = (() => {
     if (pouches > 0) {
       const cg = pouches * 150;
       s = Currency.add(s, cg); sum.currency += cg;
-      s = { ...s, inventory: s.inventory.map(e => e.itemId === "copper_coin_pouch" ? { ...e, qty: Math.max(0, e.qty - pouches) } : e).filter(e => e.qty > 0) };
+      s = { ...s, inventory: s.inventory.map((e: any) => e.itemId === "copper_coin_pouch" ? { ...e, qty: Math.max(0, e.qty - pouches) } : e).filter((e: any) => e.qty > 0) };
     }
 
     for (const node of (encounter.gatheringNodes || [])) {
@@ -1657,12 +1664,12 @@ const RewardEngine = (() => {
         const prev = objState[obj.id] || 0;
         if (prev >= obj.count) continue;
         if (obj.requiresObjective) {
-          const gate = quest.objectives.find(o => o.id === obj.requiresObjective);
+          const gate = quest.objectives.find((o: any) => o.id === obj.requiresObjective);
           if (gate && (objState[gate.id] || 0) < gate.count) continue;
         }
-        const matching = encounter.enemies.filter(e =>
+        const matching = encounter.enemies.filter((e: any) =>
           obj.targetId ? e.id === obj.targetId :
-          (e.tags || []).some(tag => (obj.targetTags || []).includes(tag))
+          (e.tags || []).some((tag: any) => (obj.targetTags || []).includes(tag))
         ).length;
         if (matching > 0) {
           const next = Math.min(obj.count, prev + matching);
@@ -1681,10 +1688,10 @@ const RewardEngine = (() => {
         const prev = objState[obj.id] || 0;
         if (prev >= obj.count) continue;
         if (obj.requiresObjective) {
-          const gate = quest.objectives.find(o => o.id === obj.requiresObjective);
+          const gate = quest.objectives.find((o: any) => o.id === obj.requiresObjective);
           if (gate && (objState[gate.id] || 0) < gate.count) continue;
         }
-        const invEntry = (s.inventory || []).find(e => e.itemId === obj.targetItem);
+        const invEntry = (s.inventory || []).find((e: any) => e.itemId === obj.targetItem);
         const next = Math.min(obj.count, invEntry ? invEntry.qty : 0);
         if (next > prev) {
           objState = { ...objState, [obj.id]: next };
@@ -1698,14 +1705,14 @@ const RewardEngine = (() => {
       }
 
       // Complete quest only when ALL objectives are satisfied
-      const allDone = quest.objectives.every(obj => (objState[obj.id] || 0) >= obj.count);
+      const allDone = quest.objectives.every((obj: any) => (objState[obj.id] || 0) >= obj.count);
       if (allDone) {
         // Remove consumed collect items from inventory
         for (const obj of quest.objectives) {
           if (obj.type === "collect") {
-            s = { ...s, inventory: (s.inventory || []).map(e =>
+            s = { ...s, inventory: (s.inventory || []).map((e: any) =>
               e.itemId === obj.targetItem ? { ...e, qty: e.qty - obj.count } : e
-            ).filter(e => e.qty > 0) };
+            ).filter((e: any) => e.qty > 0) };
           }
         }
         s = Modifiers.completeQuest(s, questId);
@@ -1713,7 +1720,7 @@ const RewardEngine = (() => {
         if (rw.xp) {
           const questXp = Math.floor(rw.xp * xpMult);
           sum.xp += questXp;
-          s = { ...s, party: s.party.map(m => {
+          s = { ...s, party: s.party.map((m: any) => {
             const ir = Loader.load(`instances/companions/${m.instanceId}`, "companionInstance");
             if (!ir.ok) return m;
             const { inst: updated, levelUpLines } = addXpToInst(ir.data, questXp);
@@ -1729,14 +1736,14 @@ const RewardEngine = (() => {
       }
     }
 
-    const partyHasButchery = s.party.some(m => {
+    const partyHasButchery = s.party.some((m: any) => {
       const ir = Loader.load(`instances/companions/${m.instanceId}`, "companionInstance");
       return ir.ok && ir.data.profession === "butchery" && ir.data.deathState === "alive";
     });
     if (partyHasButchery) {
-      const butcherable = (combatResult.kills || []).filter(e => e.type === "beast");
+      const butcherable = (combatResult.kills || []).filter((e: any) => e.type === "beast");
       if (butcherable.length > 0) {
-        s = Modifiers.setFlag(s, "pendingButchery", butcherable.map(e => e.id));
+        s = Modifiers.setFlag(s, "pendingButchery", butcherable.map((e: any) => e.id));
         sum.butcherableKills = butcherable;
       }
     }
@@ -1747,8 +1754,8 @@ const RewardEngine = (() => {
   // Per-creature butchery loot. Each entry is typed (meat | hide | bone | feather)
   // and rolled independently; a creature that yields feathers simply carries
   // "feather" entries and no "hide" entry. Quantity is qty, or a minQty..maxQty range.
-  const rollButcheryForKill = (enemy) => {
-    const loot = [];
+  const rollButcheryForKill = (enemy: any) => {
+    const loot: any[] = [];
     for (const le of (enemy.butcheryLoot || [])) {
       const chance = (le.chance != null) ? le.chance : 1;
       if (Math.random() < chance) {
@@ -1761,9 +1768,9 @@ const RewardEngine = (() => {
     return loot;
   };
 
-  const applyButchery = (save, kills) => {
+  const applyButchery = (save: any, kills: any[]) => {
     let s = { ...save };
-    const drops = [];
+    const drops: any[] = [];
     let xpGained = 0;
     for (const enemy of kills) {
       for (const d of rollButcheryForKill(enemy)) {
@@ -1798,9 +1805,9 @@ const RidingSystem = (() => {
   const CAP_LOW            = 75;
   const CAP_HIGH           = 150;
 
-  const getSkill = (save) => save.riding || 1;
+  const getSkill = (save: any) => save.riding || 1;
 
-  const getHighestPartyLevel = (save) => {
+  const getHighestPartyLevel = (save: any) => {
     let best = 1;
     for (const m of (save.party || [])) {
       const ir = Loader.load(`instances/companions/${m.instanceId}`, "companionInstance");
@@ -1809,33 +1816,33 @@ const RidingSystem = (() => {
     return best;
   };
 
-  const getCap = (highestPartyLevel) =>
+  const getCap = (highestPartyLevel: number) =>
     highestPartyLevel >= BASIC_MOUNT_LEVEL ? CAP_HIGH : CAP_LOW;
 
   // chance = clamp(0,1,  80% + (partyLvl - enemyLvl)*10% + riding*0.1% + extraBonus)
   // extraBonus comes from fleeBonus buffs/debuffs active at flee time (earthbind, concussive, wing_clip)
-  const getFleeChance = (save, enemies, extraBonus = 0) => {
+  const getFleeChance = (save: any, enemies: any[], extraBonus = 0) => {
     const partyLevel = getHighestPartyLevel(save);
-    const enemyLevel = (enemies || []).reduce((best, e) => Math.max(best, e.level || 1), 1);
+    const enemyLevel = (enemies || []).reduce((best: number, e: any) => Math.max(best, e.level || 1), 1);
     const riding     = getSkill(save);
     const raw        = 0.80 + (partyLevel - enemyLevel) * 0.10 + riding * 0.001 + extraBonus;
     return Math.max(0, Math.min(1, raw));
   };
 
-  const gainRiding = (save) => {
+  const gainRiding = (save: any) => {
     const current = getSkill(save);
     const cap     = getCap(getHighestPartyLevel(save));
     if (current >= cap) return save;
     return { ...save, riding: current + 1 };
   };
 
-  const canBuyBasicMount = (save) =>
+  const canBuyBasicMount = (save: any) =>
     getHighestPartyLevel(save) >= BASIC_MOUNT_LEVEL && getSkill(save) >= BASIC_MOUNT_RIDING;
 
-  const canBuyEpicMount = (save) =>
+  const canBuyEpicMount = (save: any) =>
     getHighestPartyLevel(save) >= EPIC_MOUNT_LEVEL && getSkill(save) >= EPIC_MOUNT_RIDING;
 
-  const acquireMount = (save, mountId) => {
+  const acquireMount = (save: any, mountId: string) => {
     const mounts = save.mounts || [];
     if (mounts.includes(mountId)) return { ok: false, error: "Already owned." };
     return { ok: true, save: { ...save, mounts: [...mounts, mountId] } };
@@ -1867,16 +1874,16 @@ const TrapSystem = (() => {
   const DEFAULT_DAMAGE_PCT = 0.15; // fraction of maxHp when a damage trap omits its amount
 
   // Living party members as { member, inst }.
-  const livingParty = (save) =>
+  const livingParty = (save: any) =>
     (save.party || [])
-      .map(m => {
+      .map((m: any) => {
         const ir = Loader.load(`instances/companions/${m.instanceId}`, "companionInstance");
         return ir.ok ? { member: m, inst: ir.data } : null;
       })
-      .filter(x => x && x.inst.deathState === "alive");
+      .filter((x: any) => x && x.inst.deathState === "alive");
 
   // One member's detection roll: classLevel/100, then dungeoneeringLevel/100 backup.
-  const memberDetects = (inst) => {
+  const memberDetects = (inst: any) => {
     const classLvl = inst.level || 1;
     const dungLvl  = (typeof getSkillLevel === "function") ? getSkillLevel(inst, "dungeoneering") : 0;
     const byClass = Math.random() < classLvl / 100;
@@ -1886,9 +1893,9 @@ const TrapSystem = (() => {
 
   // Roll detection across the party. Detected if any member detects; reports the
   // first detector and whether it was their class instinct or dungeoneering.
-  const rollDetection = (party) => {
-    let detected = false, detectedBy = null, via = null;
-    const rolls = [];
+  const rollDetection = (party: any[]) => {
+    let detected = false, detectedBy: string | null = null, via: string | null = null;
+    const rolls: any[] = [];
     for (const { member, inst } of party) {
       const r = memberDetects(inst);
       rolls.push({ instanceId: member.instanceId, name: inst.name, ...r });
@@ -1902,7 +1909,7 @@ const TrapSystem = (() => {
   };
 
   // Damage from a trap effect against one instance's maxHp.
-  const damageFor = (inst, effect) => {
+  const damageFor = (inst: any, effect: any) => {
     const d = effect?.damage || {};
     if (d.mode === "flat") return Math.max(0, Math.floor(d.amount || 0));
     return Math.max(1, Math.floor((inst.maxHp || 1) * (d.amount != null ? d.amount : DEFAULT_DAMAGE_PCT)));
@@ -1911,10 +1918,10 @@ const TrapSystem = (() => {
   // Resolve a trap encounter against the current save. Pure-ish: persists the
   // affected companion instances to DataStore and returns the (unchanged) save
   // for chaining, plus narration lines and the detection outcome.
-  const resolve = (save, trap) => {
+  const resolve = (save: any, trap: any) => {
     const party = livingParty(save);
     const name  = (trap && trap.name) || "a hidden trap";
-    const lines = [];
+    const lines: string[] = [];
 
     if (!party.length)
       return { save, detected: false, triggered: false, lines: [`   The mechanism clicks, but no one is left to spring it.`] };
@@ -1922,11 +1929,11 @@ const TrapSystem = (() => {
     const det = rollDetection(party);
 
     // Working copies keyed by instanceId so XP and damage merge into one write.
-    const work = new Map<string, any>(party.map(p => [p.member.instanceId, { member: p.member, inst: { ...p.inst } }]));
+    const work = new Map<string, any>(party.map((p: any) => [p.member.instanceId, { member: p.member, inst: { ...p.inst } }]));
 
     // XP to every member who met the trap (alive at encounter time), detected or not.
     const xpAmount = (trap && trap.xp != null) ? trap.xp : DEFAULT_XP;
-    const levelUps = [];
+    const levelUps: string[] = [];
     for (const w of work.values()) {
       const sx = addSkillXp(w.inst, "dungeoneering", xpAmount);
       w.inst = sx.inst;
@@ -1985,15 +1992,15 @@ const TrapSystem = (() => {
 // =============================================================================
 
 const ShopSystem = (() => {
-  const getStock   = (save, zoneId, keeperName, itemId) => { const key = `${zoneId}_${keeperName}_${itemId}`; return save.shopStocks?.[key] ?? null; };
-  const setStock   = (save, zoneId, keeperName, itemId, value) => { const key = `${zoneId}_${keeperName}_${itemId}`; return { ...save, shopStocks: { ...(save.shopStocks || {}), [key]: value } }; };
-  const getBuyList = (zone, save, keeperName?) => {
+  const getStock   = (save: any, zoneId: string, keeperName: string, itemId: string) => { const key = `${zoneId}_${keeperName}_${itemId}`; return save.shopStocks?.[key] ?? null; };
+  const setStock   = (save: any, zoneId: string, keeperName: string, itemId: string, value: any) => { const key = `${zoneId}_${keeperName}_${itemId}`; return { ...save, shopStocks: { ...(save.shopStocks || {}), [key]: value } }; };
+  const getBuyList = (zone: any, save: any, keeperName: string = '') => {
     const inv = zone.shopkeepers?.[keeperName]?.inventory || [];
-    return inv.map(entry => { const saved = getStock(save, zone.id, keeperName, entry.itemId); return { ...entry, stock: saved !== null ? saved : entry.stock }; }).filter(e => e.stock !== 0);
+    return inv.map((entry: any) => { const saved = getStock(save, zone.id, keeperName, entry.itemId); return { ...entry, stock: saved !== null ? saved : entry.stock }; }).filter((e: any) => e.stock !== 0);
   };
 
-  const buy = (save, zone, itemId, qty, keeperName) => {
-    const entry = (zone.shopkeepers?.[keeperName]?.inventory || []).find(e => e.itemId === itemId);
+  const buy = (save: any, zone: any, itemId: string, qty: number, keeperName: string) => {
+    const entry = (zone.shopkeepers?.[keeperName]?.inventory || []).find((e: any) => e.itemId === itemId);
     if (!entry) return { ok: false, error: "Item not in shop." };
     const stock = getStock(save, zone.id, keeperName, itemId) ?? entry.stock;
     if (stock !== -1 && stock < qty) return { ok: false, error: `Only ${stock} in stock.` };
@@ -2021,13 +2028,13 @@ const ShopSystem = (() => {
     return { ok: true, save: s, message: `Bought ${grantQty}x ${ir.ok ? ir.data.name : itemId} for ${Currency.toString(totalCost)}.` };
   };
 
-  const sell = (save, zone, itemId, qty) => {
-    const invEntry = (save.inventory || []).find(e => e.itemId === itemId);
+  const sell = (save: any, zone: any, itemId: string, qty: number) => {
+    const invEntry = (save.inventory || []).find((e: any) => e.itemId === itemId);
     if (!invEntry || invEntry.qty < qty) return { ok: false, error: "You don't have that many." };
     const ir = Loader.load(`templates/items/${itemId}`, "item");
     if (!ir.ok) return { ok: false, error: "Unknown item." };
     const total = Math.floor(ir.data.value * (zone.sellMultiplier ?? 0.25)) * qty;
-    let s = { ...save, inventory: save.inventory.map(e => e.itemId === itemId ? { ...e, qty: e.qty - qty } : e).filter(e => e.qty > 0) };
+    let s = { ...save, inventory: save.inventory.map((e: any) => e.itemId === itemId ? { ...e, qty: e.qty - qty } : e).filter((e: any) => e.qty > 0) };
     s = Currency.add(s, total);
     return { ok: true, save: s, message: `Sold ${qty}x ${ir.data.name} for ${Currency.toString(total)}.` };
   };
@@ -2043,7 +2050,7 @@ const ShopSystem = (() => {
 const SaveManager = (() => {
   let _sessionStart = Date.now();
 
-  const save = (saveData, slotId) => {
+  const save = (saveData: any, slotId: string) => {
     const elapsed = Math.floor((Date.now() - _sessionStart) / 1000);
     const stamped = { ...saveData, saveId: slotId, timestamp: new Date().toISOString(), playtime: (saveData.playtime || 0) + elapsed };
     _sessionStart = Date.now();
@@ -2052,11 +2059,11 @@ const SaveManager = (() => {
 
   const listSlots = () =>
     DataStore.list("saves/save_")
-      .filter(p => !p.endsWith(".backup"))
-      .map(p => { const data = DataStore.read(p); return data ? { slotId: data.saveId, timestamp: data.timestamp, playtime: data.playtime || 0, zone: data.currentZone || "unknown", partySize: (data.party || []).length } : null; })
+      .filter((p: any) => !p.endsWith(".backup"))
+      .map((p: any) => { const data = DataStore.read(p); return data ? { slotId: data.saveId, timestamp: data.timestamp, playtime: data.playtime || 0, zone: data.currentZone || "unknown", partySize: (data.party || []).length } : null; })
       .filter(Boolean);
 
-  const load = (slotId) => Loader.load(`saves/save_${slotId}`, "save");
+  const load = (slotId: string) => Loader.load(`saves/save_${slotId}`, "save");
 
   return { save, listSlots, load };
 })();
@@ -2095,8 +2102,8 @@ const SyntheticGameData = (() => {
       DataStore.write(`templates/nodes/${id}`, node);
 
     // Shop level ranges are sourced from shop.json (minLevel/maxLevel per shop).
-    const _shopLvl      = (id) => { const s = _shopData.shops[id] || {}; return { min: s.minLevel || 1, max: s.maxLevel || 60 }; };
-    const _shopKeepers  = (id) => (_shopData.shops[id] || {}).shopkeepers || {};
+    const _shopLvl      = (id: string) => { const s = _shopData.shops[id] || {}; return { min: s.minLevel || 1, max: s.maxLevel || 60 }; };
+    const _shopKeepers  = (id: string) => (_shopData.shops[id] || {}).shopkeepers || {};
 
     // ── Rath (planet / region) ────────────────────────────────────────────────
     DataStore.write("templates/zones/colonial_sewers", { id: "colonial_sewers", regionId: "rath", name: "Colonial Sewers", zoneType: "combat", _version: 1, encounterTableId: "enc_colonial_sewers", minPartyLevel: 1, maxPartyLevel: 5, ambientBuffs: [], shopInventory: [], sellMultiplier: 0.25, tags: ["sewer","starter","underground"], lore: "The dripping under-tunnels beneath the colonial sprawl of Rath, infested with vermin.", forcedOnly: false, forcedEncounterQueue: [] });
@@ -2130,10 +2137,10 @@ const HomeScreen = (() => {
   const STATES = { HOME: "home", ENCOUNTER: "encounter", REWARD: "reward", MAP: "map", BAG: "bag", SHOP: "shop", STATS: "stats", PARTY: "party", REPUTATION: "reputation", ABILITIES: "abilities", CRAFTING: "crafting", NON_COMBAT: "non_combat", SAVE_LOAD: "save_load", COMBAT_PENDING: "combat_pending", MOUNTS: "mounts", IN_COMBAT: "in_combat" };
 
   const createSession = () => {
-    let state = STATES.HOME, save = null, slotId = "slot_start", _pendingCombat = null, _lastKills = [];
-    let combatMode = "full_manual", _manualCombatState = null;
-    const output = [];
-    const emit  = (...lines) => output.push(...lines);
+    let state = STATES.HOME, save: any = null, slotId = "slot_start", _pendingCombat: any = null, _lastKills: any[] = [];
+    let combatMode = "full_manual", _manualCombatState: any = null;
+    const output: string[] = [];
+    const emit  = (...lines: any[]) => output.push(...lines);
     const flush = () => { const copy = [...output]; output.length = 0; return copy; };
 
     const init = (loadSlotId = "slot_start") => {
@@ -2154,9 +2161,9 @@ const HomeScreen = (() => {
 
     // Apply post-combat rewards and state transitions from a resolved combat result.
     // Used by both autobattle (_resolveCombat) and manual combat (executePlayerAction).
-    const _applyPostCombat = (cr, enc) => {
+    const _applyPostCombat = (cr: any, enc: any) => {
       _lastKills = cr.kills || [];
-      (cr.logs || []).forEach(l => emit(l));
+      (cr.logs || []).forEach((l: any) => emit(l));
 
       // Write post-combat HP and death state back to companion instances.
       // CombatBridge works on in-memory units; without this the DataStore still
@@ -2165,7 +2172,7 @@ const HomeScreen = (() => {
       // newly downed; companions already downed before combat are left untouched
       // so their rezCost / downedAt are not reset and they aren't accidentally
       // swept up in the wipe revival.
-      const diedThisCombat = new Set();
+      const diedThisCombat = new Set<string>();
       for (const unit of cr.party) {
         const ir = Loader.load(`instances/companions/${unit.id}`, 'companionInstance');
         if (!ir.ok) continue;
@@ -2197,7 +2204,7 @@ const HomeScreen = (() => {
       // a summoner's death clears their soul shards and healthstones from inventory
       for (const unit of cr.party) {
         if (!unit.alive && typeof getSkillLevel === "function" && getSkillLevel(unit, "summoning") >= 1) {
-          save = { ...save, inventory: (save.inventory || []).filter(e => e.itemId !== "soul_shard" && e.itemId !== "healthstone") };
+          save = { ...save, inventory: (save.inventory || []).filter((e: any) => e.itemId !== "soul_shard" && e.itemId !== "healthstone") };
         }
       }
 
@@ -2210,8 +2217,8 @@ const HomeScreen = (() => {
           const ir = Loader.load(`instances/companions/${m.instanceId}`, "companionInstance");
           if (!ir.ok || !ir.data.activeBuffs?.length) continue;
           const updated = ir.data.activeBuffs
-            .map(b => typeof b === "string" ? { id: b, remainingDuration: 1 } : { ...b, remainingDuration: b.remainingDuration - turnsPassed })
-            .filter(b => b.remainingDuration > 0);
+            .map((b: any) => typeof b === "string" ? { id: b, remainingDuration: 1 } : { ...b, remainingDuration: b.remainingDuration - turnsPassed })
+            .filter((b: any) => b.remainingDuration > 0);
           DataStore.write(`instances/companions/${m.instanceId}`, { ...ir.data, activeBuffs: updated });
         }
       }
@@ -2220,7 +2227,7 @@ const HomeScreen = (() => {
       // every combat-eligible companion is now down.  Pre-downed companions
       // (already downed before this fight) are excluded from both the trigger
       // check and the revival so they still require a paid rez.
-      if (diedThisCombat.size > 0 && cr.party.filter(u => !u.isPet).every(u => !u.alive)) {
+      if (diedThisCombat.size > 0 && cr.party.filter((u: any) => !u.isPet).every((u: any) => !u.alive)) {
         save = DeathHandler.handleWipe(save, diedThisCombat);
         if (save.wipedOut) { emit(`\n💀 GAME OVER � hardcore wipe.`); SaveManager.save(save, slotId); state = STATES.HOME; return; }
         emit(`\n💀 Party wipe! ${save._wipeNote || ""}`);
@@ -2235,11 +2242,11 @@ const HomeScreen = (() => {
           ? ` (${Math.round(summary.xpMult * 100)}% � large party penalty)` : '';
         emit(`   XP gained: +${summary.xp} (each member)${multNote}`);
       }
-      if (summary.levelUps.length)      summary.levelUps.forEach(l => emit(l));
+      if (summary.levelUps.length)      summary.levelUps.forEach((l: any) => emit(l));
       if (summary.currency)             emit(`   Currency:  +${Currency.toString(summary.currency)}`);
       if ((cr.pickpocketGold || 0) > 0) emit(`   Pickpocket: +${Currency.toString(cr.pickpocketGold)}`);
       if ((cr.soulShardsGained || 0) > 0) emit(`   Soul Shard: +${cr.soulShardsGained} added to bag`);
-      if (summary.loot.length)     emit(`   Loot:      ${summary.loot.map(l => `${l.qty}x ${tag("item", l.itemId)}`).join(", ")}`);
+      if (summary.loot.length)     emit(`   Loot:      ${summary.loot.map((l: any) => `${l.qty}x ${tag("item", l.itemId)}`).join(", ")}`);
       for (const [skillId, amount] of Object.entries<any>(summary.skillXp || {})) emit(`   ${skillId} skill +${amount} xp`);
       for (const qp of (summary.questProgress || [])) { if (qp.completed) emit(`   ✓ Quest complete: ${qp.questId}`); else emit(`   Quest "${qp.questId}" � ${qp.objectiveId}: ${qp.next}/${qp.goal}`); }
       if (summary.reputation?.length) for (const rr of summary.reputation) emit(`   Rep: +${rr.amount} ${rr.factionId}`);
@@ -2258,10 +2265,10 @@ const HomeScreen = (() => {
       checkAchievements();
 
       for (const [ammoId, count] of Object.entries<any>(cr.ammoUsed || {})) {
-        const inv = (save.inventory || []).find(e => e.itemId === ammoId);
+        const inv = (save.inventory || []).find((e: any) => e.itemId === ammoId);
         const toDeduct = Math.min(count, inv?.qty ?? 0);
         if (toDeduct > 0)
-          save = { ...save, inventory: save.inventory.map(e => e.itemId === ammoId ? { ...e, qty: e.qty - toDeduct } : e).filter(e => e.qty > 0) };
+          save = { ...save, inventory: save.inventory.map((e: any) => e.itemId === ammoId ? { ...e, qty: e.qty - toDeduct } : e).filter((e: any) => e.qty > 0) };
       }
 
       const sr = SaveManager.save(save, slotId);
@@ -2270,11 +2277,11 @@ const HomeScreen = (() => {
     };
 
     // Shared combat resolution � runs autobattle then applies post-combat logic.
-    const _resolveCombat = (enc) => {
+    const _resolveCombat = (enc: any) => {
       const partyInsts = save.party
-        .map(p => { const r = Loader.load(`instances/companions/${p.instanceId}`, "companionInstance"); return r.ok ? r.data : null; })
+        .map((p: any) => { const r = Loader.load(`instances/companions/${p.instanceId}`, "companionInstance"); return r.ok ? r.data : null; })
         .filter(Boolean)
-        .map(inst => ({ ...inst, _inventory: save.inventory || [] }));
+        .map((inst: any) => ({ ...inst, _inventory: save.inventory || [] }));
       const priorVictory = !!(save.flags?.priorEncounterVictory);
       const cr = CombatBridge.run(enc, partyInsts, { priorEncounterVictory: priorVictory });
       _applyPostCombat(cr, enc);
@@ -2303,9 +2310,9 @@ const HomeScreen = (() => {
 
       if (enc.encounterType === "gathering") {
         const nodes = enc.gatheringNodes || [];
-        emit(`\n🌿 Gathering � ${nodes.map(n => n.name).join(", ")}`);
+        emit(`\n🌿 Gathering � ${nodes.map((n: any) => n.name).join(", ")}`);
         for (const n of nodes) {
-          const lootMap = {};
+          const lootMap: Record<string, number> = {};
           const rolls = n.rolls || 1;
           for (let r = 0; r < rolls; r++) {
             for (const drop of (n.drops || [])) {
@@ -2316,7 +2323,7 @@ const HomeScreen = (() => {
           const loot = Object.entries<any>(lootMap).map(([itemId, qty]) => ({ itemId, qty }));
           if (!loot.length) loot.push({ itemId: n.nodeId, qty: 1 });
           for (const { itemId, qty } of loot) save = Modifiers.addToInventory(save, itemId, qty);
-          emit(`   Gathered: ${loot.map(l => `${l.qty}x ${l.itemId}`).join(", ")}`);
+          emit(`   Gathered: ${loot.map((l: any) => `${l.qty}x ${l.itemId}`).join(", ")}`);
           // Gathering is a profession action: award authored XP per node (node.xp).
           if (n.requiredProfession) {
             const xp = (n.xp != null) ? n.xp : (10 + (n.minSkillLevel || 0));
@@ -2335,10 +2342,10 @@ const HomeScreen = (() => {
         if (!q) { emit(`\n📜 A quest was available but failed to load.`); state = STATES.HOME; return; }
         emit(`\n📜 Quest: ${q.name}`); emit(`  ${q.description || ""}`);
         for (const obj of (q.objectives || [])) emit(`  ☐ ${obj.description}  [0/${obj.count}]`);
-        const rw = q.rewards || {}, rwP = [];
-        if (rw.xp) rwP.push(`${rw.xp} XP`); if (rw.currency) rwP.push(Currency.toString(rw.currency)); if (rw.items?.length) rwP.push(rw.items.map(i => `${i.qty}x ${i.itemId}`).join(", ")); if (rw.reputation?.length) rwP.push(rw.reputation.map(r => `+${r.amount} ${r.factionId} rep`).join(", "));
+        const rw = q.rewards || {}, rwP: string[] = [];
+        if (rw.xp) rwP.push(`${rw.xp} XP`); if (rw.currency) rwP.push(Currency.toString(rw.currency)); if (rw.items?.length) rwP.push(rw.items.map((i: any) => `${i.qty}x ${i.itemId}`).join(", ")); if (rw.reputation?.length) rwP.push(rw.reputation.map((r: any) => `+${r.amount} ${r.factionId} rep`).join(", "));
         if (rwP.length) emit(`  Rewards: ${rwP.join(" | ")}`);
-        const objectives = {}; for (const obj of (q.objectives || [])) objectives[obj.id] = 0;
+        const objectives: Record<string, number> = {}; for (const obj of (q.objectives || [])) objectives[obj.id] = 0;
         save = { ...save, quests: { ...save.quests, [q.id]: { objectives, completed: false, assignedAt: new Date().toISOString() } } };
         save = Modifiers.clearFlag(save, "trackingBoost");
         save = Modifiers.clearFlag(save, "activeTrack");
@@ -2372,7 +2379,7 @@ const HomeScreen = (() => {
       }
 
       if (enc.encounterType === "locked_chest") {
-        const hasLockpick = save.party.some(m => {
+        const hasLockpick = save.party.some((m: any) => {
           const ir = Loader.load(`instances/companions/${m.instanceId}`, "companionInstance");
           return ir.ok && ((ir.data.skills || {}).lockpicking || 0) >= 1;
         });
@@ -2405,7 +2412,7 @@ const HomeScreen = (() => {
       // Combat: surface enemies then wait for engageCombat() or tryFlee()
       const _fleeBonus  = save.flags?.fleeBonus || 0;
       const fleeChance  = RidingSystem.getFleeChance(save, enc.enemies, _fleeBonus);
-      emit(`\n⚡ Encounter: ${enc.enemies.map(e => e.name).join(", ")}`);
+      emit(`\n⚡ Encounter: ${enc.enemies.map((e: any) => e.name).join(", ")}`);
       emit(`   Flee chance: ${Math.round(fleeChance * 100)}%  |  Riding: ${RidingSystem.getSkill(save)}/${RidingSystem.getCap(RidingSystem.getHighestPartyLevel(save))}${_fleeBonus > 0 ? `  (+${Math.round(_fleeBonus * 100)}% bonus)` : ""}`);
       _pendingCombat = enc;
       state = STATES.COMBAT_PENDING;
@@ -2417,33 +2424,33 @@ const HomeScreen = (() => {
       _pendingCombat = null;
       if (combatMode === "streamlined" || combatMode === "full_manual") {
         const partyInsts = save.party
-          .map(p => { const r = Loader.load(`instances/companions/${p.instanceId}`, "companionInstance"); return r.ok ? r.data : null; })
+          .map((p: any) => { const r = Loader.load(`instances/companions/${p.instanceId}`, "companionInstance"); return r.ok ? r.data : null; })
           .filter(Boolean);
         _manualCombatState = { enc, ...CombatBridge.startCombat(enc, partyInsts) };
         state = STATES.IN_COMBAT;
-        emit(`⚔ Manual combat started � ${enc.enemies.map(e => e.name).join(", ")}`);
+        emit(`⚔ Manual combat started � ${enc.enemies.map((e: any) => e.name).join(", ")}`);
       } else {
         state = STATES.ENCOUNTER;
         _resolveCombat(enc);
       }
     };
 
-    const executePlayerAction = (actions) => {
+    const executePlayerAction = (actions: any) => {
       if (state !== STATES.IN_COMBAT || !_manualCombatState) { emit(`   Not in manual combat.`); return; }
       const priorVictory = !!(save.flags?.priorEncounterVictory);
 
       // Validate and consume any item actions before handing off to stepTurn.
-      const resolvedActions = [];
+      const resolvedActions: any[] = [];
       for (const action of (actions || [])) {
         if (action.type === 'use_item') {
           const { itemId } = action;
-          const entry = (save.inventory || []).find(e => e.itemId === itemId);
+          const entry = (save.inventory || []).find((e: any) => e.itemId === itemId);
           if (!entry || entry.qty < 1) { emit(`   You don't have ${itemId}.`); continue; }
           const ir = Loader.load(`templates/items/${itemId}`, 'item');
           if (!ir.ok || !ir.data.onUse) { emit(`   ${itemId} has no use effect.`); continue; }
           const itemDef = ir.data;
           if (itemDef.onUse.outOfCombatOnly) { emit(`   ${itemDef.name} cannot be used in combat.`); continue; }
-          save = { ...save, inventory: save.inventory.map(e => e.itemId === itemId ? { ...e, qty: e.qty - 1 } : e).filter(e => e.qty > 0) };
+          save = { ...save, inventory: save.inventory.map((e: any) => e.itemId === itemId ? { ...e, qty: e.qty - 1 } : e).filter((e: any) => e.qty > 0) };
           resolvedActions.push({ ...action, itemDef });
         } else {
           resolvedActions.push(action);
@@ -2452,7 +2459,7 @@ const HomeScreen = (() => {
 
       const result = CombatBridge.stepTurn(_manualCombatState, resolvedActions, { priorEncounterVictory: priorVictory, mode: combatMode });
       _manualCombatState = { ..._manualCombatState, party: result.party, enemies: result.enemies, turn: result.turn, allLogs: [..._manualCombatState.allLogs, ...result.stepLogs] };
-      result.stepLogs.forEach(l => emit(l));
+      result.stepLogs.forEach((l: any) => emit(l));
 
       if (result.outcome || result.turn >= 30) {
         const enc = _manualCombatState.enc;
@@ -2461,12 +2468,12 @@ const HomeScreen = (() => {
           outcome: result.outcome || "timeout",
           turns:   result.turn,
           logs:    [],  // already emitted turn-by-turn; skip re-emit in _applyPostCombat
-          kills:   result.enemies.filter(u => !u.alive),
-          totalXp: result.enemies.filter(u => !u.alive).reduce((s, u) => s + (u.xpValue || 0), 0),
+          kills:   result.enemies.filter((u: any) => !u.alive),
+          totalXp: result.enemies.filter((u: any) => !u.alive).reduce((s: number, u: any) => s + (u.xpValue || 0), 0),
           enemies: result.enemies,
           party:   result.party,
-          pickpocketGold:   result.enemies.reduce((s, e) => s + (e.pickpocketGold || 0), 0),
-          soulShardsGained: result.party.reduce((s, u) => s + (u.soulShardsGained || 0), 0),
+          pickpocketGold:   result.enemies.reduce((s: number, e: any) => s + (e.pickpocketGold || 0), 0),
+          soulShardsGained: result.party.reduce((s: number, u: any) => s + (u.soulShardsGained || 0), 0),
           abilityUse:       result.abilityUse || {},
         };
         _manualCombatState = null;
@@ -2474,7 +2481,7 @@ const HomeScreen = (() => {
       }
     };
 
-    const setCombatMode = (mode) => {
+    const setCombatMode = (mode: string) => {
       combatMode = ['auto', 'streamlined', 'full_manual'].includes(mode) ? mode : 'auto';
       emit(`   Combat mode: ${combatMode}`);
     };
@@ -2485,18 +2492,18 @@ const HomeScreen = (() => {
       if (!_manualCombatState) return null;
       return {
         turn: _manualCombatState.turn,
-        enemyUnits: _manualCombatState.enemies.map(u => ({
+        enemyUnits: _manualCombatState.enemies.map((u: any) => ({
           id: u.id, name: u.name, hp: u.hp, maxHp: u.maxHp, alive: u.alive,
-          buffs: u.buffs?.map(b => b.id || b) || [],
-          debuffs: u.debuffs?.map(b => b.id || b) || [],
+          buffs: u.buffs?.map((b: any) => b.id || b) || [],
+          debuffs: u.debuffs?.map((b: any) => b.id || b) || [],
         })),
-        partyUnits: _manualCombatState.party.map(u => ({
+        partyUnits: _manualCombatState.party.map((u: any) => ({
           id: u.id, name: u.name, hp: u.hp, maxHp: u.maxHp, alive: u.alive,
           resources: u.resources,
           cooldowns: u.cooldowns || {},
-          buffs: u.buffs?.map(b => b.id || b) || [],
-          debuffs: u.debuffs?.map(b => b.id || b) || [],
-          castQueue: (u.castQueue || []).map(e => ({ abilityId: e.abilityId, turnsRemaining: e.turnsRemaining })),
+          buffs: u.buffs?.map((b: any) => b.id || b) || [],
+          debuffs: u.debuffs?.map((b: any) => b.id || b) || [],
+          castQueue: (u.castQueue || []).map((e: any) => ({ abilityId: e.abilityId, turnsRemaining: e.turnsRemaining })),
           isPet: u.isPet || false,
           ownerId: u.ownerId || null,
           classId: u.classId,
@@ -2540,7 +2547,7 @@ const HomeScreen = (() => {
     };
     // Travel model: any zone is reachable (no adjacency graph). Same-region travel
     // is free; cross-region travel costs a price based on the destination's level.
-    const selectZone = (zoneId) => {
+    const selectZone = (zoneId: string) => {
       const zr = Loader.load(`templates/zones/${zoneId}`, "zone");
       if (!zr.ok) { emit(`   Unknown zone: ${zoneId}`); return false; }
       const dest = zr.data;
@@ -2560,10 +2567,10 @@ const HomeScreen = (() => {
       state = STATES.HOME;
       return true;
     };
-    const renderBag  = () => { state = STATES.BAG; emit(`\n── Bag ──`); emit(`   Currency: ${Currency.toString(save.currency || 0)}`); if (!save.inventory?.length) { emit(`   (empty)`); return; } save.inventory.forEach((e, i) => emit(`   ${i + 1}. ${e.itemId.padEnd(26)} �${e.qty}`)); };
+    const renderBag  = () => { state = STATES.BAG; emit(`\n── Bag ──`); emit(`   Currency: ${Currency.toString(save.currency || 0)}`); if (!save.inventory?.length) { emit(`   (empty)`); return; } save.inventory.forEach((e: any, i: number) => emit(`   ${i + 1}. ${e.itemId.padEnd(26)} �${e.qty}`)); };
 
-    const useItem = (itemId) => {
-      const invEntry = (save.inventory || []).find(e => e.itemId === itemId);
+    const useItem = (itemId: string) => {
+      const invEntry = (save.inventory || []).find((e: any) => e.itemId === itemId);
       if (!invEntry || invEntry.qty < 1) { emit(`   You don't have that.`); return; }
       const ir = Loader.load(`templates/items/${itemId}`, "item");
       if (!ir.ok || !ir.data.onUse) { emit(`   No use effect.`); return; }
@@ -2571,14 +2578,14 @@ const HomeScreen = (() => {
       if (item.onUse.outOfCombatOnly && (state === STATES.ENCOUNTER || state === STATES.COMBAT_PENDING)) { emit(`   ${item.name} can only be used out of combat.`); return; }
       if (item.onUse.type === "heal") {
         const isParty = item.onUse.target === "party";
-        const aliveInsts = [];
+        const aliveInsts: any[] = [];
         for (const m of save.party) {
           const ir2 = Loader.load(`instances/companions/${m.instanceId}`, "companionInstance");
           if (ir2.ok && ir2.data.deathState === "alive") aliveInsts.push({ member: m, inst: ir2.data });
         }
         const targets = isParty
           ? aliveInsts
-          : aliveInsts.sort((a, b) => (a.inst.currentHp / a.inst.maxHp) - (b.inst.currentHp / b.inst.maxHp)).slice(0, 1);
+          : aliveInsts.sort((a: any, b: any) => (a.inst.currentHp / a.inst.maxHp) - (b.inst.currentHp / b.inst.maxHp)).slice(0, 1);
         let anyHealed = false;
         for (const { member, inst } of targets) {
           const amount = item.onUse.percent != null
@@ -2604,7 +2611,7 @@ const HomeScreen = (() => {
           const inst = ir.data;
           if (inst.deathState !== "alive") continue;
           const duration = _abilitiesData.buffs[buffId]?.duration ?? 1;
-          const existing = (inst.activeBuffs || []).filter(b => (typeof b === "string" ? b : b.id) !== buffId);
+          const existing = (inst.activeBuffs || []).filter((b: any) => (typeof b === "string" ? b : b.id) !== buffId);
           DataStore.write(`instances/companions/${m.instanceId}`, { ...inst, activeBuffs: [...existing, { id: buffId, remainingDuration: duration }] });
           emit(`   Applied ${item.name} to ${inst.name}. (+2 melee damage for 30 turns)`);
           applied = true;
@@ -2612,7 +2619,7 @@ const HomeScreen = (() => {
         }
         if (!applied) { emit(`   No valid target for ${item.name}.`); return; }
       }
-      save = { ...save, inventory: save.inventory.map(e => e.itemId === itemId ? { ...e, qty: e.qty - 1 } : e).filter(e => e.qty > 0) };
+      save = { ...save, inventory: save.inventory.map((e: any) => e.itemId === itemId ? { ...e, qty: e.qty - 1 } : e).filter((e: any) => e.qty > 0) };
     };
 
     const renderShop = (tab = "buy") => {
@@ -2625,23 +2632,23 @@ const HomeScreen = (() => {
       if (tab === "buy") {
         const list = ShopSystem.getBuyList(zone, save);
         if (!list.length) { emit(`   Nothing for sale.`); return; }
-        list.forEach((e, i) => emit(`   ${i + 1}. ${e.itemId.padEnd(26)} ${Currency.toString(e.buyPrice).padStart(8)}  [${e.stock === -1 ? "∞" : e.stock}]`));
+        list.forEach((e: any, i: number) => emit(`   ${i + 1}. ${e.itemId.padEnd(26)} ${Currency.toString(e.buyPrice).padStart(8)}  [${e.stock === -1 ? "∞" : e.stock}]`));
       } else {
         emit(`   Sell at ${Math.round((zone.sellMultiplier || 0.25) * 100)}% value:`);
         if (!save.inventory?.length) { emit(`   (nothing to sell)`); return; }
-        save.inventory.forEach((e, i) => { const ir = Loader.load(`templates/items/${e.itemId}`, "item"); const sv = ir.ok ? Currency.toString(Math.floor(ir.data.value * (zone.sellMultiplier || 0.25))) : "?"; emit(`   ${i + 1}. ${e.itemId.padEnd(26)} �${e.qty}  (${sv} each)`); });
+        save.inventory.forEach((e: any, i: number) => { const ir = Loader.load(`templates/items/${e.itemId}`, "item"); const sv = ir.ok ? Currency.toString(Math.floor(ir.data.value * (zone.sellMultiplier || 0.25))) : "?"; emit(`   ${i + 1}. ${e.itemId.padEnd(26)} �${e.qty}  (${sv} each)`); });
       }
     };
 
-    const buyItem  = (itemId, qty = 1, keeperName = 'unknown') => { const zr = Loader.load(`templates/zones/${save.currentZone}`, "zone"); if (!zr.ok) { emit(`   No shop.`); return; } const res = ShopSystem.buy(save, zr.data, itemId, qty, keeperName); emit(`   ${res.ok ? res.message : "✗ " + res.error}`); if (res.ok) save = res.save; };
-    const sellItem = (itemId, qty = 1) => { const zr = Loader.load(`templates/zones/${save.currentZone}`, "zone"); if (!zr.ok) { emit(`   No shop.`); return; } const res = ShopSystem.sell(save, zr.data, itemId, qty); emit(`   ${res.ok ? res.message : "✗ " + res.error}`); if (res.ok) save = res.save; };
+    const buyItem  = (itemId: string, qty = 1, keeperName = 'unknown') => { const zr = Loader.load(`templates/zones/${save.currentZone}`, "zone"); if (!zr.ok) { emit(`   No shop.`); return; } const res = ShopSystem.buy(save, zr.data, itemId, qty, keeperName); emit(`   ${res.ok ? res.message : "✗ " + res.error}`); if (res.ok) save = res.save; };
+    const sellItem = (itemId: string, qty = 1) => { const zr = Loader.load(`templates/zones/${save.currentZone}`, "zone"); if (!zr.ok) { emit(`   No shop.`); return; } const res = ShopSystem.sell(save, zr.data, itemId, qty); emit(`   ${res.ok ? res.message : "✗ " + res.error}`); if (res.ok) save = res.save; };
 
     const getShopData = () => {
       const zr = Loader.load(`templates/zones/${save.currentZone}`, "zone");
       if (!zr.ok) return { zoneName: "", sellMultiplier: 0.25, shopkeepers: {}, sellList: [] };
       const zone = zr.data;
       const sellMult = zone.sellMultiplier ?? 0.25;
-      const enrichItem = (entry) => {
+      const enrichItem = (entry: any) => {
         const ir   = Loader.load(`templates/items/${entry.itemId}`, "item");
         const item = ir.ok ? ir.data : {};
         return {
@@ -2661,7 +2668,7 @@ const HomeScreen = (() => {
           tags:        item.tags        || [],
         };
       };
-      const shopkeepers = {};
+      const shopkeepers: Record<string, any> = {};
       for (const keeperName of Object.keys(zone.shopkeepers || {})) {
         const list = ShopSystem.getBuyList(zone, save, keeperName);
         shopkeepers[keeperName] = { inventory: list.map(enrichItem) };
@@ -2672,7 +2679,7 @@ const HomeScreen = (() => {
         maxLevel:       zone.maxPartyLevel,
         sellMultiplier: sellMult,
         shopkeepers,
-        sellList: (save.inventory || []).map(e => {
+        sellList: (save.inventory || []).map((e: any) => {
           const ir   = Loader.load(`templates/items/${e.itemId}`, "item");
           const item = ir.ok ? ir.data : {};
           return {
@@ -2704,7 +2711,7 @@ const HomeScreen = (() => {
 
     const renderParty = () => {
       state = STATES.PARTY; emit(`\n── Party (${save.party.length}) ──`);
-      save.party.forEach((m, i) => { const ir = Loader.load(`instances/companions/${m.instanceId}`, "companionInstance"); const inst = ir.ok ? ir.data : null; const deathTag = inst && inst.deathState !== "alive" ? ` [${inst.deathState.toUpperCase()}]` : ""; emit(`   ${i + 1}. ${inst ? inst.name : m.instanceId}${deathTag}  ${inst ? `${inst.raceId} ${inst.classId}  Lv${inst.level || 1}  Prof: ${inst.profession || "�"}` : ""}`); });
+      save.party.forEach((m: any, i: number) => { const ir = Loader.load(`instances/companions/${m.instanceId}`, "companionInstance"); const inst = ir.ok ? ir.data : null; const deathTag = inst && inst.deathState !== "alive" ? ` [${inst.deathState.toUpperCase()}]` : ""; emit(`   ${i + 1}. ${inst ? inst.name : m.instanceId}${deathTag}  ${inst ? `${inst.raceId} ${inst.classId}  Lv${inst.level || 1}  Prof: ${inst.profession || "�"}` : ""}`); });
     };
 
     const renderReputation = () => {
@@ -2715,20 +2722,20 @@ const HomeScreen = (() => {
 
     const renderAbilities = () => {
       state = STATES.ABILITIES; emit(`\n── Ability Lists ──`);
-      for (const member of save.party) { const ir = Loader.load(`instances/companions/${member.instanceId}`, "companionInstance"); if (!ir.ok) continue; emit(`   ${ir.data.name}:`); (ir.data.learnedAbilities || []).forEach(id => emit(`     - ${id}`)); }
+      for (const member of save.party) { const ir = Loader.load(`instances/companions/${member.instanceId}`, "companionInstance"); if (!ir.ok) continue; emit(`   ${ir.data.name}:`); (ir.data.learnedAbilities || []).forEach((id: any) => emit(`     - ${id}`)); }
     };
 
     const renderSaveLoad = () => {
       state = STATES.SAVE_LOAD; emit(`\n── Save / Load ──`);
       const slots = SaveManager.listSlots();
       if (!slots.length) emit(`   No saves found.`);
-      else slots.forEach((s, i) => { const pt = `${Math.floor(s.playtime / 60)}m${s.playtime % 60}s`; emit(`   ${i + 1}. [${s.slotId}]  ${s.zone}  Party:${s.partySize}  ${pt}  ${s.timestamp.slice(0, 16)}`); });
+      else slots.forEach((s: any, i: number) => { const pt = `${Math.floor(s.playtime / 60)}m${s.playtime % 60}s`; emit(`   ${i + 1}. [${s.slotId}]  ${s.zone}  Party:${s.partySize}  ${pt}  ${s.timestamp.slice(0, 16)}`); });
     };
 
-    const manualSave = (targetSlot) => { const id = targetSlot || slotId; const result = SaveManager.save(save, id); emit(result.ok ? `   ✓ Saved to slot "${id}"` : `   ✗ Save failed: ${result.errors.join(", ")}`); };
-    const manualLoad = (targetSlot) => { const result = SaveManager.load(targetSlot); if (!result.ok) { emit(`   ✗ Load failed: ${result.errors.join(", ")}`); return false; } save = result.data; slotId = targetSlot; emit(`   ✓ Loaded slot "${targetSlot}"`); state = STATES.HOME; return true; };
+    const manualSave = (targetSlot?: string) => { const id = targetSlot || slotId; const result = SaveManager.save(save, id); emit(result.ok ? `   ✓ Saved to slot "${id}"` : `   ✗ Save failed: ${result.errors.join(", ")}`); };
+    const manualLoad = (targetSlot: string) => { const result = SaveManager.load(targetSlot); if (!result.ok) { emit(`   ✗ Load failed: ${result.errors.join(", ")}`); return false; } save = result.data; slotId = targetSlot; emit(`   ✓ Loaded slot "${targetSlot}"`); state = STATES.HOME; return true; };
 
-    const getPartySkill = (professionId) => {
+    const getPartySkill = (professionId: string) => {
       let best = 0;
       for (const member of save.party) {
         const ir = Loader.load(`instances/companions/${member.instanceId}`, "companionInstance");
@@ -2739,8 +2746,8 @@ const HomeScreen = (() => {
       return best;
     };
 
-    const hasIngredients = (inputs) => inputs.every(({ itemId, qty }) => {
-      const entry = (save.inventory || []).find(e => e.itemId === itemId);
+    const hasIngredients = (inputs: any[]) => inputs.every(({ itemId, qty }: any) => {
+      const entry = (save.inventory || []).find((e: any) => e.itemId === itemId);
       return entry && entry.qty >= qty;
     });
 
@@ -2749,18 +2756,18 @@ const HomeScreen = (() => {
       emit(`\n── Crafting ──`);
       const recipes = Loader.loadAll("templates/recipes/", "recipe");
       if (!recipes.items.length) { emit(`   No recipes available.`); return; }
-      recipes.items.forEach((rec, i) => {
+      recipes.items.forEach((rec: any, i: number) => {
         const skillOk = !rec.requiredProfession || getPartySkill(rec.requiredProfession) >= (rec.minSkillLevel || 0);
         const matsOk  = hasIngredients(rec.inputs);
         const tag     = skillOk && matsOk ? "[CAN CRAFT]  " : !skillOk ? "[NEED SKILL] " : "[MISSING MATS]";
-        const inputStr = rec.inputs.map(({ itemId, qty }) => `${qty}x ${itemId}`).join(", ");
+        const inputStr = rec.inputs.map(({ itemId, qty }: any) => `${qty}x ${itemId}`).join(", ");
         const profStr  = rec.requiredProfession ? `  (${rec.requiredProfession} ${rec.minSkillLevel || 0}+)` : "";
         emit(`   ${i + 1}. ${rec.name.padEnd(26)} ${tag}`);
         emit(`      → ${rec.output.qty}x ${rec.output.itemId}  |  ${inputStr}${profStr}`);
       });
     };
 
-    const craftItem = (recipeId) => {
+    const craftItem = (recipeId: string) => {
       const rr = Loader.load(`templates/recipes/${recipeId}`, "recipe");
       if (!rr.ok) { emit(`   Unknown recipe: ${recipeId}`); return; }
       const rec = rr.data;
@@ -2771,14 +2778,14 @@ const HomeScreen = (() => {
       }
 
       if (!hasIngredients(rec.inputs)) {
-        const missing = rec.inputs.filter(({ itemId, qty }) => { const e = (save.inventory || []).find(e => e.itemId === itemId); return !e || e.qty < qty; });
-        emit(`   Missing: ${missing.map(({ itemId, qty }) => `${qty}x ${itemId}`).join(", ")}`);
+        const missing = rec.inputs.filter(({ itemId, qty }: any) => { const e = (save.inventory || []).find((e: any) => e.itemId === itemId); return !e || e.qty < qty; });
+        emit(`   Missing: ${missing.map(({ itemId, qty }: any) => `${qty}x ${itemId}`).join(", ")}`);
         return;
       }
 
       let inv = [...(save.inventory || [])];
       for (const { itemId, qty } of rec.inputs)
-        inv = inv.map(e => e.itemId === itemId ? { ...e, qty: e.qty - qty } : e).filter(e => e.qty > 0);
+        inv = inv.map((e: any) => e.itemId === itemId ? { ...e, qty: e.qty - qty } : e).filter((e: any) => e.qty > 0);
       save = { ...save, inventory: inv };
 
       // Crafted output can roll a random suffix at the separate craftRollChance
@@ -2811,7 +2818,7 @@ const HomeScreen = (() => {
       emit(`   Riding: ${riding}/${cap}`);
       const owned = save.mounts || [];
       if (!owned.length) emit(`   Collection: (none)`);
-      else owned.forEach(id => { const ir = Loader.load(`templates/items/${id}`, "item"); emit(`   ✦ ${ir.ok ? ir.data.name : id}`); });
+      else owned.forEach((id: any) => { const ir = Loader.load(`templates/items/${id}`, "item"); emit(`   ✦ ${ir.ok ? ir.data.name : id}`); });
       if      (RidingSystem.canBuyEpicMount(save))       emit(`   Eligible: epic mounts`);
       else if (RidingSystem.canBuyBasicMount(save))      emit(`   Eligible: basic mounts`);
       else {
@@ -2826,8 +2833,8 @@ const HomeScreen = (() => {
     const getCurrentState = () => state;
     const getSave         = () => save;
 
-    const equipItem = (itemId, instanceId) => {
-      const invEntry = (save.inventory || []).find(e => e.itemId === itemId);
+    const equipItem = (itemId: string, instanceId?: string) => {
+      const invEntry = (save.inventory || []).find((e: any) => e.itemId === itemId);
       if (!invEntry || invEntry.qty < 1) { emit(`   You don't have that.`); return; }
       const ir = Loader.load(`templates/items/${itemId}`, "item");
       if (!ir.ok) { emit(`   Unknown item: ${itemId}.`); return; }
@@ -2852,10 +2859,10 @@ const HomeScreen = (() => {
       }
       const prevItemId = inst.gear?.[item.slot] || null;
       DataStore.write(`instances/companions/${compId}`, { ...inst, gear: { ...(inst.gear || {}), [item.slot]: itemId } });
-      let inv = save.inventory.map(e => e.itemId === itemId ? { ...e, qty: e.qty - 1 } : e).filter(e => e.qty > 0);
+      let inv = save.inventory.map((e: any) => e.itemId === itemId ? { ...e, qty: e.qty - 1 } : e).filter((e: any) => e.qty > 0);
       if (prevItemId) {
-        const ex = inv.find(e => e.itemId === prevItemId);
-        inv = ex ? inv.map(e => e.itemId === prevItemId ? { ...e, qty: e.qty + 1 } : e) : [...inv, { itemId: prevItemId, qty: 1 }];
+        const ex = inv.find((e: any) => e.itemId === prevItemId);
+        inv = ex ? inv.map((e: any) => e.itemId === prevItemId ? { ...e, qty: e.qty + 1 } : e) : [...inv, { itemId: prevItemId, qty: 1 }];
       }
       save = { ...save, inventory: inv };
       emit(`   ⚔ Equipped ${item.name} on ${inst.name}${prevItemId ? ` (replaced ${prevItemId})` : ""}.`);
@@ -2866,7 +2873,7 @@ const HomeScreen = (() => {
     // useAbility � out-of-combat and pre-combat ability usage
     // HOME state:           outOfCombatOnly abilities (track_beasts, track_humanoids)
     // COMBAT_PENDING state: abilities whose buff/debuff has a fleeBonus (earthbind, concussive_shot, wing_clip)
-    const useAbility = (abilityId) => {
+    const useAbility = (abilityId: string) => {
       const ab = _abilitiesData.abilities[abilityId];
       if (!ab) { emit(`   Unknown ability: ${abilityId}.`); return; }
 
@@ -2877,7 +2884,7 @@ const HomeScreen = (() => {
 
       // for COMBAT_PENDING: only allow abilities that produce a buff/debuff with fleeBonus
       if (inPending) {
-        const hasFleeEffect = (ab.effects || []).some(e => {
+        const hasFleeEffect = (ab.effects || []).some((e: any) => {
           if (e.type !== "buff" && e.type !== "debuff") return false;
           return (_abilitiesData.buffs?.[e.buffId]?.fleeBonus || 0) > 0;
         });
@@ -2885,7 +2892,7 @@ const HomeScreen = (() => {
       }
 
       // find the first party member with this ability who can afford it
-      let casterInst = null, casterIid = null;
+      let casterInst: any = null, casterIid: any = null;
       for (const m of save.party) {
         const ir = Loader.load(`instances/companions/${m.instanceId}`, "companionInstance");
         if (!ir.ok) continue;
@@ -2908,7 +2915,7 @@ const HomeScreen = (() => {
       DataStore.write(`instances/companions/${casterIid}`, newInst);
 
       // apply effects
-      const applied = [];
+      const applied: string[] = [];
       for (const eff of (ab.effects || [])) {
         if (eff.type === "set_track") {
           save = { ...save, flags: { ...(save.flags || {}), activeTrack: eff.trackType } };
@@ -2969,7 +2976,7 @@ const HomeScreen = (() => {
             }
           }
         } else if (eff.type === "create_healthstone") {
-          const existing = (save.inventory || []).find(e => e.itemId === "healthstone");
+          const existing = (save.inventory || []).find((e: any) => e.itemId === "healthstone");
           if (existing) {
             applied.push("already have a Healthstone");
           } else {
@@ -2994,13 +3001,13 @@ const HomeScreen = (() => {
 
     const butcherCorpses = () => {
       if (!(save.flags?.pendingButchery?.length)) { emit(`   No corpses to butcher.`); return; }
-      const beasts = _lastKills.filter(e => e.type === "beast");
+      const beasts = _lastKills.filter((e: any) => e.type === "beast");
       if (!beasts.length) { emit(`   Nothing butcherable.`); return; }
       const { save: ns, drops } = RewardEngine.applyButchery(save, beasts);
       save = ns;
       if (drops.length) {
         emit(`   🐾 Butchered ${beasts.length} corpse${beasts.length > 1 ? "s" : ""}:`);
-        drops.forEach(d => emit(`      +${d.qty}x ${d.itemId}`));
+        drops.forEach((d: any) => emit(`      +${d.qty}x ${d.itemId}`));
       } else {
         emit(`   🐾 Nothing useful was recovered.`);
       }
@@ -3010,7 +3017,7 @@ const HomeScreen = (() => {
       emit(sr.ok ? `   ✓ Auto-saved.` : `   ✗ Save failed.`);
     };
 
-    const rezMember = (instanceId) => {
+    const rezMember = (instanceId: string) => {
       const cr = Loader.load(`instances/companions/${instanceId}`, "companionInstance");
       if (!cr.ok) { emit(`   Companion not found.`); return; }
       const res = DeathHandler.rezForGold(cr.data, save);
@@ -3025,7 +3032,7 @@ const HomeScreen = (() => {
 
     // ── Collections & Achievements ─────────────────────────────────────────────
 
-    const trackCollections = (kills = [], lootItems = []) => {
+    const trackCollections = (kills: any[] = [], lootItems: any[] = []) => {
       const killMap  = { ...(save.collections?.kills || {}) };
       const itemMap  = { ...(save.collections?.items || {}) };
       for (const k of kills) {
@@ -3054,12 +3061,12 @@ const HomeScreen = (() => {
         const rw = def.rewards || {};
         if (rw.xp) {
           const achXp = rw.xp;
-          save = { ...save, party: save.party.map(m => {
+          save = { ...save, party: save.party.map((m: any) => {
             const ir = Loader.load(`instances/companions/${m.instanceId}`, "companionInstance");
             if (!ir.ok) return m;
             const { inst: updated, levelUpLines } = addXpToInst(ir.data, achXp);
             DataStore.write(`instances/companions/${m.instanceId}`, updated);
-            levelUpLines.forEach(l => emit(`   ${l}`));
+            levelUpLines.forEach((l: any) => emit(`   ${l}`));
             return m;
           }) };
           emit(`   ✦ Reward: +${achXp} XP (each member)`);
@@ -3080,24 +3087,24 @@ const HomeScreen = (() => {
     // Returns all known companion instances (party + roster) with inParty flag.
     const getRosterData = () => {
       const allSlots = [
-        ...(save.party  || []).map(m => ({ ...m, inParty: true  })),
-        ...(save.roster || []).map(m => ({ ...m, inParty: false })),
+        ...(save.party  || []).map((m: any) => ({ ...m, inParty: true  })),
+        ...(save.roster || []).map((m: any) => ({ ...m, inParty: false })),
       ];
-      return allSlots.map(slot => {
+      return allSlots.map((slot: any) => {
         const ir = Loader.load(`instances/companions/${slot.instanceId}`, 'companionInstance');
         if (!ir.ok) return null;
         return { ...ir.data, inParty: slot.inParty };
       }).filter(Boolean);
     };
 
-    const addToParty = (instanceId) => {
+    const addToParty = (instanceId: string) => {
       if (state === STATES.IN_COMBAT) { emit(`   Cannot change party during combat.`); return; }
-      const rosterEntry = (save.roster || []).find(m => m.instanceId === instanceId);
+      const rosterEntry = (save.roster || []).find((m: any) => m.instanceId === instanceId);
       if (!rosterEntry) { emit(`   ${instanceId} is not in the guildhall.`); return; }
       save = {
         ...save,
         party:  [...(save.party || []), rosterEntry],
-        roster: (save.roster || []).filter(m => m.instanceId !== instanceId),
+        roster: (save.roster || []).filter((m: any) => m.instanceId !== instanceId),
       };
       const inst = Loader.load(`instances/companions/${instanceId}`, 'companionInstance');
       const name = inst.ok ? inst.data.name : instanceId;
@@ -3106,13 +3113,13 @@ const HomeScreen = (() => {
       emit(sr.ok ? `   ✓ Auto-saved.` : `   ✗ Save failed.`);
     };
 
-    const removeFromParty = (instanceId) => {
+    const removeFromParty = (instanceId: string) => {
       if (state === STATES.IN_COMBAT) { emit(`   Cannot change party during combat.`); return; }
-      const partyEntry = (save.party || []).find(m => m.instanceId === instanceId);
+      const partyEntry = (save.party || []).find((m: any) => m.instanceId === instanceId);
       if (!partyEntry) { emit(`   ${instanceId} is not in your party.`); return; }
       save = {
         ...save,
-        party:  save.party.filter(m => m.instanceId !== instanceId),
+        party:  save.party.filter((m: any) => m.instanceId !== instanceId),
         roster: [...(save.roster || []), partyEntry],
       };
       const inst = Loader.load(`instances/companions/${instanceId}`, 'companionInstance');
@@ -3122,16 +3129,16 @@ const HomeScreen = (() => {
       emit(sr.ok ? `   ✓ Auto-saved.` : `   ✗ Save failed.`);
     };
 
-    const swapPartyMember = (outInstanceId, inInstanceId) => {
+    const swapPartyMember = (outInstanceId: string, inInstanceId: string) => {
       if (state === STATES.IN_COMBAT) { emit(`   Cannot swap party members during combat.`); return; }
-      const partyEntry  = (save.party  || []).find(m => m.instanceId === outInstanceId);
-      const rosterEntry = (save.roster || []).find(m => m.instanceId === inInstanceId);
+      const partyEntry  = (save.party  || []).find((m: any) => m.instanceId === outInstanceId);
+      const rosterEntry = (save.roster || []).find((m: any) => m.instanceId === inInstanceId);
       if (!partyEntry)  { emit(`   ${outInstanceId} is not in your party.`);  return; }
       if (!rosterEntry) { emit(`   ${inInstanceId} is not in your roster.`); return; }
       save = {
         ...save,
-        party:  save.party.map(m => m.instanceId === outInstanceId ? rosterEntry : m),
-        roster: [...(save.roster || []).filter(m => m.instanceId !== inInstanceId), partyEntry],
+        party:  save.party.map((m: any) => m.instanceId === outInstanceId ? rosterEntry : m),
+        roster: [...(save.roster || []).filter((m: any) => m.instanceId !== inInstanceId), partyEntry],
       };
       const outInst = Loader.load(`instances/companions/${outInstanceId}`, 'companionInstance');
       const inInst  = Loader.load(`instances/companions/${inInstanceId}`,  'companionInstance');
@@ -3142,26 +3149,26 @@ const HomeScreen = (() => {
       emit(sr.ok ? `   ✓ Auto-saved.` : `   ✗ Save failed.`);
     };
 
-    const setPetForCompanion = (instanceId, petId) => {
+    const setPetForCompanion = (instanceId: string, petId?: string) => {
       const ir = Loader.load(`instances/companions/${instanceId}`, 'companionInstance');
       if (!ir.ok) { emit(`   No companion with id ${instanceId}.`); return; }
       const inst = ir.data;
       const pets = petsForUnit(inst);
       if (!pets.length) { emit(`   ${inst.name} has no pet skill (Zoology or Summoning).`); return; }
       if (petId) {
-        const template = pets.find(p => p.id === petId);
+        const template = pets.find((p: any) => p.id === petId);
         if (!template) { emit(`   Unknown pet: ${petId}.`); return; }
         if (template.unlockLevel > (inst.level || 1)) { emit(`   ${inst.name} is not high enough level for ${template.name} (requires level ${template.unlockLevel}).`); return; }
       }
       const updated = { ...inst, activePetId: petId || null };
       DataStore.write(`instances/companions/${instanceId}`, updated);
-      const petName = petId ? (pets.find(p => p.id === petId)?.name || petId) : 'none';
+      const petName = petId ? (pets.find((p: any) => p.id === petId)?.name || petId) : 'none';
       emit(`   ✓ ${inst.name}'s active pet set to: ${petName}.`);
       const sr = SaveManager.save(save, slotId);
       emit(sr.ok ? `   ✓ Auto-saved.` : `   ✗ Save failed.`);
     };
 
-    const getAvailablePets = (instanceId) => {
+    const getAvailablePets = (instanceId: string) => {
       const ir = Loader.load(`instances/companions/${instanceId}`, 'companionInstance');
       if (!ir.ok) return null;
       const inst = ir.data;
@@ -3169,13 +3176,13 @@ const HomeScreen = (() => {
       if (!pets.length) return null;
       return {
         activePetId: inst.activePetId || null,
-        pets: pets.map(p => ({ ...p, unlocked: (inst.level || 1) >= p.unlockLevel })),
+        pets: pets.map((p: any) => ({ ...p, unlocked: (inst.level || 1) >= p.unlockLevel })),
       };
     };
 
     // Spend one unspent stat point on a stat (stat-point allocation).
     // `allocateStat` (bare) is the leveltables helper injected at global scope.
-    const allocateStatPoint = (instanceId, stat) => {
+    const allocateStatPoint = (instanceId: string, stat: string) => {
       const ir = Loader.load(`instances/companions/${instanceId}`, "companionInstance");
       if (!ir.ok) return;
       const updated = allocateStat(ir.data, stat, 1);
@@ -3196,8 +3203,8 @@ const HomeScreen = (() => {
 const GameLoopTests = (() => {
   const run = () => {
     SyntheticGameData.seed();
-    const results = []; let p = 0, f = 0;
-    const assert = (label, cond) => { cond ? p++ : f++; results.push({ ok: !!cond, label }); };
+    const results: any[] = []; let p = 0, f = 0;
+    const assert = (label: string, cond: any) => { cond ? p++ : f++; results.push({ ok: !!cond, label }); };
 
     const session = HomeScreen.createSession();
     assert("Session init loads save",    session.init("slot_start"));
@@ -3214,7 +3221,7 @@ const GameLoopTests = (() => {
     assert("Encounter type valid",       ["combat","companion","gathering","quest","locked_chest","fishing_spot"].includes(enc.encounterType));
 
     if (enc.encounterType === "combat" && enc.enemies.length) {
-      const partyInsts = save0.party.map(p => { const r = Loader.load(`instances/companions/${p.instanceId}`, "companionInstance"); return r.ok ? r.data : null; }).filter(Boolean);
+      const partyInsts = save0.party.map((p: any) => { const r = Loader.load(`instances/companions/${p.instanceId}`, "companionInstance"); return r.ok ? r.data : null; }).filter(Boolean);
       const cr = CombatBridge.run(enc, partyInsts);
       assert("Combat outcome valid",     ["victory","defeat","timeout"].includes(cr.outcome));
       assert("Combat has turns",         cr.turns > 0);
@@ -3324,13 +3331,13 @@ const GameLoopTests = (() => {
 
     const _rand = Math.random;
     try {
-      const mkTrapInst = (iid, lvl, dungLvl) => DataStore.write(`instances/companions/${iid}`, {
+      const mkTrapInst = (iid: string, lvl: number, dungLvl: number) => DataStore.write(`instances/companions/${iid}`, {
         instanceId: iid, templateId: "template_companion", _version: 1, name: iid,
         classId: "armsman", level: lvl, maxHp: 100, currentHp: 100, maxMp: 0, currentMp: 0,
         deathState: "alive", permadead: false, downedAt: null, rezCost: 0,
         skills: { dungeoneering: { level: dungLvl, xp: 0 } },
       });
-      const trapSave = (iid) => ({ mode: "normal", party: [{ instanceId: iid, templateId: "template_companion" }], inventory: [], flags: {}, currency: 0 });
+      const trapSave = (iid: string) => ({ mode: "normal", party: [{ instanceId: iid, templateId: "template_companion" }], inventory: [], flags: {}, currency: 0 });
       const partyTrap = { id: "t_party", name: "Test Trap", effect: { type: "damage", target: "party", damage: { mode: "percentMaxHp", amount: 0.15 } }, xp: 15 };
 
       // detection: class roll always succeeds (rand=0, level 5) → avoided, no damage
@@ -3369,8 +3376,8 @@ const GameLoopTests = (() => {
     return { passed: p, failed: f, total: p + f, results };
   };
 
-  const report = (r) => {
-    const lines = [`\n${"=".repeat(60)}`, `GAME LOOP TESTS: ${r.passed}/${r.total} passed`, "=".repeat(60), ...r.results.map(x => `  ${x.ok ? "✓" : "✗"} ${x.label}`), r.failed > 0 ? `\n  ${r.failed} FAILED` : `\n  All tests passed.`, "=".repeat(60)];
+  const report = (r: any) => {
+    const lines = [`\n${"=".repeat(60)}`, `GAME LOOP TESTS: ${r.passed}/${r.total} passed`, "=".repeat(60), ...r.results.map((x: any) => `  ${x.ok ? "✓" : "✗"} ${x.label}`), r.failed > 0 ? `\n  ${r.failed} FAILED` : `\n  All tests passed.`, "=".repeat(60)];
     return lines.join("\n");
   };
 

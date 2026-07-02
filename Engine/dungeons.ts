@@ -8,7 +8,7 @@
 // DEPENDENCIES:
 //   datalayer.ts    — Modifiers
 //   encounters.ts   — EncounterGenerator (patched below)
-//   gameplayloop.js — RewardEngine (ambient global; patched after it loads)
+//   gameplayloop.ts — RewardEngine (patchRewardEngine() mutates .apply after load)
 //
 // INTEGRATION NOTES:
 //   1. Call patchEncounterGenerator() once at boot, after encounter.js loads.
@@ -32,9 +32,7 @@
 
 import { Modifiers } from "./datalayer.js";
 import { EncounterGenerator } from "./encounters.js";
-// gameplayloop is checked under its own relaxed tsconfig, so its exports are
-// pulled in via require() to keep it out of the strict program that checks this file.
-const { RewardEngine } = require("./gameplayloop.js");
+import { RewardEngine } from "./gameplayloop.js";
 
 type LoaderLike = { load: (path: string, schema: string) => { ok: boolean; data: any; errors?: string[] } };
 
