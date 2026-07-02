@@ -1,0 +1,11 @@
+{
+  "speakers": {
+    "lati_ashera": {
+      "id": "lati_ashera",
+      "_version": 1,
+      "name": "Lati Ashera",
+      "accent": "#6aa9e0",
+      "silhouette": "sephir_greyskin"
+    }
+  }
+}

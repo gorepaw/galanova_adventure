@@ -180,11 +180,18 @@ export const addXpToInst = (inst: LevelInst, amount: number): { inst: LevelInst;
 
   const { maxHp, maxMp } = deriveHpMp(raw, level);
   const alive = inst.deathState !== "downed" && inst.deathState !== "dead" && !inst.permadead;
+  // Preserve current HP/MP across XP gains so damage carries between fights. A
+  // level-up heals only by the amount max increased (a reward, not a full restore);
+  // a fresh instance with no currentHp yet starts full.
+  const prevMaxHp = inst.maxHp ?? maxHp;
+  const prevMaxMp = inst.maxMp ?? maxMp;
+  const curHp = inst.currentHp ?? maxHp;
+  const curMp = inst.currentMp ?? maxMp;
   const out: LevelInst = {
     ...inst, xp, level, unspentStatPoints: unspent,
     stats: { ...inst.stats, raw }, maxHp, maxMp,
-    currentHp: alive ? maxHp : (inst.currentHp || 0),
-    currentMp: alive ? maxMp : (inst.currentMp || 0),
+    currentHp: alive ? Math.min(maxHp, curHp + Math.max(0, maxHp - prevMaxHp)) : (inst.currentHp || 0),
+    currentMp: alive ? Math.min(maxMp, curMp + Math.max(0, maxMp - prevMaxMp)) : (inst.currentMp || 0),
   };
   return { inst: out, levelUpLines };
 };

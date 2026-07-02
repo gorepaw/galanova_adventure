@@ -33,6 +33,8 @@ export interface GameAPI {
   equipItem(id: string, iid: string | null): Promise<RespondResult>;
   rezMember(instanceId: string): Promise<RespondResult>;
   allocateStat(instanceId: string, stat: string): Promise<RespondResult>;
+  advanceScene(): Promise<RespondResult>;
+  chooseSceneOption(choiceIndex: number): Promise<RespondResult>;
   useItem(itemId: string): Promise<RespondResult>;
   back(): Promise<RespondResult>;
   setCombatMode(mode: string): Promise<RespondResult>;

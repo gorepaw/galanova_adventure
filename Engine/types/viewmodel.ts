@@ -101,6 +101,27 @@ export interface PartyInstanceView {
   [key: string]: any;
 }
 
+// ── Commune / dialogue overlay (storyline scenes) ────────────────────────────
+export interface SceneChoiceVM {
+  index: number;
+  label: string;
+}
+
+// The resolved current dialogue node the renderer draws in the Commune overlay.
+export interface SceneNodeVM {
+  dialogueId: string;
+  channel: string;                 // "personal_log" | "commune"
+  nodeId: string;
+  speaker: {
+    id: string; name: string;
+    accent?: string; silhouette?: string; rune?: string;
+  } | null;
+  text: string;
+  hint: string | null;             // a UI tab to name/pulse (e.g. "bag", "shops")
+  choices: SceneChoiceVM[];        // empty → advance with a single "continue"
+  isLast: boolean;
+}
+
 // The full snapshot returned by getSnapshot().
 export interface GameSnapshot {
   state: any;
@@ -111,6 +132,7 @@ export interface GameSnapshot {
   canButcher: boolean;
   combatMode: string;
   manualCombat: any | null;
+  pendingScene: SceneNodeVM | null;
   activeSlotId: string;
 }
 

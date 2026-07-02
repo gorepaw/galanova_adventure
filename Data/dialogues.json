@@ -1,0 +1,199 @@
+{
+  "_comment": "Commune / dialogue scenes. channel: 'personal_log' (internal monologue) | 'commune' (incoming signal). Each node has an id, speaker (-> speakers.json), text, an optional 'hint' (a UI tab to name/pulse), and either 'next' (node id | null to end) or 'choices'. 'effects' verbs are consumed by the engine in Phase 2 (assignQuest|completeQuest|setFlag|giveReward|startCombat|travel). Arc 1 = 'Under Rath'; text is author-editable.",
+  "dialogues": {
+    "dlg_under_rath_intro": {
+      "id": "dlg_under_rath_intro",
+      "_version": 1,
+      "channel": "personal_log",
+      "tags": ["story", "arc_under_rath"],
+      "nodes": [
+        {
+          "id": "n1",
+          "speaker": "lati_ashera",
+          "text": "Personal log, Rath Colony. Seven days. Emira walked out for a shift she never clocked, and the Colonial Authority has it filed under 'pending review' — like she's a lapsed permit, not my sister.",
+          "next": "n2"
+        },
+        {
+          "id": "n2",
+          "speaker": "lati_ashera",
+          "text": "Everyone says the same thing. Don't worry. Let them handle it. They handle everything — that's the whole problem.",
+          "next": "n3"
+        },
+        {
+          "id": "n3",
+          "speaker": "lati_ashera",
+          "text": "And I've heard what the street says about the lower tunnels lately. What comes up out of them. Maybe grief's just made me stupid.",
+          "next": "n4"
+        },
+        {
+          "id": "n4",
+          "speaker": "lati_ashera",
+          "text": "One pocket knife. One bad idea. Every drain under this colony until I find her.",
+          "next": null
+        }
+      ]
+    },
+
+    "dlg_under_rath_beat1": {
+      "id": "dlg_under_rath_beat1",
+      "_version": 1,
+      "channel": "personal_log",
+      "tags": ["story", "arc_under_rath", "tutorial"],
+      "nodes": [
+        {
+          "id": "n1",
+          "speaker": "lati_ashera",
+          "text": "Six eyes and I still didn't see that one coming. Fine. I'm learning.",
+          "next": "n2"
+        },
+        {
+          "id": "n2",
+          "speaker": "lati_ashera",
+          "text": "If I'm bleeding I should check what I'm carrying — a field kit, a ration, anything in the pack beats bleeding out in the dark.",
+          "hint": "bag",
+          "next": null
+        }
+      ]
+    },
+
+    "dlg_under_rath_beat3": {
+      "id": "dlg_under_rath_beat3",
+      "_version": 1,
+      "channel": "personal_log",
+      "tags": ["story", "arc_under_rath", "tutorial"],
+      "nodes": [
+        {
+          "id": "n1",
+          "speaker": "lati_ashera",
+          "text": "The stonework gets older the deeper I go. This colony was built on top of something.",
+          "next": "n2"
+        },
+        {
+          "id": "n2",
+          "speaker": "lati_ashera",
+          "text": "My knife's already chipped. If any maintenance stall down here still trades, I should spend what coin I've scraped — better steel, better odds.",
+          "hint": "shops",
+          "next": null
+        }
+      ]
+    },
+
+    "dlg_under_rath_beat5": {
+      "id": "dlg_under_rath_beat5",
+      "_version": 1,
+      "channel": "personal_log",
+      "tags": ["story", "arc_under_rath", "tutorial"],
+      "nodes": [
+        {
+          "id": "n1",
+          "speaker": "lati_ashera",
+          "text": "I'm getting good at this. That should frighten me more than it does.",
+          "next": "n2"
+        },
+        {
+          "id": "n2",
+          "speaker": "lati_ashera",
+          "text": "The little illusions come easier now — the misdirections, the false steps. I should take stock of what I've learned before whatever's making that smell finds me first.",
+          "hint": "skills",
+          "next": null
+        }
+      ]
+    },
+
+    "dlg_under_rath_discovery": {
+      "id": "dlg_under_rath_discovery",
+      "_version": 1,
+      "channel": "personal_log",
+      "tags": ["story", "arc_under_rath", "boss"],
+      "nodes": [
+        {
+          "id": "n1",
+          "speaker": "lati_ashera",
+          "text": "…That jacket. I'd know it in the dark. Emira.",
+          "next": "n2"
+        },
+        {
+          "id": "n2",
+          "speaker": "lati_ashera",
+          "text": "And she's not alone down here — others, torn open, still wearing restraint-cuffs. Not prisoners. Handlers.",
+          "next": "n3"
+        },
+        {
+          "id": "n3",
+          "speaker": "lati_ashera",
+          "text": "Something came through and unmade all of them. It's still wet. It's still here—",
+          "next": "n4"
+        },
+        {
+          "id": "n4",
+          "speaker": "lati_ashera",
+          "text": "It sees me. Good. Stay right there.",
+          "effects": [{ "type": "startCombat", "enemyId": "sewer_mutant" }],
+          "next": null
+        }
+      ]
+    },
+
+    "dlg_under_rath_victory": {
+      "id": "dlg_under_rath_victory",
+      "_version": 1,
+      "channel": "personal_log",
+      "tags": ["story", "arc_under_rath"],
+      "nodes": [
+        {
+          "id": "n1",
+          "speaker": "lati_ashera",
+          "text": "It's dead. And it doesn't matter, because she still is.",
+          "next": "n2"
+        },
+        {
+          "id": "n2",
+          "speaker": "lati_ashera",
+          "text": "…These cuffs. These brands. Slavers — dragging her out to move her, and this thing got to them first. The Authority swears there's no ring on the outskirts. They swear a lot of things to greyskins.",
+          "next": "n3"
+        },
+        {
+          "id": "n3",
+          "speaker": "lati_ashera",
+          "text": "I'm going to find who sent them. All of them. And I'll make the record impossible to bury.",
+          "effects": [
+            { "type": "completeQuest", "questId": "q_under_rath" },
+            { "type": "setFlag", "flag": "arc_under_rath_done", "value": true }
+          ],
+          "next": null
+        }
+      ]
+    },
+
+    "dlg_under_rath_rez_tunnels": {
+      "id": "dlg_under_rath_rez_tunnels",
+      "_version": 1,
+      "channel": "personal_log",
+      "tags": ["story", "arc_under_rath", "rez"],
+      "nodes": [
+        {
+          "id": "n1",
+          "speaker": "lati_ashera",
+          "text": "Get up. Get UP. …I'm not dying in a drain pipe. But I've lost the thread — I'll have to cut back in from the mouth of the tunnels.",
+          "next": null
+        }
+      ]
+    },
+
+    "dlg_under_rath_rez_boss": {
+      "id": "dlg_under_rath_rez_boss",
+      "_version": 1,
+      "channel": "personal_log",
+      "tags": ["story", "arc_under_rath", "rez"],
+      "nodes": [
+        {
+          "id": "n1",
+          "speaker": "lati_ashera",
+          "text": "It nearly had me. But I know its shape now — where it's slow, where it's soft. I won't have to go so deep to find it again.",
+          "effects": [{ "type": "setFlag", "flag": "sewer_mutant_attempted", "value": true }],
+          "next": null
+        }
+      ]
+    }
+  }
+}

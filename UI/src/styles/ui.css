@@ -1439,3 +1439,105 @@ html, body, #root { height: 100%; overflow: hidden; }
 .pet-card-type { font-size: 10px; color: var(--text-dim); text-transform: capitalize; margin-bottom: 4px; }
 .pet-card-desc { font-size: 11px; color: var(--muted); line-height: 1.4; }
 .pet-card-locked { font-size: 11px; color: var(--red, #e05050); }
+
+/* ── Commune overlay (storyline dialogue) ─────────────────────────────────────── */
+/* Dim + blur the whole app while a scene plays. */
+.app.app--commune .app-body { filter: blur(3px) brightness(0.5); pointer-events: none; user-select: none; }
+
+.commune-overlay {
+  position: fixed; inset: 0; z-index: 1000;
+  display: flex; align-items: center; justify-content: center;
+  padding: 24px;
+  animation: commune-fade 0.18s ease-out;
+}
+@keyframes commune-fade { from { opacity: 0; } to { opacity: 1; } }
+
+.commune-backdrop { position: absolute; inset: 0; background: rgba(6,6,14,0.5); }
+
+.commune-card {
+  position: relative; z-index: 1;
+  width: min(640px, 94vw);
+  display: flex; gap: 18px; align-items: flex-start;
+  padding: 20px 24px;
+  background: linear-gradient(180deg, var(--panel), var(--panel2));
+  border: 1px solid var(--border2);
+  border-radius: 6px;
+  box-shadow:
+    0 0 0 1px rgba(200,169,81,0.12),
+    0 0 34px rgba(200,169,81,0.12),
+    0 24px 70px rgba(0,0,0,0.55);
+  clip-path: polygon(0 0, calc(100% - 18px) 0, 100% 18px, 100% 100%, 0 100%);
+  overflow: hidden;
+  animation: commune-rise 0.22s ease-out;
+}
+@keyframes commune-rise { from { transform: translateY(8px); opacity: 0.4; } to { transform: translateY(0); opacity: 1; } }
+
+/* Incoming commune reads cooler/brighter than the quiet personal log. */
+.commune-card.channel-commune {
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--accent) 30%, transparent),
+    0 0 40px color-mix(in srgb, var(--accent) 22%, transparent),
+    0 24px 70px rgba(0,0,0,0.55);
+}
+
+.commune-scanline {
+  position: absolute; inset: 0; pointer-events: none; opacity: 0.5;
+  background: repeating-linear-gradient(0deg, rgba(255,255,255,0.025) 0 1px, transparent 1px 3px);
+}
+.commune-rune { position: absolute; top: 10px; right: 16px; color: var(--gold); opacity: 0.55; font-size: 13px; }
+
+.commune-portrait { flex-shrink: 0; filter: drop-shadow(0 0 10px color-mix(in srgb, var(--accent) 35%, transparent)); }
+
+.commune-main { flex: 1; min-width: 0; }
+.commune-who {
+  font-family: var(--font-display);
+  color: var(--gold); font-size: 16px; letter-spacing: 0.5px;
+  text-shadow: 0 0 8px rgba(200,169,81,0.35);
+}
+.commune-channel {
+  font-size: 10px; letter-spacing: 2px; text-transform: uppercase;
+  color: var(--text-dim); margin-top: 2px;
+}
+.channel-commune .commune-channel { color: var(--accent); }
+
+.commune-body {
+  color: var(--text-bright); font-size: 14px; line-height: 1.6;
+  margin-top: 12px; min-height: 4.8em; white-space: pre-wrap; cursor: pointer;
+}
+.commune-caret { color: var(--accent); animation: commune-blink 0.9s steps(1) infinite; }
+@keyframes commune-blink { 50% { opacity: 0; } }
+
+.commune-hint {
+  margin-top: 10px; font-size: 11px; color: var(--text-dim);
+  border-left: 2px solid var(--gold-dim); padding-left: 8px;
+}
+.commune-hint b { color: var(--gold); }
+
+.commune-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; justify-content: flex-end; }
+
+.commune-continue, .commune-choice {
+  font-family: var(--font-mono);
+  border: 1px solid var(--border2); background: var(--bg); color: var(--text);
+  border-radius: 4px; cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+.commune-continue { padding: 6px 16px; font-size: 12px; color: var(--gold); letter-spacing: 0.5px; }
+.commune-continue.is-skip { color: var(--text-dim); }
+.commune-continue:hover:not(:disabled) { border-color: var(--gold); background: rgba(200,169,81,0.1); }
+
+.commune-choice {
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 14px; font-size: 13px; text-align: left; width: 100%;
+}
+.commune-choice:hover:not(:disabled) { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, transparent); color: var(--text-bright); }
+.commune-choice-key {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 16px; height: 16px; border-radius: 3px; font-size: 10px; flex-shrink: 0;
+  background: var(--panel2); border: 1px solid var(--border2); color: var(--text-dim);
+}
+.commune-continue:disabled, .commune-choice:disabled { opacity: 0.5; cursor: default; }
+
+@media (prefers-reduced-motion: reduce) {
+  .commune-overlay, .commune-card { animation: none; }
+  .commune-caret { animation: none; }
+}

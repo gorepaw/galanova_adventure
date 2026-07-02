@@ -1,5 +1,42 @@
 {
   "realQuests": {
+    "q_under_rath": {
+      "id": "q_under_rath",
+      "name": "Under Rath",
+      "_version": 1,
+      "type": "story",
+      "description": "Emira is gone and the Colonial Authority won't look. Descend into the sewers beneath Rath and find your sister.",
+      "objectives": [
+        {
+          "id": "obj_find_emira",
+          "type": "story",
+          "count": 1,
+          "description": "Find Emira in the sewers beneath Rath"
+        }
+      ],
+      "rewards": { "xp": 0, "items": [] },
+      "prerequisites": [],
+      "zoneId": "colonial_sewers",
+      "autoAssign": true,
+      "onOffer": "dlg_under_rath_intro",
+      "onStage": [
+        { "at": 1, "dialogueId": "dlg_under_rath_beat1" },
+        { "at": 3, "dialogueId": "dlg_under_rath_beat3" },
+        { "at": 5, "dialogueId": "dlg_under_rath_beat5" }
+      ],
+      "onComplete": "dlg_under_rath_victory",
+      "script": {
+        "counter": "under_rath_wins",
+        "bossAt": 7,
+        "bossRetryAt": 2,
+        "bossId": "sewer_mutant",
+        "bossScene": "dlg_under_rath_discovery",
+        "rezScene": "dlg_under_rath_rez_tunnels",
+        "bossRezScene": "dlg_under_rath_rez_boss",
+        "attemptedFlag": "sewer_mutant_attempted"
+      },
+      "tags": ["story", "arc_under_rath"]
+    },
     "template_quest": {
       "id": "template_quest",
       "name": "Template Quest",

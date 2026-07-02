@@ -142,7 +142,7 @@ function getSnapshot(): GameSnapshot {
   if (!session) {
     return {
       state: null, save: null, partyInstances: [], zoneData: null, travelZones: [],
-      canButcher: false, combatMode: 'auto', manualCombat: null, activeSlotId: _activeSlotId,
+      canButcher: false, combatMode: 'auto', manualCombat: null, pendingScene: null, activeSlotId: _activeSlotId,
     }
   }
   const save = session.getSave()
@@ -214,6 +214,7 @@ function getSnapshot(): GameSnapshot {
     canButcher: !!(save?.flags?.pendingButchery?.length),
     combatMode: session?.getCombatMode?.() ?? 'auto',
     manualCombat: session?.getManualCombatState?.() ?? null,
+    pendingScene: session?.getPendingScene?.() ?? null,
     activeSlotId: _activeSlotId,
   }
 }
@@ -262,6 +263,8 @@ ipcMain.handle('game:butcherCorpses',    () => { session.butcherCorpses();    re
 ipcMain.handle('game:equipItem', (_, itemId, instanceId) => { session.equipItem(itemId, instanceId); return respond() })
 ipcMain.handle('game:rezMember', (_, instanceId)        => { session.rezMember(instanceId);        return respond() })
 ipcMain.handle('game:allocateStat', (_, instanceId, stat) => { session.allocateStat(instanceId, stat); return respond() })
+ipcMain.handle('game:advanceScene', () => { session.advanceScene(); return respond() })
+ipcMain.handle('game:chooseSceneOption', (_, choiceIndex) => { session.chooseSceneOption(choiceIndex); return respond() })
 ipcMain.handle('game:useItem',   (_, id)     => { session.useItem(id);       return respond() })
 ipcMain.handle('game:back',           () => { session.back();           return respond() })
 ipcMain.handle('game:getRosterData',  () => session.getRosterData())

@@ -3,6 +3,8 @@ import { contextBridge, ipcRenderer } from 'electron'
 contextBridge.exposeInMainWorld('gameAPI', {
   init:           ()           => ipcRenderer.invoke('game:init'),
   runEncounter:   ()           => ipcRenderer.invoke('game:runEncounter'),
+  advanceScene:   ()           => ipcRenderer.invoke('game:advanceScene'),
+  chooseSceneOption: (choiceIndex: number) => ipcRenderer.invoke('game:chooseSceneOption', choiceIndex),
   engageCombat:   ()           => ipcRenderer.invoke('game:engageCombat'),
   tryFlee:        ()           => ipcRenderer.invoke('game:tryFlee'),
   selectZone:     (zoneId: string)     => ipcRenderer.invoke('game:selectZone', zoneId),

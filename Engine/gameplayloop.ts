@@ -35,6 +35,7 @@ import { getSkillLevel, addSkillXp, abilitiesFromSkills, skillForAbilityUse, can
 import { ClassDB } from './equipment.js';
 import { buildCompanionInstance, seedCompanions } from './companions.js';
 import { EncounterGenerator, PartySkills, checkReroll } from './encounters.js';
+import { hasPendingScene, resolvePendingScene, advanceScene as storyAdvance, applyEffects as storyApplyEffects, enqueueScene, onStoryCombatVictory, onStoryBossDefeated, onStoryWipe } from './story.js';
 
 // Shared stat derivation — the SAME core the character sheet uses, so combat and
 // the sheet can never disagree (Engine/charsheet.js).
@@ -1525,7 +1526,7 @@ const DeathHandler = (() => {
       const inst = ir.data;
       if (inst.deathState === "downed" && !inst.permadead) {
         const pct      = wipeReturnHpPct(inst.level || 1);
-        const restored = { ...inst, deathState: "alive", currentHp: Math.max(1, Math.floor((inst.maxHp || 999) * pct)), downedAt: null, rezCost: 0 };
+        const restored = { ...inst, deathState: "alive", currentHp: Math.max(1, Math.floor((inst.maxHp || 999) * pct)), currentMp: inst.maxMp || 0, downedAt: null, rezCost: 0 };
         DataStore.write(`instances/companions/${m.instanceId}`, restored);
       }
       return m;
@@ -2150,6 +2151,13 @@ const HomeScreen = (() => {
       save = result.data;
       emit(`\nWelcome to Galanova`);
       emit(`Save loaded: slot "${slotId}" | Zone: ${save.currentZone} | Party: ${save.party.length}`);
+      // Opening story beat: on a truly fresh start (Under Rath not yet offered),
+      // assign the story quest and queue its offer scene (the personal-log diary).
+      if (!save.quests?.q_under_rath && !(save.seenScenes || []).includes("dlg_under_rath_intro")) {
+        save = storyApplyEffects(save, [{ type: "assignQuest", questId: "q_under_rath" }]).save;
+        save = enqueueScene(save, "dlg_under_rath_intro");
+        SaveManager.save(save, slotId);
+      }
       return true;
     };
 
@@ -2210,6 +2218,16 @@ const HomeScreen = (() => {
 
       save = cr.outcome === "victory" ? Modifiers.setFlag(save, "priorEncounterVictory", true) : Modifiers.clearFlag(save, "priorEncounterVictory");
 
+      // Storyline: on a win, either a boss was defeated (→ completion scene) or an
+      // ordinary win bumps the zone-scoped counter and may queue a stage/boss scene
+      // (the Under Rath 1/3/5 beats, then the boss at threshold). Surfaced by
+      // getPendingScene() once this resolves.
+      if (cr.outcome === "victory") {
+        const boss = onStoryBossDefeated(save, cr.kills);
+        save = boss.save;
+        if (!boss.defeated) save = onStoryCombatVictory(save);
+      }
+
       // Tick down persistent buff durations by turns elapsed; remove expired.
       const turnsPassed = cr.turns || 0;
       if (turnsPassed > 0) {
@@ -2231,6 +2249,9 @@ const HomeScreen = (() => {
         save = DeathHandler.handleWipe(save, diedThisCombat);
         if (save.wipedOut) { emit(`\n💀 GAME OVER � hardcore wipe.`); SaveManager.save(save, slotId); state = STATES.HOME; return; }
         emit(`\n💀 Party wipe! ${save._wipeNote || ""}`);
+        // Storyline: a genuine defeat in an arc resets its win counter and queues a
+        // rez scene — tunnels vs. boss (the boss variant sets the retry-discount flag).
+        if (cr.outcome !== "victory") save = onStoryWipe(save, !!enc?._storyBoss);
       }
 
       state = STATES.REWARD;
@@ -2293,6 +2314,11 @@ const HomeScreen = (() => {
         emit(`\n🏪 ${_zoneGuard.data.name} � Use the shop or travel to another zone.`);
         state = STATES.HOME;
         return;
+      }
+      // A story boss that was surfaced but not yet resolved (player navigated away or
+      // fled) always takes precedence over a random encounter, so the arc can't stall.
+      if (save.flags?.pendingStoryBoss) {
+        if (_surfaceBossEncounter(save.flags.pendingStoryBoss)) return;
       }
       state = STATES.ENCOUNTER;
       emit(`\n⚡ Generating encounter in ${save.currentZone}...`);
@@ -3180,6 +3206,55 @@ const HomeScreen = (() => {
       };
     };
 
+    // ── Commune / dialogue overlay ───────────────────────────────────────────
+    // The renderer polls getPendingScene() each snapshot; when non-null it draws
+    // the Commune overlay and drives it with advanceScene / chooseSceneOption.
+    const getPendingScene = () => resolvePendingScene(save);
+
+    // Surface a forced boss encounter as combat_pending. Returns false if the enemy
+    // failed to load.
+    const _surfaceBossEncounter = (enemyId: string): boolean => {
+      const er = Loader.load(`templates/enemies/${enemyId}`, "enemy");
+      if (!er.ok) { emit(`   (Story boss ${enemyId} failed to load.)`); return false; }
+      const enc: any = {
+        ok: true, encounterType: "combat", forced: true,
+        zoneId: save.currentZone,
+        enemies: [{ ...er.data, instanceId: `${enemyId}_${Date.now()}` }],
+        _storyBoss: enemyId,
+      };
+      emit(`\n⚡ Encounter: ${enc.enemies.map((e: any) => e.name).join(", ")}`);
+      _pendingCombat = enc;
+      state = STATES.COMBAT_PENDING;
+      return true;
+    };
+
+    // Deferred scene effects need Session state (combat/travel). startCombat records
+    // the boss on the save (so it survives navigation — runEncounter re-surfaces it
+    // until the boss is beaten or the party wipes) and surfaces it now. The
+    // _storyBoss marker lets post-combat tell a boss wipe from a tunnels wipe.
+    const _applySceneDeferred = (eff: any) => {
+      if (eff.type === "travel" && eff.zoneId) { selectZone(eff.zoneId); return; }
+      if (eff.type === "startCombat" && eff.enemyId) {
+        save = Modifiers.setFlag(save, "pendingStoryBoss", eff.enemyId);
+        _surfaceBossEncounter(eff.enemyId);
+      }
+    };
+
+    const _advanceScene = (choiceIndex?: number) => {
+      if (!hasPendingScene(save)) return;
+      const adv = storyAdvance(save, choiceIndex);
+      save = adv.save;
+      const applied = storyApplyEffects(save, adv.effects);
+      save = applied.save;
+      applied.log.forEach((l: string) => emit(l));
+      for (const eff of applied.deferred) _applySceneDeferred(eff);
+      // Persist quietly — one scene node shouldn't spam the log with save notes.
+      const sr = SaveManager.save(save, slotId);
+      if (!sr.ok) emit(`   ✗ Save failed: ${sr.errors?.join(", ")}`);
+    };
+    const advanceSceneFn      = () => _advanceScene(undefined);
+    const chooseSceneOption   = (choiceIndex: number) => _advanceScene(choiceIndex);
+
     // Spend one unspent stat point on a stat (stat-point allocation).
     // `allocateStat` (bare) is the leveltables helper injected at global scope.
     const allocateStatPoint = (instanceId: string, stat: string) => {
@@ -3189,7 +3264,7 @@ const HomeScreen = (() => {
       DataStore.write(`instances/companions/${instanceId}`, updated);
     };
 
-    return { init, flush, renderHome, runEncounter, engageCombat, tryFlee, useAbility, renderMap, selectZone, renderBag, useItem, renderShop, buyItem, sellItem, getShopData, renderStats, renderParty, renderReputation, renderAbilities, renderSaveLoad, manualSave, manualLoad, renderCrafting, craftItem, renderMounts, renderNonCombat, butcherCorpses, equipItem, rezMember, allocateStat: allocateStatPoint, back, getCurrentState, getSave, STATES, executePlayerAction, setCombatMode, getCombatMode, getManualCombatState, getRosterData, swapPartyMember, removeFromParty, addToParty, setPetForCompanion, getAvailablePets };
+    return { init, flush, renderHome, runEncounter, engageCombat, tryFlee, useAbility, renderMap, selectZone, renderBag, useItem, renderShop, buyItem, sellItem, getShopData, renderStats, renderParty, renderReputation, renderAbilities, renderSaveLoad, manualSave, manualLoad, renderCrafting, craftItem, renderMounts, renderNonCombat, butcherCorpses, equipItem, rezMember, allocateStat: allocateStatPoint, back, getCurrentState, getSave, STATES, executePlayerAction, setCombatMode, getCombatMode, getManualCombatState, getRosterData, swapPartyMember, removeFromParty, addToParty, setPetForCompanion, getAvailablePets, getPendingScene, advanceScene: advanceSceneFn, chooseSceneOption };
   };
 
   return { createSession, STATES };
@@ -3251,7 +3326,17 @@ const GameLoopTests = (() => {
     const rezR = DeathHandler.rezForGold(downed, dummySave);
     assert("rezForGold: success",               rezR.ok);
     assert("rezForGold: restores HP",           rezR.inst.currentHp === dummyInst.maxHp);
+    assert("rezForGold: restores MP",           rezR.inst.currentMp === dummyInst.maxMp);
     assert("handleDeath: hardcore → permadead", DeathHandler.handleDeath(dummyInst, { ...dummySave, mode: "hardcore" }).permadead);
+
+    // ── wipe revive restores MP to full (regression) ───────────────────────────
+    DataStore.write("instances/companions/wipe_mp_test", { instanceId: "wipe_mp_test", templateId: "wipe_mp_test", name: "WipeMP", _version: 1, level: 1, deathState: "downed", permadead: false, maxHp: 100, maxMp: 200, currentHp: 0, currentMp: 0, skills: {}, gear: {} });
+    const wipeRes = DeathHandler.handleWipe({ mode: "normal", currency: 1000, quests: {}, party: [{ instanceId: "wipe_mp_test" }] }, new Set(["wipe_mp_test"]));
+    const wipeInst = Loader.load("instances/companions/wipe_mp_test", "companionInstance");
+    assert("handleWipe: revives with full MP", wipeInst.ok && wipeInst.data.currentMp === 200);
+    assert("handleWipe: revives alive with HP > 0", wipeInst.ok && wipeInst.data.deathState === "alive" && wipeInst.data.currentHp > 0);
+    DataStore.remove("instances/companions/wipe_mp_test");
+    void wipeRes;
 
     // ── travel: same-region travel is free; price is the sole cross-region gate ─
     session.init("slot_start");
@@ -3372,6 +3457,61 @@ const GameLoopTests = (() => {
     } finally {
       Math.random = _rand;
     }
+
+    // ── STORY / COMMUNE ────────────────────────────────────────────────────────
+    const baseStory: any = { quests: {}, flags: {}, currency: 0, inventory: [], currentZone: "colonial_sewers" };
+    let ss: any = enqueueScene({ ...baseStory }, "dlg_under_rath_intro");
+    assert("Story: intro scene enqueued", hasPendingScene(ss));
+    const vm: any = resolvePendingScene(ss);
+    assert("Story: resolves speaker Lati Ashera", !!vm && vm.speaker?.name === "Lati Ashera");
+    assert("Story: intro first node has text, not last", !!vm && vm.text.length > 0 && vm.isLast === false);
+    let guard = 0;
+    while (hasPendingScene(ss) && guard++ < 25) ss = storyAdvance(ss).save;
+    assert("Story: scene ends after advancing all nodes", !hasPendingScene(ss));
+    assert("Story: intro marked seen", (ss.seenScenes || []).includes("dlg_under_rath_intro"));
+    assert("Story: re-enqueue of a seen scene is a no-op", !hasPendingScene(enqueueScene(ss, "dlg_under_rath_intro")));
+    const effRes = storyApplyEffects({ ...baseStory }, [{ type: "setFlag", flag: "tf", value: true }]);
+    assert("Story: setFlag effect applied", effRes.save.flags?.tf === true);
+    let cs: any = storyApplyEffects({ ...baseStory }, [{ type: "assignQuest", questId: "q_under_rath" }]).save;
+    assert("Story: assignQuest adds the quest", !!cs.quests?.q_under_rath && cs.quests.q_under_rath.completed === false);
+    cs = onStoryCombatVictory(cs);
+    assert("Story: win counter increments on victory", cs.storyCounters?.under_rath_wins === 1);
+    assert("Story: stage beat queued at threshold 1", (cs.sceneQueue || []).some((q: any) => q.dialogueId === "dlg_under_rath_beat1"));
+    const csOtherZone = onStoryCombatVictory({ ...cs, currentZone: "zone_test_plains", sceneQueue: [] });
+    assert("Story: win in a different zone does not count", csOtherZone.storyCounters?.under_rath_wins === 1);
+
+    // Boss threshold: 7 wins queues the discovery (boss) scene.
+    let bs: any = storyApplyEffects({ ...baseStory }, [{ type: "assignQuest", questId: "q_under_rath" }]).save;
+    for (let i = 0; i < 7; i++) bs = onStoryCombatVictory(bs);
+    assert("Story: counter reaches 7", bs.storyCounters?.under_rath_wins === 7);
+    assert("Story: boss scene queued at threshold 7", (bs.sceneQueue || []).some((q: any) => q.dialogueId === "dlg_under_rath_discovery"));
+
+    // Boss defeat → completion scene; non-boss kill is not a boss defeat.
+    const defd = onStoryBossDefeated({ ...bs, sceneQueue: [] }, [{ id: "sewer_mutant" }]);
+    assert("Story: boss defeat reports defeated", defd.defeated === true);
+    assert("Story: completion scene queued on boss defeat", (defd.save.sceneQueue || []).some((q: any) => q.dialogueId === "dlg_under_rath_victory"));
+    assert("Story: non-boss kill is not a boss defeat", onStoryBossDefeated({ ...bs, sceneQueue: [] }, [{ id: "tunnel_roach" }]).defeated === false);
+
+    // Wipes reset the counter and queue the right rez scene.
+    const bossWipe = onStoryWipe({ ...bs, sceneQueue: [] }, true);
+    assert("Story: boss wipe resets counter", bossWipe.storyCounters?.under_rath_wins === 0);
+    assert("Story: boss wipe queues boss rez scene", (bossWipe.sceneQueue || []).some((q: any) => q.dialogueId === "dlg_under_rath_rez_boss"));
+    const tunWipe = onStoryWipe({ ...cs, storyCounters: { under_rath_wins: 4 }, sceneQueue: [] }, false);
+    assert("Story: tunnels wipe resets counter", tunWipe.storyCounters?.under_rath_wins === 0);
+    assert("Story: tunnels wipe queues tunnels rez scene", (tunWipe.sceneQueue || []).some((q: any) => q.dialogueId === "dlg_under_rath_rez_tunnels"));
+    assert("Story: boss defeat clears pendingStoryBoss", onStoryBossDefeated({ ...bs, flags: { pendingStoryBoss: "sewer_mutant" }, sceneQueue: [] }, [{ id: "sewer_mutant" }]).save.flags.pendingStoryBoss === null);
+    assert("Story: boss wipe clears pendingStoryBoss", onStoryWipe({ ...bs, flags: { pendingStoryBoss: "sewer_mutant" }, sceneQueue: [] }, true).flags.pendingStoryBoss === null);
+
+    // Regression (bug fix): XP gain must NOT full-heal — damage carries between fights.
+    const hpBase: any = { instanceId: "hp_reg", classId: "armsman", level: 1, xp: 0, stats: { raw: { str: 10, dex: 15, con: 8, int: 8, spi: 9, wis: 13, spd: 10, cha: 9 } }, maxHp: 100, currentHp: 20, currentMp: 0, deathState: "alive" };
+    assert("Story: XP gain preserves damage (no full heal)", addXpToInst(hpBase, 10).inst.currentHp === 20);
+    assert("Story: level-up heals only the max-HP gain", (() => { const r = addXpToInst({ ...hpBase, currentHp: 20 }, 200).inst; return r.level === 2 && r.currentHp === 20 + (r.maxHp! - 100); })());
+
+    // Retry discount: once attempted, the boss threshold drops to 2.
+    let rt: any = storyApplyEffects({ ...baseStory, flags: { sewer_mutant_attempted: true } }, [{ type: "assignQuest", questId: "q_under_rath" }]).save;
+    rt = onStoryCombatVictory(rt);
+    rt = onStoryCombatVictory(rt);
+    assert("Story: retry boss threshold is 2 when attempted", (rt.sceneQueue || []).some((q: any) => q.dialogueId === "dlg_under_rath_discovery"));
 
     return { passed: p, failed: f, total: p + f, results };
   };

@@ -7,6 +7,8 @@ const _mobsData = require("../Data/mobs.json") as { mobs: Record<string, any> };
 const _questsData = require("../Data/quests.json") as { realQuests?: Record<string, any>; testQuests?: Record<string, any> };
 const _encounterTablesData = require("../Data/encounters.json") as { encounterTables: Record<string, any> };
 const _trapsData = require("../Data/traps.json") as { traps?: Record<string, any> };
+const _dialoguesData = require("../Data/dialogues.json") as { dialogues?: Record<string, any> };
+const _speakersData = require("../Data/speakers.json") as { speakers?: Record<string, any> };
 
 // Companion templates are hydrated + seeded by companions.ts. Imported directly
 // (companions → leveltables → skills is acyclic; none import back into datalayer).
@@ -62,7 +64,8 @@ export const SCHEMAS: Record<string, Schema> = {
   // Current status:
   //   LOCKED:  resourceCost, statBlock, effectEntry, buff, item
   //   OPEN:    ability, class, companion, companionInstance, enemy,
-  //            zone, quest, encounterTable, trait, quirk, trap, save
+  //            zone, quest, encounterTable, trait, quirk, trap, save,
+  //            dialogue, speaker
 
   resourceCost: {
     type: "object",
@@ -381,6 +384,44 @@ export const SCHEMAS: Record<string, Schema> = {
       zoneId:        { type: "string" },
       autoAssign:    { type: "boolean" },
       tags:          { type: "array",   items: { type: "string" } },
+      // --- storyline quests (design; consumed by the Phase 2 script layer) ---
+      // type "story" marks a scripted narrative quest; scene hooks name dialogue ids
+      // fired at offer / mid-stage / completion. See Docs/GALANOVA.md "Storyline Quests".
+      type:          { type: "string" },
+      onOffer:       { type: "string" },   // dialogue id shown when the quest is assigned
+      onStage:       { type: "array",  items: { type: "object" } }, // [{ at, dialogueId }]
+      onComplete:    { type: "string" },   // dialogue id shown when the quest completes
+    },
+    additionalProperties: true, // OPEN
+  },
+
+  // --- dialogue (Commune / personal-log scenes) --- OPEN
+  dialogue: {
+    $id: "dialogue",
+    type: "object",
+    required: ["id","nodes"],
+    properties: {
+      id:       { type: "string",  pattern: "^[a-z0-9_]+$" },
+      _version: { type: "integer", minimum: 1 },
+      channel:  { type: "string",  enum: ["personal_log","commune"] },
+      nodes:    { type: "array",   items: { type: "object" }, minItems: 1 },
+      tags:     { type: "array",   items: { type: "string" } },
+    },
+    additionalProperties: true, // OPEN
+  },
+
+  // --- speaker (dialogue voice registry) --- OPEN
+  speaker: {
+    $id: "speaker",
+    type: "object",
+    required: ["id","name"],
+    properties: {
+      id:         { type: "string",  pattern: "^[a-z0-9_]+$" },
+      _version:   { type: "integer", minimum: 1 },
+      name:       { type: "string",  minLength: 1 },
+      accent:     { type: "string" },   // hex accent color
+      silhouette: { type: "string" },   // species / placeholder key
+      rune:       { type: "string" },   // optional god-rune corner mark
     },
     additionalProperties: true, // OPEN
   },
@@ -700,6 +741,12 @@ export const Loader = (() => {
     },
     quest: {
       _version: 1, prerequisites: [], tags: [], autoAssign: false,
+    },
+    dialogue: {
+      _version: 1, channel: "personal_log", tags: [],
+    },
+    speaker: {
+      _version: 1,
     },
     encounterTable: {
       _version: 1, exclusiveGroups: [], recruitPool: [],
@@ -1184,6 +1231,12 @@ export const SyntheticData = (() => {
     for (const [id, quest] of Object.entries({ ...(_questsData.realQuests || {}), ...(_questsData.testQuests || {}) }))
       DataStore.write(`templates/quests/${id}`, quest);
 
+    for (const [id, dialogue] of Object.entries(_dialoguesData.dialogues || {}))
+      DataStore.write(`templates/dialogues/${id}`, dialogue);
+
+    for (const [id, speaker] of Object.entries(_speakersData.speakers || {}))
+      DataStore.write(`templates/speakers/${id}`, speaker);
+
     DataStore.write("saves/save_slot_01", {
       saveId: "slot_01", _version: 1,
       timestamp: new Date().toISOString(),
@@ -1352,6 +1405,8 @@ export const TestSuite = (() => {
     assert("Zone has forcedOnly default", zoneResult.data?.forcedOnly === false);
     assert("Zone has forcedEncounterQueue default", Array.isArray(zoneResult.data?.forcedEncounterQueue));
     assert("Loader: loads quest", Loader.load("templates/quests/quest_test_01", "quest").ok);
+    assert("Loader: loads dialogue", Loader.load("templates/dialogues/dlg_under_rath_intro", "dialogue").ok);
+    assert("Loader: loads speaker", Loader.load("templates/speakers/lati_ashera", "speaker").ok);
 
     return { passed, failed, total: passed + failed, results };
   };

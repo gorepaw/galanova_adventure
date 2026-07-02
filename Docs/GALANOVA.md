@@ -57,9 +57,29 @@ the galaxy.
 **The Sephir** — blue-skinned, six-eyed humanoids who first engineered machines to
 commune with the Liquimetal God, then FTL travel. They dominate the senate.
 
+**Sephir physiology (canon).** Tall, gently narrow heads — built to carry and accentuate
+**six eyes**, arranged as **three vertical pairs** running down the face (two columns of
+three). The narrowness is characteristic but not extreme (not *identifyingly* narrow).
+Skin is blue, but **greys** the farther a Sephir lives from Meyn-Sephir — a marker of the
+distant, poorer colonies (see *"Greyskins" & the colonial condition*).
+
 The era is one of uneasy **unification**: galactic order is fracturing as new regions
 are brought into the fold. Not all go quietly, and the unknown reaches of space pose
 their own threats.
+
+### "Greyskins" & the colonial condition (canon)
+The polity is the **Galactic Republic**. On average it rides an **eternal, stable upward
+trend** — prosperity is the norm at and near the core. That very stability makes the
+Republic **complacent about its margins.** Outlying colonies on largely uninhabited worlds
+ride harder cycles; when one hits an **economic downturn**, lawlessness creeps in and gets
+quietly **swept under the rug**.
+
+- **Slavery** is extremely uncommon Republic-wide — but it *does* surface in these
+  downturn colonies, tolerated through neglect rather than policy.
+- Far-flung Sephir colonists are **"greyskins"** (blue faded toward grey by distance from
+  Meyn-Sephir). Their complaints routinely **fall on deaf ears** in the core.
+- The starter setting, **Rath**, is exactly such a colony — which is why the **Colonial
+  Authority** can pretend the danger in and beneath it does not exist.
 
 ### The Starplains (region)
 A relative island amid immense anomalous barriers, home to several newly FTL-capable
@@ -306,7 +326,9 @@ combat sim using basic_attack.
 
 ### Sephir
 - **statMod:** −1 str, −1 con, +2 int
-- Blue-skinned, six-eyed humanoids of Meyn-Sephir (see *The Galaxy*). **Lati Ashera's race.**
+- Blue-skinned, six-eyed humanoids of Meyn-Sephir (see *The Galaxy* for full physiology:
+  tall narrow head, six eyes in three vertical pairs, skin greying with colonial distance).
+  **Lati Ashera's race.** Lati is a **greyskin** — a far-colony Sephir of Rath.
 
 ---
 
@@ -314,17 +336,116 @@ combat sim using basic_attack.
 
 The first playable slice, seeded into `slot_start`:
 - **Lati Ashera** — level 1 **Sephir Illusionist** (`instances/companions/player_main`,
-  `isPlayer`), all illusionist skills + universal riding/trading at level 1; abilities derive
-  from skills (currently just `basic_attack` from her weapon skills). With the Sephir mod her
-  stats are `str 7 · dex 10 · con 8 · int 18 · spi 12 · wis 10 · spd 11 · cha 15` → HP 80 /
-  MP 270. Starts with a **Basic Utility Knife** (dagger, `basic_utility_knife`) equipped, so
-  her Basic Attack trains the **daggers** skill.
+  `isPlayer`); **he/him** (a greyskin youth of Rath). All illusionist skills + universal
+  riding/trading at level 1; abilities derive from skills (currently just `basic_attack` from
+  his weapon skills). With the Sephir mod his stats are `str 7 · dex 10 · con 8 · int 18 ·
+  spi 12 · wis 10 · spd 11 · cha 15` → HP 80 / MP 270. Starts with a **Basic Utility Knife**
+  (dagger, `basic_utility_knife`) equipped, so his Basic Attack trains the **daggers** skill.
 - **Colonial Sewers** (`templates/zones/colonial_sewers`, region `rath`) — the only seeded zone
   (the WoW world map was stripped in Phase 6/7); `enc_colonial_sewers` combat pool = sewer rat +
   tunnel roach.
 - **Tunnel Roach** / **Colonial Sewer Rat** (`mobs.json`) — level 1 beasts, `basic_attack` only,
   Galanova stat keys, with per-creature `butcheryLoot` (meat/bone, + hide on the rat) and
   `butcheryXp`. Verified: Lati defeats one in ~6 turns.
+
+---
+
+## Storyline Quests & the Commune system (design)
+
+> **Status:** in design (session 3). Structure/mechanics below are agreed with the author;
+> lore text is authored (or Claude-expanded then author-revised). This section is the spec
+> the implementation follows.
+
+### Goal
+Story beats are **forced on the player** through a modal dialogue overlay that dims + blurs
+the whole app, distinct from the always-available right-hand text/quest panels. Used at quest
+**offer**, optional **mid-stages**, and **completion** — and for scripted cutscene moments.
+
+### "Commune" — the dialogue overlay
+**Commune** is the in-universe term for communication of any kind (psychic, technological, or
+both). The overlay comes in **two channels** (same component, different chrome):
+- **Personal Log** — internal monologue / diary. Quiet framing (e.g. `PERSONAL LOG // RATH`).
+- **Commune** — an incoming signal from another mind/machine. Transmission framing, sender
+  identity, optional god-**rune** corner mark.
+
+Visual language reuses the existing theme (dark navy, gold accent, Audiowide titles, IBM Plex
+Mono body): 1px framed card with faint outer glow, speaker portrait slot, typewriter body
+(supports the same inline `⟦entity⟧` tags as the combat log), a subtle scanline (honours
+`prefers-reduced-motion`), choice buttons or a single "▸ continue". **Portraits** are far-future
+work; the near-term placeholder is a **stylized SVG silhouette** per species (Sephir: tall
+narrow crown, six eyes as three vertical pairs, greyed-blue for colonists).
+
+### Data model
+- **`Data/dialogues.json`** — scenes keyed by id. Each scene: `id`, `_version`, `channel`
+  (`personal_log` | `commune`), `nodes[]`. Each node: `id`, `speaker` (→ speakers.json),
+  `text`, optional `hint` (a UI tab to name/pulse, e.g. `bag`/`shops`), and either `next`
+  (node id | `null`) or `choices[]`. Each choice: `label`, `effects[]`, `next`.
+- **`Data/speakers.json`** — speaker registry: `id`, `name`, `accent` (color), `silhouette`
+  (species/asset key), optional `rune`.
+- **`effects[]`** verbs (reuse `Modifiers`): `assignQuest`, `completeQuest`, `setFlag`,
+  `giveReward`, `startCombat`, `travel`.
+- **Story quests** (`quests.json`): `type: "story"` plus optional scene hooks — `onOffer`,
+  `onStage` (per objective/threshold), `onComplete` — and any script fields (below).
+
+### Trigger / quest-script layer (the adjacent system)
+Story beats need more than counters. A light script layer watches game events and drives the
+scene queue + encounter flow:
+- **encounter-win counter** scoped to a quest/zone (on the save);
+- **threshold triggers** → push scene(s) onto a **pending-scene queue**;
+- **forced-encounter injection** — override the encounter roll at a threshold (e.g. a boss);
+- **on-rez hook** — reset a counter and/or fire a scene when the party is revived;
+- **flags** (e.g. `boss_attempted`) that mutate thresholds;
+- **`seenScenes`** set so one-shot scenes never repeat; the queue + current node persist for
+  mid-scene resume.
+
+Engine returns `pendingScene` in the normal result; UI renders `<CommWindow>` and blocks tab/
+hotkey input while a scene is pending. New IPC: `advanceScene(nodeId)`, `chooseSceneOption(id)`.
+
+### Arc 1 — "Under Rath" (Colonial Sewers)
+The playable story slice. Lati Ashera's sister **Emira** vanished a week ago; the Colonial
+Authority filed it as "pending review." She was in fact **taken by slavers** to be moved
+off-world — but a **Sewer Mutant** (boss) butchered the whole crew, Emira included. Lati
+descends with a pocket knife to find her.
+
+**Beats** (text is expandable; names are canon):
+1. **New game — Personal Log.** Diary: seven days missing; the Authority's indifference;
+   distrust ("they handle everything — that's the problem"); street rumors of the lower
+   tunnels; grabs a knife and goes.
+2. **After 1st win — Personal Log** (hint: **Bag / healing**). Learning to fight; reminder to
+   use field kits / consumables.
+3. **After 3rd win — Personal Log** (hint: **Shop**). Older stonework the deeper he goes;
+   reminder to spend coin on better gear at maintenance stalls.
+4. **After 5th win — Personal Log** (hint: **Character / Skills**). His illusions come easier;
+   reminder to review learned skills.
+5. **7th encounter — crime scene → boss.** Finds Emira's body among **torn-apart handlers still
+   wearing restraint-cuffs**. The **Sewer Mutant** turns on him → forced boss fight.
+6. **Boss victory — closes Arc 1, opens Arc 2.** He reads the scene: slaver cuffs and brands;
+   the mutant got to them first. Resolves to hunt the **slaver ring on the colony outskirts**
+   the Authority pretends isn't there ("they swear a lot of things to greyskins").
+
+**Failure handling.**
+- **Death during the tunnels (kills 1–7):** on party rez, a Personal Log beat ("I've lost the
+  thread — cut back in from the mouth of the tunnels"); the **encounter-win counter resets**.
+- **Death to the boss:** on rez, a Personal Log beat ("I know its shape now"); sets
+  `boss_attempted` so the boss re-triggers after only **2** wins instead of 7.
+
+### Arc 2 — the slaver ring (hook only; not yet designed)
+Revenge against the slaver operation on Rath's outskirts. Ties into the **reputation system**
+(to be built) — story **choices with major reputation consequences** are a core intent and the
+reason branching (`choices[]`) is in the data model from day one. Content TBD with the author.
+
+### Build phases
+1. **Schemas** — `dialogues.json`, `speakers.json`, story-quest fields; datalayer schema +
+   defaults + seeding; Arc 1 authored as the concrete content. *(No engine behavior yet.)*
+2. **Engine** — pending-scene queue, `advanceScene`/`chooseSceneOption`, effect verbs,
+   encounter-win counter, threshold triggers, boss injection, on-rez reset, `seenScenes`.
+3. **`<CommWindow>` UI** — overlay, dim/blur, silhouette, typewriter, choices, keyboard,
+   personal-log vs commune variants, reduced-motion.
+4. **Polish + slice** — wire Arc 1 end-to-end; skip/auto/history; tab-hint pulse.
+
+### Open / TBD — do not invent
+- **Sewer Mutant** stat block / abilities (boss); Arc 2 factions, NPCs, and choices;
+  final speaker accent colors and rune assignments; real portraits.
 
 ---
 

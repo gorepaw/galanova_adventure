@@ -50,6 +50,27 @@
       "description": "A bloated roach grown fat in the sewers beneath Rath."
     },
 
+    "sewer_mutant": {
+      "id": "sewer_mutant",
+      "name": "Sewer Mutant",
+      "_version": 1,
+      "type": "aberration",
+      "level": 3,
+      "baseStats": { "str": 15, "dex": 8, "con": 22, "int": 3, "spi": 4, "wis": 4, "spd": 7, "cha": 1 },
+      "abilities": ["basic_attack"],
+      "aiProfile": "aggressive",
+      "isBoss": true,
+      "loot": [],
+      "xpValue": 160,
+      "currencyDrop": { "min": 40, "max": 90 },
+      "tags": ["aberration", "boss", "zone_colonial_sewers", "arc_under_rath"],
+      "butcheryXp": 20,
+      "butcheryLoot": [
+        { "type": "bone", "itemId": "small_bone", "chance": 0.8, "minQty": 1, "maxQty": 2 }
+      ],
+      "description": "A hulking thing the sewers made. Whatever it once was, hunger and mutation left only mass, teeth, and appetite — enough to tear through a slaver crew and everyone they were dragging."
+    },
+
     "mheader3": "//////////////////////////////////////////////////////////////////////////////",
     "mheader4": "///// TEST MOBS /// TEST MOBS /// TEST MOBS /// TEST MOBS /// TEST MOBS //////",
     "mheader5": "//////////////////////////////////////////////////////////////////////////////",

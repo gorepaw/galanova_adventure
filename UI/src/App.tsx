@@ -17,12 +17,13 @@ import QuestsPanel from './components/QuestsPanel'
 import CollectionsPanel from './components/CollectionsPanel'
 import AchievementsPanel from './components/AchievementsPanel'
 import SettingsPanel from './components/SettingsPanel'
+import CommWindow from './components/CommWindow'
 import useHotkeys from './hooks/useHotkeys'
 import { normalizeKey, formatKeyLabel } from './hotkeys'
 import { formatCurrency } from './currency'
 import type {
   RespondResult, SaveView, PartyInstanceView, ZoneView, TravelZoneView,
-  ShopData, EntityCatalog, SaveSlotView,
+  ShopData, EntityCatalog, SaveSlotView, SceneNodeVM,
 } from '../../Engine/types/viewmodel'
 
 const api = window.gameAPI
@@ -39,6 +40,7 @@ export default function App() {
   const [loading, setLoading]             = useState(false)
   const [combatMode, setCombatMode]       = useState('auto')
   const [manualCombat, setManualCombat]   = useState<any>(null)
+  const [pendingScene, setPendingScene]   = useState<SceneNodeVM | null>(null)
   const [craftingRecipes, setCraftingRecipes] = useState<any[]>([])
   const [shopData, setShopData]           = useState<ShopData | null>(null)
   const [itemCatalog, setItemCatalog]     = useState<Record<string, any>>({})
@@ -69,6 +71,7 @@ export default function App() {
     setCanButcher(result.canButcher || false)
     if (result.combatMode !== undefined) setCombatMode(result.combatMode)
     setManualCombat(result.manualCombat ?? null)
+    setPendingScene(result.pendingScene ?? null)
     if (result.activeSlotId) setActiveSlotId(result.activeSlotId)
     if (result.slots)        setSaveSlots(result.slots)
   }, [])
@@ -122,6 +125,7 @@ export default function App() {
     const shouldFire = autoRun && !loading && gameState === 'home'
       && prev !== null && prev !== 'home'
       && zoneData?.type !== 'shop'
+      && !pendingScene
 
     if (!shouldFire) return
 
@@ -134,7 +138,7 @@ export default function App() {
     }, 1500)
 
     return () => { if (autoRunTimerRef.current) { clearTimeout(autoRunTimerRef.current); autoRunTimerRef.current = null } }
-  }, [gameState, autoRun]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [gameState, autoRun, pendingScene]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Non-combat encounter auto-repeat: when loading finishes and state is still 'home',
   // the encounter resolved without a state transition (gathering node, etc.) —
@@ -146,7 +150,7 @@ export default function App() {
     // Always clear the flag — either path clears it
     justRanAutoEncounterRef.current = false
     // If state left 'home', it's a combat encounter — state effect handles rescheduling
-    if (gameState !== 'home' || !autoRun || zoneData?.type === 'shop') return
+    if (gameState !== 'home' || !autoRun || zoneData?.type === 'shop' || pendingScene) return
     // Non-combat: schedule the next encounter
     autoRunTimerRef.current = setTimeout(() => {
       autoRunTimerRef.current = null
@@ -161,14 +165,14 @@ export default function App() {
   // Auto-Engage / Auto-Run: respond to combat_pending automatically after ~1 s
   useEffect(() => {
     if (combatResponseTimerRef.current) { clearTimeout(combatResponseTimerRef.current); combatResponseTimerRef.current = null }
-    if (gameState !== 'combat_pending' || (!autoEngage && !autoFlee)) return
+    if (gameState !== 'combat_pending' || (!autoEngage && !autoFlee) || pendingScene) return
     combatResponseTimerRef.current = setTimeout(() => {
       combatResponseTimerRef.current = null
       if (autoEngage) { handleAction('engageCombat'); setActiveTab(null); activeTabRef.current = null }
       else if (autoFlee) { handleAction('tryFlee'); setActiveTab(null); activeTabRef.current = null }
     }, 1000)
     return () => { if (combatResponseTimerRef.current) { clearTimeout(combatResponseTimerRef.current); combatResponseTimerRef.current = null } }
-  }, [gameState, autoEngage, autoFlee]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [gameState, autoEngage, autoFlee, pendingScene]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const fetchRosterData = useCallback(async () => {
     try {
@@ -323,6 +327,7 @@ export default function App() {
       const tag = target?.tagName
       if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || target?.isContentEditable) return
       if (loading) return
+      if (pendingScene) return // CommWindow owns the keyboard while a scene plays
       const key = normalizeKey(e)
       if (!key) return
       const actionId = keyMap[key]
@@ -334,7 +339,7 @@ export default function App() {
     }
     document.addEventListener('keydown', handler)
     return () => document.removeEventListener('keydown', handler)
-  }, [keyMap, actionMap, loading])
+  }, [keyMap, actionMap, loading, pendingScene])
 
   const isShopZone  = zoneData?.type === 'shop'
   const isDungeon   = zoneData?.type === 'dungeon'
@@ -363,7 +368,7 @@ export default function App() {
   ]
 
   return (
-    <div className="app">
+    <div className={`app${pendingScene ? ' app--commune' : ''}`}>
       <header className="app-header">
         <div className="header-logo">Galanova Adventure</div>
         {save && (
@@ -570,6 +575,17 @@ export default function App() {
           <CombatLog messages={log} itemCatalog={itemCatalog} entityCatalog={entityCatalog} partyInstances={partyInstances} />
         </aside>
       </div>
+
+      {pendingScene && (
+        <ErrorBoundary key="commune" label="Commune">
+          <CommWindow
+            scene={pendingScene}
+            loading={loading}
+            onAdvance={() => handleAction('advanceScene')}
+            onChoose={(i: number) => handleAction('chooseSceneOption', i)}
+          />
+        </ErrorBoundary>
+      )}
     </div>
   )
 }
